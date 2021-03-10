@@ -17,8 +17,10 @@
 #include <sys/types.h>
 
 #include <err.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -101,6 +103,32 @@ print_messages(struct sbk_ctx *ctx)
 }
 
 int
+unveil_dirname(const char *path, const char *perms)
+{
+	char *dir, *tmp;
+
+	if ((tmp = strdup(path)) == NULL) {
+		warn(NULL);
+		return -1;
+	}
+
+	if ((dir = dirname(tmp)) == NULL) {
+		warnx("dirname() failed");
+		free(tmp);
+		return -1;
+	}
+
+	if (unveil(dir, perms) == -1) {
+		warn("unveil");
+		free(tmp);
+		return -1;
+	}
+
+	free(tmp);
+	return 0;
+}
+
+int
 main(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
@@ -112,8 +140,9 @@ main(int argc, char **argv)
 	db = argv[1];
 	key = argv[2];
 
-	if (unveil(db, "r") == -1)
-		err(1, "unveil");
+	/* For the database and its temporary files */
+	if (unveil_dirname(db, "r") == -1)
+		return 1;
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
@@ -121,6 +150,12 @@ main(int argc, char **argv)
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/tmp", "rwc") == -1)
+		err(1, "unveil");
+
+	if (unveil("/etc/localtime", "r") == -1)
+		err(1, "unveil");
+
+	if (unveil("/usr/share/zoneinfo", "r") == -1)
 		err(1, "unveil");
 
 	if (unveil(NULL, NULL) == -1)
