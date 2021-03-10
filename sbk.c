@@ -314,11 +314,11 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->profile_family_name,
-		    stm, 3) == -1)
+		    stm, 4) == -1)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->profile_joined_name,
-		    stm, 3) == -1)
+		    stm, 5) == -1)
 			goto error;
 
 		break;
