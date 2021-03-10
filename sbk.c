@@ -242,6 +242,7 @@ sbk_free_recipient_entry(struct sbk_recipient_entry *ent)
 		break;
 	}
 
+	free(ent->id);
 	free(ent);
 }
 
