@@ -90,7 +90,9 @@ print_messages(struct sbk_ctx *ctx)
 			    sbk_get_recipient_display_name(msg->source));
 
 		print_date_field("Sent", msg->time_sent);
-		print_date_field("Received", msg->time_recv);
+
+		if (!sbk_is_outgoing_message(msg))
+			print_date_field("Received", msg->time_recv);
 
 		if (msg->text != NULL)
 			printf("\n%s\n", msg->text);
