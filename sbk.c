@@ -37,6 +37,7 @@ RB_HEAD(sbk_recipient_tree, sbk_recipient_entry);
 
 struct sbk_ctx {
 	sqlite3		*db;
+	int		 db_version;
 	char		*error;
 	struct sbk_recipient_tree recipients;
 };
@@ -216,6 +217,30 @@ sbk_sqlite_step(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 }
 
 static int
+sbk_get_database_version(struct sbk_ctx *ctx)
+{
+	sqlite3_stmt	*stm;
+	int		 version;
+
+	if (sbk_sqlite_prepare(ctx, &stm, "PRAGMA user_version") == -1)
+		return -1;
+
+	if (sbk_sqlite_step(ctx, stm) != SQLITE_ROW) {
+		sqlite3_finalize(stm);
+		return -1;
+	}
+
+	if ((version = sqlite3_column_int(stm, 0)) < 0) {
+		sbk_error_setx(ctx, "Negative database version");
+		sqlite3_finalize(stm);
+		return -1;
+	}
+
+	sqlite3_finalize(stm);
+	return version;
+}
+
+static int
 sbk_cmp_recipient_entries(struct sbk_recipient_entry *e,
     struct sbk_recipient_entry *f)
 {
@@ -257,7 +282,8 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 	}
 }
 
-#define SBK_RECIPIENTS_QUERY						\
+/* For database versions >= 19 */
+#define SBK_RECIPIENTS_QUERY_19						\
 	"SELECT "							\
 	"id, "								\
 	"type, "							\
@@ -352,7 +378,7 @@ sbk_build_recipient_tree(struct sbk_ctx *ctx)
 	if (!RB_EMPTY(&ctx->recipients))
 		return 0;
 
-	if (sbk_sqlite_prepare(ctx, &stm, SBK_RECIPIENTS_QUERY) == -1)
+	if (sbk_sqlite_prepare(ctx, &stm, SBK_RECIPIENTS_QUERY_19) == -1)
 		return -1;
 
 	while ((ret = sbk_sqlite_step(ctx, stm)) == SQLITE_ROW) {
@@ -440,7 +466,8 @@ sbk_free_message_list(struct sbk_message_list *lst)
 	}
 }
 
-#define SBK_MESSAGES_QUERY						\
+/* For database versions 8 to 19 */
+#define SBK_MESSAGES_QUERY_8						\
 	"SELECT "							\
 	"conversationId, "						\
 	"source, "							\
@@ -450,6 +477,20 @@ sbk_free_message_list(struct sbk_message_list *lst)
 	"received_at "							\
 	"FROM messages "						\
 	"ORDER BY received_at"
+
+/* For database versions >= 20 */
+#define SBK_MESSAGES_QUERY_20						\
+	"SELECT "							\
+	"m.conversationId, "						\
+	"c.id, "							\
+	"m.type, "							\
+	"m.body, "							\
+	"m.sent_at, "							\
+	"m.received_at "						\
+	"FROM messages AS m "						\
+	"LEFT JOIN conversations AS c "					\
+	"ON m.sourceUuid = c.uuid "					\
+	"ORDER BY m.received_at"
 
 static struct sbk_message *
 sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
@@ -536,9 +577,15 @@ error:
 struct sbk_message_list *
 sbk_get_all_messages(struct sbk_ctx *ctx)
 {
-	sqlite3_stmt *stm;
+	sqlite3_stmt	*stm;
+	const char	*query;
 
-	if (sbk_sqlite_prepare(ctx, &stm, SBK_MESSAGES_QUERY) == -1)
+	if (ctx->db_version < 20)
+		query = SBK_MESSAGES_QUERY_8;
+	else
+		query = SBK_MESSAGES_QUERY_20;
+
+	if (sbk_sqlite_prepare(ctx, &stm, query) == -1)
 		return NULL;
 
 	return sbk_get_messages(ctx, stm);
@@ -577,6 +624,14 @@ sbk_open(struct sbk_ctx **ctx, const char *path, const char *key)
 	if (sqlite3_exec((*ctx)->db, "SELECT count(*) FROM sqlite_master",
 	    NULL, NULL, NULL) != SQLITE_OK) {
 		sbk_error_setx(*ctx, "Incorrect key");
+		return -1;
+	}
+
+	if (((*ctx)->db_version = sbk_get_database_version(*ctx)) == -1)
+		return -1;
+
+	if ((*ctx)->db_version < 19) {
+		sbk_error_setx(*ctx, "Database version not supported (yet)");
 		return -1;
 	}
 
