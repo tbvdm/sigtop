@@ -1,5 +1,5 @@
 PROG=		sigtop
-SRCS=		sbk.c sigtop.c
+SRCS=		cmd-messages.c sbk.c sigtop.c
 NOMAN=
 
 .if !(make(clean) || make(cleandir) || make(obj))

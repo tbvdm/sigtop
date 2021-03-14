@@ -67,4 +67,9 @@ int		 sbk_is_outgoing_message(const struct sbk_message *);
 
 const char	*sbk_get_recipient_display_name(const struct sbk_recipient *);
 
+int		 unveil_dirname(const char *, const char *);
+void		 usage(const char *, const char *) __dead;
+
+int		 cmd_messages(int, char **);
+
 #endif
