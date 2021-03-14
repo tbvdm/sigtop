@@ -29,7 +29,7 @@
 __dead void
 usage(void)
 {
-	fprintf(stderr, "usage: %s database key\n", getprogname());
+	fprintf(stderr, "usage: %s database keyfile\n", getprogname());
 	exit(1);
 }
 
@@ -134,17 +134,20 @@ int
 main(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
-	char		*db, *key;
+	char		*db, *keyfile;
 
 	if (argc != 3)
 		usage();
 
 	db = argv[1];
-	key = argv[2];
+	keyfile = argv[2];
 
 	/* For the database and its temporary files */
 	if (unveil_dirname(db, "r") == -1)
 		return 1;
+
+	if (unveil(keyfile, "r") == -1)
+		err(1, "unveil: %s", keyfile);
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
@@ -163,7 +166,7 @@ main(int argc, char **argv)
 	if (unveil(NULL, NULL) == -1)
 		err(1, "unveil");
 
-	if (sbk_open(&ctx, db, key) == -1) {
+	if (sbk_open(&ctx, db, keyfile) == -1) {
 		warnx("%s: %s", db, sbk_error(ctx));
 		sbk_close(ctx);
 		return 1;

@@ -14,17 +14,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#define JSMN_STATIC
+#define JSMN_STRICT
+
 #define SQLITE_HAS_CODEC
 
 #include <sys/tree.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <sqlite3.h>
 
+#include "jsmn.h"
 #include "sigtop.h"
 
 struct sbk_recipient_entry {
@@ -238,6 +244,174 @@ sbk_get_database_version(struct sbk_ctx *ctx)
 
 	sqlite3_finalize(stm);
 	return version;
+}
+
+static int
+sbk_jsmn_parse(const char *json, size_t jsonlen, jsmntok_t *tokens,
+    size_t ntokens)
+{
+	jsmn_parser	parser;
+	int		len;
+
+	jsmn_init(&parser);
+	len = jsmn_parse(&parser, json, jsonlen, tokens, ntokens);
+	if (len <= 0 || tokens[0].type != JSMN_OBJECT)
+		len = -1;
+	return len;
+}
+
+static int
+sbk_jsmn_is_valid_key(const jsmntok_t *token)
+{
+	return token->type == JSMN_STRING && token->size == 1;
+}
+
+static int
+sbk_jsmn_token_equals(const char *json, const jsmntok_t *token,
+    const char *str)
+{
+	size_t len;
+
+	len = strlen(str);
+	if (len != (unsigned int)(token->end - token->start))
+		return 0;
+	else
+		return memcmp(json + token->start, str, len) == 0;
+}
+
+static int
+sbk_jsmn_get_total_token_size(const jsmntok_t *tokens)
+{
+	int i, idx, size;
+
+	idx = 1;
+	switch (tokens[0].type) {
+	case JSMN_OBJECT:
+		for (i = 0; i < tokens[0].size; i++) {
+			if (!sbk_jsmn_is_valid_key(&tokens[idx]))
+				return -1;
+			size = sbk_jsmn_get_total_token_size(&tokens[++idx]);
+			if (size == -1)
+				return -1;
+			idx += size;
+		}
+		break;
+	case JSMN_ARRAY:
+		for (i = 0; i < tokens[0].size; i++) {
+			size = sbk_jsmn_get_total_token_size(&tokens[idx]);
+			if (size == -1)
+				return -1;
+			idx += size;
+		}
+		break;
+	case JSMN_STRING:
+	case JSMN_PRIMITIVE:
+		if (tokens[0].size != 0)
+			return -1;
+		break;
+	case JSMN_UNDEFINED:
+		return -1;
+	}
+
+	return idx;
+}
+
+static int
+sbk_jsmn_find_key(const char *json, const jsmntok_t *tokens, const char *key)
+{
+	int i, idx, size;
+
+	if (tokens[0].type != JSMN_OBJECT)
+		return -1;
+
+	idx = 1;
+	for (i = 0; i < tokens[0].size; i++) {
+		if (!sbk_jsmn_is_valid_key(&tokens[idx]))
+			return -1;
+		if (sbk_jsmn_token_equals(json, &tokens[idx], key))
+			return idx;
+		/* Skip value */
+		size = sbk_jsmn_get_total_token_size(&tokens[++idx]);
+		if (size == -1)
+			return -1;
+		idx += size;
+	}
+
+	/* Not found */
+	return -1;
+}
+
+static int
+sbk_jsmn_get_value(const char *json, const jsmntok_t *tokens, const char *key,
+    jsmntype_t type)
+{
+	int idx;
+
+	idx = sbk_jsmn_find_key(json, tokens, key);
+	if (idx == -1)
+		return -1;
+	if (tokens[++idx].type != type)
+		return -1;
+	return idx;
+}
+
+static int
+sbk_jsmn_get_string(const char *json, const jsmntok_t *tokens, const char *key)
+{
+	return sbk_jsmn_get_value(json, tokens, key, JSMN_STRING);
+}
+
+/* Read the database encryption key from a JSON file */
+static int
+sbk_get_key(struct sbk_ctx *ctx, char *buf, size_t bufsize, const char *path)
+{
+	jsmntok_t	tokens[64];
+	ssize_t		jsonlen;
+	int		fd, idx, keylen, len;
+	char		json[2048], *key;
+
+	if ((fd = open(path, O_RDONLY)) == -1) {
+		sbk_error_set(ctx, "%s", path);
+		return -1;
+	}
+
+	if ((jsonlen = read(fd, json, sizeof json - 1)) == -1) {
+		sbk_error_set(ctx, "%s", path);
+		close(fd);
+		goto error;
+	}
+
+	json[jsonlen] = '\0';
+	close(fd);
+
+	if (sbk_jsmn_parse(json, jsonlen, tokens, nitems(tokens)) == -1) {
+		sbk_error_setx(ctx, "%s: Cannot parse JSON data", path);
+		goto error;
+	}
+
+	idx = sbk_jsmn_get_string(json, tokens, "key");
+	if (idx == -1) {
+		sbk_error_setx(ctx, "%s: Cannot find key", path);
+		goto error;
+	}
+
+	key = json + tokens[idx].start;
+	keylen = tokens[idx].end - tokens[idx].start;
+
+	/* Write the key as an SQLite blob literal */
+	len = snprintf(buf, bufsize, "x'%.*s'", keylen, key);
+	if (len < 0 || (unsigned int)len >= bufsize) {
+		sbk_error_setx(ctx, "%s: Cannot get key", path);
+		goto error;
+	}
+
+	explicit_bzero(json, sizeof json);
+	return 0;
+
+error:
+	explicit_bzero(json, sizeof json);
+	explicit_bzero(buf, bufsize);
+	return -1;
 }
 
 static int
@@ -592,10 +766,9 @@ sbk_get_all_messages(struct sbk_ctx *ctx)
 }
 
 int
-sbk_open(struct sbk_ctx **ctx, const char *path, const char *key)
+sbk_open(struct sbk_ctx **ctx, const char *dbfile, const char *keyfile)
 {
-	char	*keyblob;
-	int	 len;
+	char key[128];
 
 	if ((*ctx = malloc(sizeof **ctx)) == NULL)
 		return -1;
@@ -603,22 +776,20 @@ sbk_open(struct sbk_ctx **ctx, const char *path, const char *key)
 	(*ctx)->error = NULL;
 	RB_INIT(&(*ctx)->recipients);
 
-	if (sbk_sqlite_open(*ctx, &(*ctx)->db, path, SQLITE_OPEN_READONLY) ==
-	    -1)
+	if (sbk_sqlite_open(*ctx, &(*ctx)->db, dbfile, SQLITE_OPEN_READONLY)
+	    == -1)
 		return -1;
 
-	if ((len = asprintf(&keyblob, "x'%s'", key)) == -1) {
-		sbk_error_setx(*ctx, "asprintf() failed");
+	if (sbk_get_key(*ctx, key, sizeof key, keyfile) == -1)
 		return -1;
-	}
 
-	if (sqlite3_key((*ctx)->db, keyblob, len) == -1) {
+	if (sqlite3_key((*ctx)->db, key, strlen(key)) == -1) {
 		sbk_error_sqlite_set(*ctx, "Cannot set key");
-		freezero(keyblob, len);
+		explicit_bzero(key, sizeof key);
 		return -1;
 	}
 
-	freezero(keyblob, len);
+	explicit_bzero(key, sizeof key);
 
 	/* Verify key */
 	if (sqlite3_exec((*ctx)->db, "SELECT count(*) FROM sqlite_master",

@@ -19,6 +19,10 @@
 
 #include <sys/queue.h>
 
+#ifndef nitems
+#define nitems(a) (sizeof (a) / sizeof (a)[0])
+#endif
+
 struct sbk_ctx;
 
 struct sbk_contact {
