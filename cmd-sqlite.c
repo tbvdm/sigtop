@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2021 Tim van der Molen <tim@kariliq.nl>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#include <err.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include "sigtop.h"
+
+int
+cmd_sqlite(int argc, char **argv)
+{
+	struct sbk_ctx	*ctx;
+	char		*export_db, *keyfile, *signal_db;
+	int		 fd, ret;
+
+	if (argc != 4)
+		goto usage;
+
+	signal_db = argv[1];
+	keyfile = argv[2];
+	export_db = argv[3];
+
+	/* For the Signal database and its temporary files */
+	if (unveil_dirname(signal_db, "r") == -1)
+		return 1;
+
+	/* For the export database and its temporary files */
+	if (unveil_dirname(export_db, "rwc") == -1)
+		return 1;
+
+	if (unveil(keyfile, "r") == -1)
+		err(1, "unveil: %s", keyfile);
+
+	/* For SQLite/SQLCipher */
+	if (unveil("/dev/urandom", "r") == -1)
+		err(1, "unveil");
+
+	/* For SQLite/SQLCipher */
+	if (unveil("/tmp", "rwc") == -1)
+		err(1, "unveil");
+
+	if (unveil(NULL, NULL) == -1)
+		err(1, "unveil");
+
+	/* Ensure the export database does not already exist */
+	if ((fd = open(export_db, O_RDONLY | O_CREAT | O_EXCL, 0666)) == -1)
+		err(1, "%s", export_db);
+
+	close(fd);
+
+	if (sbk_open(&ctx, signal_db, keyfile) == -1) {
+		warnx("%s: %s", signal_db, sbk_error(ctx));
+		sbk_close(ctx);
+		return -1;
+	}
+
+	if ((ret = sbk_write_database(ctx, export_db)) == -1)
+		warnx("%s", sbk_error(ctx));
+
+	sbk_close(ctx);
+	return (ret == 0) ? 0 : 1;
+
+usage:
+	usage("sqlite", "signal-database keyfile export-database");
+}
