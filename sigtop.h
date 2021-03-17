@@ -19,6 +19,8 @@
 
 #include <sys/queue.h>
 
+#include <stdint.h>
+
 #ifndef nitems
 #define nitems(a) (sizeof (a) / sizeof (a)[0])
 #endif
