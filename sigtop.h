@@ -17,9 +17,9 @@
 #ifndef SIGTOP_H
 #define SIGTOP_H
 
-#include <sys/queue.h>
-
 #include <stdint.h>
+
+#include "compat.h"
 
 #ifndef nitems
 #define nitems(a) (sizeof (a) / sizeof (a)[0])

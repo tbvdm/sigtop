@@ -14,7 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <err.h>
+#include "config.h"
+
 #include <fcntl.h>
 #include <unistd.h>
 

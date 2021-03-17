@@ -1,0 +1,17 @@
+name: build
+
+on: push
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: install dependencies
+      run: >
+        sudo apt-get install build-essential libsqlipher-dev libssl-dev
+        pkg-config
+    - name: build
+      run: make

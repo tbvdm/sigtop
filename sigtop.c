@@ -14,7 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <err.h>
+#include "config.h"
+
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +60,8 @@ unveil_dirname(const char *path, const char *perms)
 int
 main(int argc, char **argv)
 {
+	setprogname(argv[0]);
+
 	if (argc < 2)
 		usage("command", "[argument ...]");
 

@@ -1,10 +1,40 @@
-PROG=		sigtop
-SRCS=		cmd-messages.c cmd-sqlite.c sbk.c sigtop.c
-NOMAN=
+PREFIX?=	/usr/local
+BINDIR?=	${PREFIX}/bin
 
-.if !(make(clean) || make(cleandir) || make(obj))
-CFLAGS+!=	pkg-config --cflags sqlcipher
-LDADD+!=	pkg-config --libs sqlcipher
-.endif
+CC?=		cc
+INSTALL?=	install
+PKG_CONFIG?=	pkg-config
 
-.include <bsd.prog.mk>
+PKGS?=		libcrypto sqlcipher
+
+PKGS_CFLAGS!=	${PKG_CONFIG} --cflags ${PKGS}
+PKGS_LDFLAGS!=	${PKG_CONFIG} --libs ${PKGS}
+
+CFLAGS+=	${PKGS_CFLAGS}
+LDFLAGS+=	${PKGS_LDFLAGS}
+
+COMPAT_OBJS=	compat/asprintf.o compat/err.o compat/explicit_bzero.o \
+		compat/getprogname.o compat/unveil.o
+
+OBJS=		cmd-messages.o cmd-sqlite.o sbk.o sigtop.o ${COMPAT_OBJS}
+
+.PHONY: all clean install
+
+.SUFFIXES: .c .o
+
+.c.o:
+	${CC} ${CFLAGS} ${CPPFLAGS} -c -o $@ $<
+
+all: sigtop
+
+sigtop: ${OBJS}
+	${CC} -o $@ ${OBJS} ${LDFLAGS}
+
+${OBJS}: config.h
+
+clean:
+	rm -f sigtop sigtop.core core ${OBJS}
+
+install: all
+	${INSTALL} -dm 755 ${DESTDIR}${BINDIR}
+	${INSTALL} -m 555 sigtop ${DESTDIR}${BINDIR}

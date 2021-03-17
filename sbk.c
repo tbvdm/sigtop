@@ -19,7 +19,7 @@
 
 #define SQLITE_HAS_CODEC
 
-#include <sys/tree.h>
+#include "config.h"
 
 #include <errno.h>
 #include <fcntl.h>
