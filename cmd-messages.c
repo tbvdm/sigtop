@@ -19,13 +19,40 @@
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "sigtop.h"
 
+enum {
+	FORMAT_JSON,
+	FORMAT_TEXT
+};
+
+static int
+json_write_messages(struct sbk_ctx *ctx)
+{
+	struct sbk_message_list	*lst;
+	struct sbk_message	*msg;
+
+	if ((lst = sbk_get_all_messages(ctx)) == NULL) {
+		warnx("%s", sbk_error(ctx));
+		return -1;
+	}
+
+	puts("[");
+	SIMPLEQ_FOREACH(msg, lst, entries)
+		printf("%s%s\n", msg->json,
+		    (SIMPLEQ_NEXT(msg, entries) != NULL) ? "," : "");
+	puts("]");
+
+	sbk_free_message_list(lst);
+	return 0;
+}
+
 static void
-write_date_field(const char *field, int64_t date)
+text_write_date_field(const char *field, int64_t date)
 {
 	const char	*days[] = {
 	    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
@@ -59,7 +86,7 @@ write_date_field(const char *field, int64_t date)
 }
 
 static int
-write_messages(struct sbk_ctx *ctx)
+text_write_messages(struct sbk_ctx *ctx)
 {
 	struct sbk_message_list	*lst;
 	struct sbk_message	*msg;
@@ -80,10 +107,10 @@ write_messages(struct sbk_ctx *ctx)
 			printf("From: %s\n",
 			    sbk_get_recipient_display_name(msg->source));
 
-		write_date_field("Sent", msg->time_sent);
+		text_write_date_field("Sent", msg->time_sent);
 
 		if (!sbk_is_outgoing_message(msg))
-			write_date_field("Received", msg->time_recv);
+			text_write_date_field("Received", msg->time_recv);
 
 		if (msg->text != NULL)
 			printf("\n%s\n", msg->text);
@@ -100,13 +127,32 @@ cmd_messages(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
 	char		*db, *keyfile;
-	int		 ret;
+	int		 c, format, ret;
 
-	if (argc != 3)
+	format = FORMAT_TEXT;
+
+	while ((c = getopt(argc, argv, "f:")) != -1)
+		switch (c) {
+		case 'f':
+			if (strcmp(optarg, "json") == 0)
+				format = FORMAT_JSON;
+			else if (strcmp(optarg, "text") == 0)
+				format = FORMAT_TEXT;
+			else
+				errx(1, "%s: invalid format", optarg);
+			break;
+		default:
+			goto usage;
+		}
+
+	argc -= optind;
+	argv += optind;
+
+	if (argc != 2)
 		goto usage;
 
-	db = argv[1];
-	keyfile = argv[2];
+	db = argv[0];
+	keyfile = argv[1];
 
 	/* For the database and its temporary files */
 	if (unveil_dirname(db, "r") == -1)
@@ -138,11 +184,18 @@ cmd_messages(int argc, char **argv)
 		return 1;
 	}
 
-	ret = write_messages(ctx);
+	switch (format) {
+	case FORMAT_JSON:
+		ret = json_write_messages(ctx);
+		break;
+	case FORMAT_TEXT:
+		ret = text_write_messages(ctx);
+		break;
+	}
 
 	sbk_close(ctx);
 	return (ret == 0) ? 0 : 1;
 
 usage:
-	usage("messages", "database keyfile");
+	usage("messages", "[-f format] database keyfile");
 }

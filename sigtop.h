@@ -52,6 +52,7 @@ struct sbk_message {
 	uint64_t	 time_recv;
 	char		*type;
 	char		*text;
+	char		*json;
 	SIMPLEQ_ENTRY(sbk_message) entries;
 };
 

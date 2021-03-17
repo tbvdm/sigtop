@@ -751,7 +751,9 @@ sbk_is_outgoing_message(const struct sbk_message *msg)
 static void
 sbk_free_message(struct sbk_message *msg)
 {
+	free(msg->type);
 	free(msg->text);
+	free(msg->json);
 	free(msg);
 }
 
@@ -776,6 +778,7 @@ sbk_free_message_list(struct sbk_message_list *lst)
 	"source, "							\
 	"type, "							\
 	"body, "							\
+	"json, "							\
 	"sent_at, "							\
 	"received_at "							\
 	"FROM messages "						\
@@ -788,6 +791,7 @@ sbk_free_message_list(struct sbk_message_list *lst)
 	"c.id, "							\
 	"m.type, "							\
 	"m.body, "							\
+	"m.json, "							\
 	"m.sent_at, "							\
 	"m.received_at "						\
 	"FROM messages AS m "						\
@@ -831,8 +835,11 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	if (sbk_sqlite_column_text_copy(ctx, &msg->text, stm, 3) == -1)
 		goto error;
 
-	msg->time_sent = sqlite3_column_int64(stm, 4);
-	msg->time_recv = sqlite3_column_int64(stm, 5);
+	if (sbk_sqlite_column_text_copy(ctx, &msg->json, stm, 4) == -1)
+		goto error;
+
+	msg->time_sent = sqlite3_column_int64(stm, 5);
+	msg->time_recv = sqlite3_column_int64(stm, 6);
 	return msg;
 
 error:
