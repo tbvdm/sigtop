@@ -31,7 +31,7 @@ enum {
 };
 
 static int
-json_write_messages(struct sbk_ctx *ctx)
+json_write_messages(struct sbk_ctx *ctx, FILE *fp)
 {
 	struct sbk_message_list	*lst;
 	struct sbk_message	*msg;
@@ -41,18 +41,18 @@ json_write_messages(struct sbk_ctx *ctx)
 		return -1;
 	}
 
-	puts("[");
+	fputs("[\n", fp);
 	SIMPLEQ_FOREACH(msg, lst, entries)
-		printf("%s%s\n", msg->json,
+		fprintf(fp, "%s%s\n", msg->json,
 		    (SIMPLEQ_NEXT(msg, entries) != NULL) ? "," : "");
-	puts("]");
+	fputs("]\n", fp);
 
 	sbk_free_message_list(lst);
 	return 0;
 }
 
 static void
-text_write_date_field(const char *field, int64_t date)
+text_write_date_field(FILE *fp, const char *field, int64_t date)
 {
 	const char	*days[] = {
 	    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
@@ -71,7 +71,7 @@ text_write_date_field(const char *field, int64_t date)
 		return;
 	}
 
-	printf("%s: %s, %d %s %d %02d:%02d:%02d %c%02ld%02ld\n",
+	fprintf(fp, "%s: %s, %d %s %d %02d:%02d:%02d %c%02ld%02ld\n",
 	    field,
 	    days[tm->tm_wday],
 	    tm->tm_mday,
@@ -86,7 +86,7 @@ text_write_date_field(const char *field, int64_t date)
 }
 
 static int
-text_write_messages(struct sbk_ctx *ctx)
+text_write_messages(struct sbk_ctx *ctx, FILE *fp)
 {
 	struct sbk_message_list	*lst;
 	struct sbk_message	*msg;
@@ -97,25 +97,25 @@ text_write_messages(struct sbk_ctx *ctx)
 	}
 
 	SIMPLEQ_FOREACH(msg, lst, entries) {
-		printf("Conversation: %s\n",
+		fprintf(fp, "Conversation: %s\n",
 		    sbk_get_recipient_display_name(msg->conversation));
 
 		if (sbk_is_outgoing_message(msg))
-			printf("To: %s\n",
+			fprintf(fp, "To: %s\n",
 			    sbk_get_recipient_display_name(msg->conversation));
 		else if (msg->source != NULL)
-			printf("From: %s\n",
+			fprintf(fp, "From: %s\n",
 			    sbk_get_recipient_display_name(msg->source));
 
-		text_write_date_field("Sent", msg->time_sent);
+		text_write_date_field(fp, "Sent", msg->time_sent);
 
 		if (!sbk_is_outgoing_message(msg))
-			text_write_date_field("Received", msg->time_recv);
+			text_write_date_field(fp, "Received", msg->time_recv);
 
 		if (msg->text != NULL)
-			printf("\n%s\n", msg->text);
+			fprintf(fp, "\n%s\n", msg->text);
 
-		putchar('\n');
+		putc('\n', fp);
 	}
 
 	sbk_free_message_list(lst);
@@ -126,7 +126,8 @@ int
 cmd_messages(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
-	char		*dir;
+	FILE		*fp;
+	char		*dir, *file;
 	int		 c, format, ret;
 
 	format = FORMAT_TEXT;
@@ -148,8 +149,18 @@ cmd_messages(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 1)
+	switch (argc) {
+	case 1:
+		file = NULL;
+		break;
+	case 2:
+		file = argv[1];
+		if (unveil(file, "wc") == -1)
+			err(1, "unveil");
+		break;
+	default:
 		goto usage;
+	}
 
 	dir = argv[0];
 
@@ -179,12 +190,20 @@ cmd_messages(int argc, char **argv)
 		return 1;
 	}
 
+	if (file == NULL)
+		fp = stdout;
+	else if ((fp = fopen(file, "wx")) == NULL) {
+		warn("fopen: %s", file);
+		sbk_close(ctx);
+		return -1;
+	}
+
 	switch (format) {
 	case FORMAT_JSON:
-		ret = json_write_messages(ctx);
+		ret = json_write_messages(ctx, fp);
 		break;
 	case FORMAT_TEXT:
-		ret = text_write_messages(ctx);
+		ret = text_write_messages(ctx, fp);
 		break;
 	}
 
@@ -192,5 +211,5 @@ cmd_messages(int argc, char **argv)
 	return (ret == 0) ? 0 : 1;
 
 usage:
-	usage("messages", "[-f format] signal-directory");
+	usage("messages", "[-f format] signal-directory [file]");
 }
