@@ -14,6 +14,9 @@
 /* Define if you have explicit_bzero(). */
 /* #define HAVE_EXPLICIT_BZERO */
 
+/* Define if your fopen() supports the "x" mode extension. */
+/* #define HAVE_FOPEN_X_MODE */
+
 /* Define if you have getprogname() and setprogname(). */
 /* #define HAVE_GETPROGNAME */
 
@@ -25,6 +28,7 @@
 #define HAVE_ASPRINTF
 #define HAVE_ERR
 #define HAVE_EXPLICIT_BZERO
+#define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
 
 #elif defined(__FreeBSD__)
@@ -32,12 +36,14 @@
 #define HAVE_ASPRINTF
 #define HAVE_ERR
 #define HAVE_EXPLICIT_BZERO
+#define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
 
 #elif defined(__NetBSD__)
 
 #define HAVE_ASPRINTF
 #define HAVE_ERR
+#define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
 
 #elif defined(__OpenBSD__)
@@ -45,6 +51,7 @@
 #define HAVE_ASPRINTF
 #define HAVE_ERR
 #define HAVE_EXPLICIT_BZERO
+#define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
 #define HAVE_UNVEIL
 
@@ -55,6 +62,7 @@
 /* All modern versions of glibc, musl and bionic have these. */
 #define HAVE_ASPRINTF
 #define HAVE_ERR
+#define HAVE_FOPEN_X_MODE
 
 #include <features.h>
 

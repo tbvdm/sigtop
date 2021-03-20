@@ -30,6 +30,7 @@
 #endif
 
 #include <stdarg.h>
+#include <stdio.h>
 
 #ifdef __OpenBSD__
 #include <sys/queue.h>
@@ -65,6 +66,11 @@ void	 vwarnx(const char *, va_list);
 #include <strings.h> /* For FreeBSD */
 #else
 void	 explicit_bzero(void *, size_t);
+#endif
+
+#ifndef HAVE_FOPEN_X_MODE
+FILE	*xfopen(const char *, const char *);
+#define fopen xfopen
 #endif
 
 #ifndef HAVE_GETPROGNAME
