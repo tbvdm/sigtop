@@ -25,26 +25,17 @@ int
 cmd_sqlite(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
-	char		*export_db, *keyfile, *signal_db;
+	char		*db, *dir;
 	int		 fd, ret;
 
-	if (argc != 4)
+	if (argc != 3)
 		goto usage;
 
-	signal_db = argv[1];
-	keyfile = argv[2];
-	export_db = argv[3];
+	dir = argv[1];
+	db = argv[2];
 
-	/* For the Signal database and its temporary files */
-	if (unveil_dirname(signal_db, "r") == -1)
+	if (unveil(dir, "r") == -1)
 		return 1;
-
-	/* For the export database and its temporary files */
-	if (unveil_dirname(export_db, "rwc") == -1)
-		return 1;
-
-	if (unveil(keyfile, "r") == -1)
-		err(1, "unveil: %s", keyfile);
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
@@ -54,27 +45,31 @@ cmd_sqlite(int argc, char **argv)
 	if (unveil("/tmp", "rwc") == -1)
 		err(1, "unveil");
 
+	/* For the export database and its temporary files */
+	if (unveil_dirname(db, "rwc") == -1)
+		return 1;
+
 	if (unveil(NULL, NULL) == -1)
 		err(1, "unveil");
 
 	/* Ensure the export database does not already exist */
-	if ((fd = open(export_db, O_RDONLY | O_CREAT | O_EXCL, 0666)) == -1)
-		err(1, "%s", export_db);
+	if ((fd = open(db, O_RDONLY | O_CREAT | O_EXCL, 0666)) == -1)
+		err(1, "%s", db);
 
 	close(fd);
 
-	if (sbk_open(&ctx, signal_db, keyfile) == -1) {
-		warnx("%s: %s", signal_db, sbk_error(ctx));
+	if (sbk_open(&ctx, dir) == -1) {
+		warnx("%s", sbk_error(ctx));
 		sbk_close(ctx);
 		return -1;
 	}
 
-	if ((ret = sbk_write_database(ctx, export_db)) == -1)
+	if ((ret = sbk_write_database(ctx, db)) == -1)
 		warnx("%s", sbk_error(ctx));
 
 	sbk_close(ctx);
 	return (ret == 0) ? 0 : 1;
 
 usage:
-	usage("sqlite", "signal-database keyfile export-database");
+	usage("sqlite", "signal-directory file");
 }
