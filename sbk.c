@@ -821,8 +821,7 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	}
 
 	if ((id = sqlite3_column_text(stm, 1)) == NULL) {
-		/* Likely message with error */
-		msg->conversation = NULL;
+		msg->source = NULL;
 	} else {
 		msg->source = sbk_get_recipient_from_conversation_id(ctx, id);
 		if (msg->source == NULL)
@@ -864,7 +863,7 @@ sbk_get_messages(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	while ((ret = sbk_sqlite_step(ctx, ctx->db, stm)) == SQLITE_ROW) {
 		if ((msg = sbk_get_message(ctx, stm)) == NULL)
 			goto error;
-		if (msg->conversation == NULL || msg->source == NULL) {
+		if (msg->conversation == NULL) {
 			/* Likely message with error; skip it */
 			sbk_free_message(msg);
 		} else {

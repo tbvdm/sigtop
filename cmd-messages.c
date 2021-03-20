@@ -103,7 +103,7 @@ text_write_messages(struct sbk_ctx *ctx)
 		if (sbk_is_outgoing_message(msg))
 			printf("To: %s\n",
 			    sbk_get_recipient_display_name(msg->conversation));
-		else
+		else if (msg->source != NULL)
 			printf("From: %s\n",
 			    sbk_get_recipient_display_name(msg->source));
 
