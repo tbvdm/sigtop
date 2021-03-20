@@ -60,7 +60,7 @@ struct sbk_message {
 
 SIMPLEQ_HEAD(sbk_message_list, sbk_message);
 
-int		 sbk_open(struct sbk_ctx **, const char *, const char *);
+int		 sbk_open(struct sbk_ctx **, const char *);
 void		 sbk_close(struct sbk_ctx *);
 const char	*sbk_error(struct sbk_ctx *);
 

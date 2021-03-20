@@ -126,7 +126,7 @@ int
 cmd_messages(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
-	char		*db, *keyfile;
+	char		*dir;
 	int		 c, format, ret;
 
 	format = FORMAT_TEXT;
@@ -148,18 +148,13 @@ cmd_messages(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 2)
+	if (argc != 1)
 		goto usage;
 
-	db = argv[0];
-	keyfile = argv[1];
+	dir = argv[0];
 
-	/* For the database and its temporary files */
-	if (unveil_dirname(db, "r") == -1)
+	if (unveil(dir, "r") == -1)
 		return 1;
-
-	if (unveil(keyfile, "r") == -1)
-		err(1, "unveil: %s", keyfile);
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
@@ -178,8 +173,8 @@ cmd_messages(int argc, char **argv)
 	if (unveil(NULL, NULL) == -1)
 		err(1, "unveil");
 
-	if (sbk_open(&ctx, db, keyfile) == -1) {
-		warnx("%s: %s", db, sbk_error(ctx));
+	if (sbk_open(&ctx, dir) == -1) {
+		warnx("%s", sbk_error(ctx));
 		sbk_close(ctx);
 		return 1;
 	}
@@ -197,5 +192,5 @@ cmd_messages(int argc, char **argv)
 	return (ret == 0) ? 0 : 1;
 
 usage:
-	usage("messages", "[-f format] database keyfile");
+	usage("messages", "[-f format] signal-directory");
 }

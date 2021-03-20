@@ -901,26 +901,49 @@ sbk_get_all_messages(struct sbk_ctx *ctx)
 }
 
 int
-sbk_open(struct sbk_ctx **ctx, const char *dbfile, const char *keyfile)
+sbk_open(struct sbk_ctx **ctx, const char *dir)
 {
-	char key[128];
+	char	*dbfile, *keyfile;
+	int	 ret;
+	char	 key[128];
+
+	dbfile = NULL;
+	keyfile = NULL;
+	ret = -1;
 
 	if ((*ctx = malloc(sizeof **ctx)) == NULL)
-		return -1;
+		goto out;
 
 	(*ctx)->error = NULL;
 	RB_INIT(&(*ctx)->recipients);
 
-	if (sbk_sqlite_open(*ctx, &(*ctx)->db, dbfile, SQLITE_OPEN_READONLY)
-	    == -1)
-		return -1;
+	if (asprintf(&dbfile, "%s/sql/db.sqlite", dir) == -1) {
+		sbk_error_setx(*ctx, "asprintf() failed");
+		dbfile = NULL;
+		goto out;
+	}
+
+	if (asprintf(&keyfile, "%s/config.json", dir) == -1) {
+		sbk_error_setx(*ctx, "asprintf() failed");
+		keyfile = NULL;
+		goto out;
+	}
+
+	if (access(dbfile, F_OK) == -1) {
+		sbk_error_set(*ctx, "%s", dbfile);
+		goto out;
+	}
+
+	if (sbk_sqlite_open(*ctx, &(*ctx)->db, dbfile, SQLITE_OPEN_READONLY) ==
+	    -1)
+		goto out;
 
 	if (sbk_get_key(*ctx, key, sizeof key, keyfile) == -1)
-		return -1;
+		goto out;
 
 	if (sbk_sqlite_key(*ctx, (*ctx)->db, key) == -1) {
 		explicit_bzero(key, sizeof key);
-		return -1;
+		goto out;
 	}
 
 	explicit_bzero(key, sizeof key);
@@ -929,18 +952,23 @@ sbk_open(struct sbk_ctx **ctx, const char *dbfile, const char *keyfile)
 	if (sqlite3_exec((*ctx)->db, "SELECT count(*) FROM sqlite_master",
 	    NULL, NULL, NULL) != SQLITE_OK) {
 		sbk_error_setx(*ctx, "Incorrect key");
-		return -1;
+		goto out;
 	}
 
 	if (((*ctx)->db_version = sbk_get_database_version(*ctx)) == -1)
-		return -1;
+		goto out;
 
 	if ((*ctx)->db_version < 19) {
 		sbk_error_setx(*ctx, "Database version not supported (yet)");
-		return -1;
+		goto out;
 	}
 
-	return 0;
+	ret = 0;
+
+out:
+	free(dbfile);
+	free(keyfile);
+	return ret;
 }
 
 void
