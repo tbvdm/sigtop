@@ -1,5 +1,6 @@
 PREFIX?=	/usr/local
 BINDIR?=	${PREFIX}/bin
+MANDIR?=	${PREFIX}/man
 
 CC?=		cc
 INSTALL?=	install
@@ -37,4 +38,6 @@ clean:
 
 install: all
 	${INSTALL} -dm 755 ${DESTDIR}${BINDIR}
+	${INSTALL} -dm 755 ${DESTDIR}${MANDIR}/man1
 	${INSTALL} -m 555 sigtop ${DESTDIR}${BINDIR}
+	${INSTALL} -m 444 sigtop.1 ${DESTDIR}${MANDIR}/man1
