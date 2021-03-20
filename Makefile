@@ -1,6 +1,5 @@
 PROG=		sigtop
 SRCS=		cmd-messages.c cmd-sqlite.c sbk.c sigtop.c
-NOMAN=
 
 .if !(make(clean) || make(cleandir) || make(obj))
 CFLAGS+!=	pkg-config --cflags sqlcipher
