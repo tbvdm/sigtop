@@ -165,7 +165,7 @@ cmd_messages(int argc, char **argv)
 	dir = argv[0];
 
 	if (unveil(dir, "r") == -1)
-		return 1;
+		err(1, "unveil");
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
@@ -195,7 +195,7 @@ cmd_messages(int argc, char **argv)
 	else if ((fp = fopen(file, "wx")) == NULL) {
 		warn("fopen: %s", file);
 		sbk_close(ctx);
-		return -1;
+		return 1;
 	}
 
 	switch (format) {
