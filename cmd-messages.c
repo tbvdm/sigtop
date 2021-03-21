@@ -175,14 +175,8 @@ cmd_messages(int argc, char **argv)
 	if (unveil("/tmp", "rwc") == -1)
 		err(1, "unveil");
 
-	if (unveil("/etc/localtime", "r") == -1)
-		err(1, "unveil");
-
-	if (unveil("/usr/share/zoneinfo", "r") == -1)
-		err(1, "unveil");
-
-	if (unveil(NULL, NULL) == -1)
-		err(1, "unveil");
+	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
+		err(1, "pledge");
 
 	if (sbk_open(&ctx, dir) == -1) {
 		warnx("%s", sbk_error(ctx));
