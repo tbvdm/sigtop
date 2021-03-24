@@ -10,14 +10,14 @@ online][3].
 Dependencies
 ------------
 
-sigtop depends on libcrypto (from either [LibreSSL][4] or [OpenSSL][5]) and
-[SQLCipher][6] (version 4.0.0 or higher). A C compiler, `make` and `pkg-config`
-are also needed.
+sigtop depends on libcrypto (from either [LibreSSL][4] or [OpenSSL][5]). You
+will also need a C compiler, `make` and `pkg-config`.
 
 Building on OpenBSD
 -------------------
 
-To build sigtop on OpenBSD, run `make` and optionally `make install`.
+On OpenBSD, sigtop also depends on [SQLCipher][6]. So install the `sqlcipher`
+package first. Then run `make` and optionally `make install`.
 
 Building on other systems
 -------------------------
