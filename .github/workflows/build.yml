@@ -10,8 +10,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install dependencies
-      run: >
-        sudo apt-get install build-essential libsqlcipher-dev libssl-dev
-        pkg-config
+      run: sudo apt-get install build-essential libssl-dev pkg-config
     - name: build
       run: make

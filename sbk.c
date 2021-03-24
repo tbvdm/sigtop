@@ -17,8 +17,6 @@
 #define JSMN_STATIC
 #define JSMN_STRICT
 
-#define SQLITE_HAS_CODEC
-
 #include "config.h"
 
 #include <errno.h>
@@ -28,7 +26,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <sqlite3.h>
+#include "sqlite3.h"
 
 #include "jsmn.h"
 #include "sigtop.h"

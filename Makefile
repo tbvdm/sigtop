@@ -6,18 +6,21 @@ CC?=		cc
 INSTALL?=	install
 PKG_CONFIG?=	pkg-config
 
-PKGS?=		libcrypto sqlcipher
+PKGS?=		libcrypto
 
 PKGS_CFLAGS!=	${PKG_CONFIG} --cflags ${PKGS}
 PKGS_LDFLAGS!=	${PKG_CONFIG} --libs ${PKGS}
 
+CPPFLAGS+=	-DSQLITE_HAS_CODEC -DSQLITE_OMIT_LOAD_EXTENSION \
+		-DSQLITE_THREADSAFE=0
 CFLAGS+=	${PKGS_CFLAGS}
 LDFLAGS+=	${PKGS_LDFLAGS}
 
 COMPAT_OBJS=	compat/asprintf.o compat/err.o compat/explicit_bzero.o \
 		compat/fopen.o compat/getprogname.o compat/unveil.o
 
-OBJS=		cmd-messages.o cmd-sqlite.o sbk.o sigtop.o ${COMPAT_OBJS}
+OBJS=		cmd-messages.o cmd-sqlite.o sbk.o sigtop.o sqlite3.o \
+		${COMPAT_OBJS}
 
 .PHONY: all clean install
 
