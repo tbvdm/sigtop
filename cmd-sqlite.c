@@ -49,8 +49,8 @@ cmd_sqlite(int argc, char **argv)
 	if (unveil_dirname(db, "rwc") == -1)
 		return 1;
 
-	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
-		err(1, "pledge");
+	if (unveil(NULL, NULL) == -1)
+		err(1, "unveil");
 
 	/* Ensure the export database does not already exist */
 	if ((fd = open(db, O_RDONLY | O_CREAT | O_EXCL, 0666)) == -1)
