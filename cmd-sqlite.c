@@ -35,7 +35,7 @@ cmd_sqlite(int argc, char **argv)
 	db = argv[2];
 
 	if (unveil(dir, "r") == -1)
-		return 1;
+		err(1, "unveil");
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
@@ -49,8 +49,8 @@ cmd_sqlite(int argc, char **argv)
 	if (unveil_dirname(db, "rwc") == -1)
 		return 1;
 
-	if (unveil(NULL, NULL) == -1)
-		err(1, "unveil");
+	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
+		err(1, "pledge");
 
 	/* Ensure the export database does not already exist */
 	if ((fd = open(db, O_RDONLY | O_CREAT | O_EXCL, 0666)) == -1)
@@ -61,7 +61,7 @@ cmd_sqlite(int argc, char **argv)
 	if (sbk_open(&ctx, dir) == -1) {
 		warnx("%s", sbk_error(ctx));
 		sbk_close(ctx);
-		return -1;
+		return 1;
 	}
 
 	if ((ret = sbk_write_database(ctx, db)) == -1)

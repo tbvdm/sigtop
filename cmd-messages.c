@@ -166,7 +166,7 @@ cmd_messages(int argc, char **argv)
 	dir = argv[0];
 
 	if (unveil(dir, "r") == -1)
-		return 1;
+		err(1, "unveil");
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
@@ -176,14 +176,8 @@ cmd_messages(int argc, char **argv)
 	if (unveil("/tmp", "rwc") == -1)
 		err(1, "unveil");
 
-	if (unveil("/etc/localtime", "r") == -1)
-		err(1, "unveil");
-
-	if (unveil("/usr/share/zoneinfo", "r") == -1)
-		err(1, "unveil");
-
-	if (unveil(NULL, NULL) == -1)
-		err(1, "unveil");
+	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
+		err(1, "pledge");
 
 	if (sbk_open(&ctx, dir) == -1) {
 		warnx("%s", sbk_error(ctx));
@@ -196,7 +190,7 @@ cmd_messages(int argc, char **argv)
 	else if ((fp = fopen(file, "wx")) == NULL) {
 		warn("fopen: %s", file);
 		sbk_close(ctx);
-		return -1;
+		return 1;
 	}
 
 	switch (format) {
