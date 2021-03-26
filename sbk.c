@@ -978,6 +978,7 @@ sbk_close(struct sbk_ctx *ctx)
 		sqlite3_close(ctx->db);
 		sbk_free_recipient_tree(ctx);
 		sbk_error_clear(ctx);
+		free(ctx);
 	}
 }
 
