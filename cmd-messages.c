@@ -17,6 +17,7 @@
 #include <sys/types.h>
 
 #include <err.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -85,6 +86,24 @@ text_write_date_field(FILE *fp, const char *field, int64_t date)
 	    labs(tm->tm_gmtoff) % 3600 / 60);
 }
 
+static void
+text_write_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
+{
+	struct sbk_attachment	*att;
+	char			*content_type, *filename;
+
+	TAILQ_FOREACH(att, lst, entries) {
+		filename = (att->filename != NULL) ?
+		    att->filename : "no filename";
+
+		content_type = (att->content_type != NULL) ?
+		    att->content_type : "unknown type";
+
+		fprintf(fp, "Attachment: %s (%s, %" PRIu64 " bytes)\n",
+		    filename, content_type, att->size);
+	}
+}
+
 static int
 text_write_messages(struct sbk_ctx *ctx, FILE *fp)
 {
@@ -111,6 +130,9 @@ text_write_messages(struct sbk_ctx *ctx, FILE *fp)
 
 		if (!sbk_is_outgoing_message(msg))
 			text_write_date_field(fp, "Received", msg->time_recv);
+
+		if (msg->attachments != NULL)
+			text_write_attachment_fields(fp, msg->attachments);
 
 		if (msg->text != NULL)
 			fprintf(fp, "\n%s\n", msg->text);

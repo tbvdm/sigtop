@@ -23,6 +23,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -484,9 +485,50 @@ sbk_jsmn_get_value(const char *json, const jsmntok_t *tokens, const char *key,
 }
 
 static int
+sbk_jsmn_get_array(const char *json, const jsmntok_t *tokens, const char *key)
+{
+	return sbk_jsmn_get_value(json, tokens, key, JSMN_ARRAY);
+}
+
+static int
 sbk_jsmn_get_string(const char *json, const jsmntok_t *tokens, const char *key)
 {
 	return sbk_jsmn_get_value(json, tokens, key, JSMN_STRING);
+}
+
+static int
+sbk_jsmn_get_number(const char *json, const jsmntok_t *tokens, const char *key)
+{
+	int	idx;
+	char	c;
+
+	idx = sbk_jsmn_get_value(json, tokens, key, JSMN_PRIMITIVE);
+	if (idx == -1)
+		return -1;
+
+	/* Check that the primitive is a number (and not a boolean or null) */
+	c = json[tokens[idx].start];
+	if (!(c == '-' || (c >= '0' && c <= '9')))
+		return -1;
+
+	return idx;
+}
+
+static char *
+sbk_jsmn_strdup(const char *json, const jsmntok_t *token)
+{
+	return strndup(json + token->start, token->end - token->start);
+}
+
+static int
+sbk_jsmn_parse_number(long long int *num, const char *json,
+    const jsmntok_t *token)
+{
+	char *end;
+
+	errno = 0;
+	*num = strtoll(json + token->start, &end, 10);
+	return (errno != 0 || end != json + token->end) ? -1 : 0;
 }
 
 /* Read the database encryption key from a JSON file */
@@ -749,11 +791,35 @@ sbk_is_outgoing_message(const struct sbk_message *msg)
 }
 
 static void
+sbk_free_attachment(struct sbk_attachment *att)
+{
+	free(att->path);
+	free(att->filename);
+	free(att->content_type);
+	free(att);
+}
+
+static void
+sbk_free_attachment_list(struct sbk_attachment_list *lst)
+{
+	struct sbk_attachment *att;
+
+	if (lst != NULL) {
+		while ((att = TAILQ_FIRST(lst)) != NULL) {
+			TAILQ_REMOVE(lst, att, entries);
+			sbk_free_attachment(att);
+		}
+		free(lst);
+	}
+}
+
+static void
 sbk_free_message(struct sbk_message *msg)
 {
 	free(msg->type);
 	free(msg->text);
 	free(msg->json);
+	sbk_free_attachment_list(msg->attachments);
 	free(msg);
 }
 
@@ -769,6 +835,134 @@ sbk_free_message_list(struct sbk_message_list *lst)
 		}
 		free(lst);
 	}
+}
+
+static int
+sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
+    jsmntok_t *tokens)
+{
+	struct sbk_attachment	*att;
+	long long int		 size;
+	int			 idx;
+
+	if ((att = calloc(1, sizeof *att)) == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	if (tokens[0].type != JSMN_OBJECT) {
+		sbk_error_setx(ctx, "Unexpected attachment JSON type");
+		goto error;
+	}
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "path");
+	if (idx != -1) {
+		att->path = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		if (att->path == NULL) {
+			sbk_error_set(ctx, NULL);
+			goto error;
+		}
+	}
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "fileName");
+	if (idx != -1) {
+		att->filename = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		if (att->filename == NULL) {
+			sbk_error_set(ctx, NULL);
+			goto error;
+		}
+	}
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "contentType");
+	if (idx != -1) {
+		att->content_type = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		if (att->content_type == NULL) {
+			sbk_error_set(ctx, NULL);
+			goto error;
+		}
+	}
+
+	idx = sbk_jsmn_get_number(msg->json, tokens, "size");
+	if (idx != -1) {
+		if (sbk_jsmn_parse_number(&size, msg->json, &tokens[idx]) ==
+		    -1) {
+			sbk_error_setx(ctx, "Cannot parse JSON number");
+			return -1;
+		}
+		if (size < 0) {
+			sbk_error_setx(ctx, "Invalid attachment size");
+			return -1;
+		}
+		att->size = size;
+	}
+
+	TAILQ_INSERT_TAIL(msg->attachments, att, entries);
+	return 0;
+
+error:
+	sbk_free_attachment(att);
+	return -1;
+}
+
+static int
+sbk_parse_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
+    jsmntok_t *tokens)
+{
+	int i, idx, size;
+
+	if (tokens[0].size == 0)
+		return 0;
+
+	msg->attachments = malloc(sizeof *msg->attachments);
+	if (msg->attachments == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	TAILQ_INIT(msg->attachments);
+
+	idx = 1;
+	for (i = 0; i < tokens[0].size; i++) {
+		if (sbk_insert_attachment(ctx, msg, &tokens[idx]) == -1)
+			goto error;
+		/* Skip to next element in array */
+		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
+		if (size == -1) {
+			sbk_error_setx(ctx, "Cannot parse message JSON data");
+			goto error;
+		}
+		idx += size;
+	}
+
+	return 0;
+
+error:
+	sbk_free_attachment_list(msg->attachments);
+	msg->attachments = NULL;
+	return -1;
+}
+
+static int
+sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
+{
+	jsmntok_t	tokens[512];
+	int		idx;
+
+	if (msg->json == NULL)
+		return 0;
+
+	if (sbk_jsmn_parse(msg->json, strlen(msg->json), tokens,
+	    nitems(tokens)) == -1) {
+		sbk_error_setx(ctx, "Cannot parse message JSON data");
+		return -1;
+	}
+
+	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
+	if (idx != -1 &&
+	    sbk_parse_attachment_json(ctx, msg, &tokens[idx]) == -1)
+		return -1;
+
+	return 0;
 }
 
 /* For database versions 8 to 19 */
@@ -839,6 +1033,10 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 
 	msg->time_sent = sqlite3_column_int64(stm, 5);
 	msg->time_recv = sqlite3_column_int64(stm, 6);
+
+	if (sbk_parse_message_json(ctx, msg) == -1)
+		goto error;
+
 	return msg;
 
 error:
