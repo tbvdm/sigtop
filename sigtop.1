@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd March 20, 2021
+.Dd March 26, 2021
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -97,11 +97,11 @@ result:
 $ sigtop messages ~/.config/Signal | fold -s | less
 .Ed
 .Pp
-Export the database from Alice's Signal Desktop directory and write it to
-.Pa plaintext.db
-(with her permission, of course):
+Export the database from a Signal Desktop directory on a Windows disk mounted
+at
+.Pa /mnt :
 .Bd -literal -offset indent
-$ sigtop sqlite /home/alice/.config/Signal plaintext.db
+$ sigtop sqlite /mnt/Users/Alice/AppData/Roaming/Signal signal.db
 .Ed
 .Sh SEE ALSO
 .Xr sigbak 1

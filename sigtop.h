@@ -47,6 +47,16 @@ struct sbk_recipient {
 	struct sbk_group	*group;
 };
 
+struct sbk_attachment {
+	char		*path;
+	char		*filename;
+	char		*content_type;
+	uint64_t	 size;
+	TAILQ_ENTRY(sbk_attachment) entries;
+};
+
+TAILQ_HEAD(sbk_attachment_list, sbk_attachment);
+
 struct sbk_message {
 	struct sbk_recipient *conversation;
 	struct sbk_recipient *source;
@@ -55,6 +65,7 @@ struct sbk_message {
 	char		*type;
 	char		*text;
 	char		*json;
+	struct sbk_attachment_list *attachments;
 	SIMPLEQ_ENTRY(sbk_message) entries;
 };
 
