@@ -338,11 +338,15 @@ sbk_write_database(struct sbk_ctx *ctx, const char *path)
 	    "ATTACH DATABASE ? AS plaintext KEY ''") == -1)
 		goto error;
 
-	if (sbk_sqlite_bind_text(ctx, db, stm, 1, path) == -1)
+	if (sbk_sqlite_bind_text(ctx, db, stm, 1, path) == -1) {
+		sqlite3_finalize(stm);
 		goto error;
+	}
 
-	if (sbk_sqlite_step(ctx, db, stm) != SQLITE_DONE)
+	if (sbk_sqlite_step(ctx, db, stm) != SQLITE_DONE) {
+		sqlite3_finalize(stm);
 		goto error;
+	}
 
 	sqlite3_finalize(stm);
 
