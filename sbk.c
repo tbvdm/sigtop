@@ -524,6 +524,65 @@ sbk_jsmn_strdup(const char *json, const jsmntok_t *token)
 	return strndup(json + token->start, token->end - token->start);
 }
 
+static char *
+sbk_jsmn_unescape(char *s)
+{
+	char	*r, *w;
+	size_t	 len;
+
+	r = w = s + strcspn(s, "\\");
+	while (*r == '\\') {
+		/* Don't bother with \uXXXX escapes for now */
+		switch (*++r) {
+		case '"':
+		case '\\':
+		case '/':
+			*w = *r;
+			break;
+		case 'b':
+			*w = '\b';
+			break;
+		case 'f':
+			*w = '\f';
+			break;
+		case 'n':
+			*w = '\n';
+			break;
+		case 'r':
+			*w = '\r';
+			break;
+		case 't':
+			*w = '\t';
+			break;
+		default:
+			*s = '\0';
+			return NULL;
+		}
+		r++;
+		w++;
+		len = strcspn(r, "\\");
+		memmove(w, r, len);
+		r += len;
+		w += len;
+	}
+	*w = '\0';
+	return s;
+}
+
+static char *
+sbk_jsmn_parse_string(const char *json, const jsmntok_t *token)
+{
+	char *s;
+
+	if ((s = sbk_jsmn_strdup(json, token)) == NULL)
+		return NULL;
+	if (sbk_jsmn_unescape(s) == NULL) {
+		free(s);
+		return NULL;
+	}
+	return s;
+}
+
 static int
 sbk_jsmn_parse_number(long long int *num, const char *json,
     const jsmntok_t *token)
@@ -861,27 +920,28 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "path");
 	if (idx != -1) {
-		att->path = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		att->path = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (att->path == NULL) {
-			sbk_error_set(ctx, NULL);
+			sbk_error_setx(ctx, "Cannot parse JSON string");
 			goto error;
 		}
 	}
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "fileName");
 	if (idx != -1) {
-		att->filename = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (att->filename == NULL) {
-			sbk_error_set(ctx, NULL);
+			sbk_error_setx(ctx, "Cannot parse JSON string");
 			goto error;
 		}
 	}
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "contentType");
 	if (idx != -1) {
-		att->content_type = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		att->content_type = sbk_jsmn_parse_string(msg->json,
+		    &tokens[idx]);
 		if (att->content_type == NULL) {
-			sbk_error_set(ctx, NULL);
+			sbk_error_setx(ctx, "Cannot parse JSON string");
 			goto error;
 		}
 	}
