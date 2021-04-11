@@ -905,6 +905,7 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
     jsmntok_t *tokens)
 {
 	struct sbk_attachment	*att;
+	char			*c;
 	long long int		 size;
 	int			 idx;
 
@@ -925,6 +926,13 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 			sbk_error_setx(ctx, "Cannot parse JSON string");
 			goto error;
 		}
+	}
+
+	/* Replace Windows directory separators, if any */
+	if (att->path != NULL) {
+		c = att->path;
+		while ((c = strchr(c, '\\')) != NULL)
+			*c++ = '/';
 	}
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "fileName");
