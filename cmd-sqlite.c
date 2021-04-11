@@ -40,10 +40,6 @@ cmd_sqlite(int argc, char **argv)
 	if (unveil("/dev/urandom", "r") == -1)
 		err(1, "unveil");
 
-	/* For SQLite/SQLCipher */
-	if (unveil("/tmp", "rwc") == -1)
-		err(1, "unveil");
-
 	/* For the export database and its temporary files */
 	if (unveil_dirname(db, "rwc") == -1)
 		return 1;

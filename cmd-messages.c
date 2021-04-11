@@ -193,10 +193,6 @@ cmd_messages(int argc, char **argv)
 	if (unveil("/dev/urandom", "r") == -1)
 		err(1, "unveil");
 
-	/* For SQLite/SQLCipher */
-	if (unveil("/tmp", "rwc") == -1)
-		err(1, "unveil");
-
 	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
 		err(1, "pledge");
 
