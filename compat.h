@@ -78,6 +78,10 @@ const char	*getprogname(void);
 void		 setprogname(const char *);
 #endif
 
+#ifndef HAVE_PLEDGE
+int	 pledge(const char *, const char *);
+#endif
+
 #ifndef HAVE_UNVEIL
 int	 unveil(const char *, const char *);
 #endif

@@ -20,6 +20,9 @@
 /* Define if you have getprogname() and setprogname(). */
 /* #define HAVE_GETPROGNAME */
 
+/* Define if you have pledge(). */
+/* #define HAVE_PLEDGE */
+
 /* Define if you have unveil(). */
 /* #define HAVE_UNVEIL */
 
@@ -53,6 +56,7 @@
 #define HAVE_EXPLICIT_BZERO
 #define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
+#define HAVE_PLEDGE
 #define HAVE_UNVEIL
 
 #elif defined(__linux__)
