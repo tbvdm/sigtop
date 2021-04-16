@@ -959,11 +959,11 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 		if (sbk_jsmn_parse_number(&size, msg->json, &tokens[idx]) ==
 		    -1) {
 			sbk_error_setx(ctx, "Cannot parse JSON number");
-			return -1;
+			goto error;
 		}
 		if (size < 0) {
 			sbk_error_setx(ctx, "Invalid attachment size");
-			return -1;
+			goto error;
 		}
 		att->size = size;
 	}
