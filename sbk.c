@@ -193,7 +193,7 @@ sbk_sqlite_column_text_copy(struct sbk_ctx *ctx, char **buf, sqlite3_stmt *stm,
 		return -1;
 	}
 
-	if ((*buf = strdup(txt)) == NULL) {
+	if ((*buf = strdup((const char *)txt)) == NULL) {
 		sbk_error_set(ctx, NULL);
 		return -1;
 	}
@@ -838,9 +838,9 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		goto error;
 	}
 
-	if (strcmp(type, "private") == 0)
+	if (strcmp((const char *)type, "private") == 0)
 		ent->recipient.type = SBK_CONTACT;
-	else if (strcmp(type, "group") == 0)
+	else if (strcmp((const char *)type, "group") == 0)
 		ent->recipient.type = SBK_GROUP;
 	else {
 		sbk_error_setx(ctx, "Unknown recipient type");
@@ -1202,7 +1202,7 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		msg->conversation = NULL;
 	} else {
 		msg->conversation = sbk_get_recipient_from_conversation_id(ctx,
-		    id);
+		    (const char *)id);
 		if (msg->conversation == NULL)
 			goto error;
 	}
@@ -1210,7 +1210,8 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	if ((id = sqlite3_column_text(stm, 1)) == NULL) {
 		msg->source = NULL;
 	} else {
-		msg->source = sbk_get_recipient_from_conversation_id(ctx, id);
+		msg->source = sbk_get_recipient_from_conversation_id(ctx,
+		    (const char *)id);
 		if (msg->source == NULL)
 			goto error;
 	}
