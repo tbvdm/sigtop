@@ -885,11 +885,13 @@ sbk_free_attachment_list(struct sbk_attachment_list *lst)
 static void
 sbk_free_message(struct sbk_message *msg)
 {
-	free(msg->type);
-	free(msg->text);
-	free(msg->json);
-	sbk_free_attachment_list(msg->attachments);
-	free(msg);
+	if (msg != NULL) {
+		free(msg->type);
+		free(msg->text);
+		free(msg->json);
+		sbk_free_attachment_list(msg->attachments);
+		free(msg);
+	}
 }
 
 void
