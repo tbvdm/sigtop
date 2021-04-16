@@ -33,6 +33,7 @@
 
 #include "jsmn.h"
 #include "sigtop.h"
+#include "utf.h"
 
 struct sbk_recipient_entry {
 	char		*id;
@@ -524,6 +525,142 @@ sbk_jsmn_strdup(const char *json, const jsmntok_t *token)
 	return strndup(json + token->start, token->end - token->start);
 }
 
+/* Auxiliary function for sbk_jsmn_parse_unicode_escape() */
+static int
+sbk_jsmn_parse_hex(uint16_t *u, const char *s)
+{
+	int		i;
+	uint16_t	v;
+	char		c;
+
+	*u = 0;
+	for (i = 0; i < 4; i++) {
+		c = s[i];
+		if (c >= '0' && c <= '9')
+			v = c - '0';
+		else if (c >= 'a' && c <= 'f')
+			v = c - 'a' + 10;
+		else if (c >= 'A' && c <= 'F')
+			v = c - 'A' + 10;
+		else
+			return -1;
+		*u = *u * 16 + v;
+	}
+	return 0;
+}
+
+static int
+sbk_jsmn_parse_unicode_escape(char **r, char **w)
+{
+	size_t		len;
+	uint32_t	cp;		/* Unicode code point */
+	uint16_t	utf16[2];
+
+	/* Skip the leading "\u". */
+	*r += 2;
+
+	/* Parse the four hexadecimal digits that should follow. */
+	if (sbk_jsmn_parse_hex(&utf16[0], *r) == -1)
+		return -1;
+	*r += 4;
+
+	if (!utf16_is_high_surrogate(utf16[0])) {
+		/*
+		 * The \u escape does not contain a high surrogate, so either
+		 * it represents a character or it contains an unpaired low
+		 * surrogate, which we'll also allow.
+		 */
+		cp = utf16[0];
+		goto finish;
+	}
+
+	/*
+	 * The \u escape contains a high surrogate, so it should be followed
+	 * by a second \u escape containing the low surrogate.
+	 */
+	if ((*r)[0] != '\\' || (*r)[1] != 'u') {
+		/*
+		 * There's no \u escape following, so we end up with an
+		 * unpaired high surrogate. Allow it.
+		 */
+		cp = utf16[0];
+		goto finish;
+	}
+
+	/* Parse the four hexadecimal digits of the second \u escape. */
+	if (sbk_jsmn_parse_hex(&utf16[1], *r + 2) == -1)
+		return -1;
+
+	if (!utf16_is_low_surrogate(utf16[1])) {
+		/*
+		 * The second \u escape does not contain a low surrogate, so we
+		 * end up with an unpaired high surrogate. Allow it. (We will
+		 * not parse the second \u escape further; it will be revisited
+		 * in the next call.)
+		 */
+		cp = utf16[0];
+		goto finish;
+	}
+
+	/*
+	 * The second \u escape contains a low surrogate, so we now have a
+	 * complete surrogate pair. First decode the code point in the
+	 * surrogate pair. Then update the read pointer to point after the
+	 * second \u escape.
+	 */
+	cp = utf16_decode_surrogate_pair(utf16[0], utf16[1]);
+	*r += 6;
+
+finish:
+	/* Write the UTF-8 encoding of the code point. */
+	if ((len = utf8_encode((uint8_t *)*w, cp)) == 0)
+		return -1;
+	*w += len;
+
+	return 0;
+}
+
+static int
+sbk_jsmn_parse_escape(char **r, char **w)
+{
+	switch ((*r)[1]) {
+	case '"':
+	case '\\':
+	case '/':
+		**w = (*r)[1];
+		break;
+	case 'b':
+		**w = '\b';
+		break;
+	case 'f':
+		**w = '\f';
+		break;
+	case 'n':
+		**w = '\n';
+		break;
+	case 'r':
+		**w = '\r';
+		break;
+	case 't':
+		**w = '\t';
+		break;
+	case 'u':
+		/* Handle \u escapes separately */
+		return sbk_jsmn_parse_unicode_escape(r, w);
+	default:
+		return -1;
+	}
+
+	*r += 2;	/* We read a 2-char escape sequence... */
+	*w += 1;	/* ... and wrote one char */
+	return 0;
+}
+
+/*
+ * Perform in-place substitution of escape sequences in a JSON string. In-place
+ * substitution is possible because each escape sequence is longer than its
+ * substitute.
+ */
 static char *
 sbk_jsmn_unescape(char *s)
 {
@@ -532,34 +669,10 @@ sbk_jsmn_unescape(char *s)
 
 	r = w = s + strcspn(s, "\\");
 	while (*r == '\\') {
-		/* Don't bother with \uXXXX escapes for now */
-		switch (*++r) {
-		case '"':
-		case '\\':
-		case '/':
-			*w = *r;
-			break;
-		case 'b':
-			*w = '\b';
-			break;
-		case 'f':
-			*w = '\f';
-			break;
-		case 'n':
-			*w = '\n';
-			break;
-		case 'r':
-			*w = '\r';
-			break;
-		case 't':
-			*w = '\t';
-			break;
-		default:
+		if (sbk_jsmn_parse_escape(&r, &w) == -1) {
 			*s = '\0';
 			return NULL;
 		}
-		r++;
-		w++;
 		len = strcspn(r, "\\");
 		memmove(w, r, len);
 		r += len;
