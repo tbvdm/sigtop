@@ -662,15 +662,19 @@ sbk_free_recipient_entry(struct sbk_recipient_entry *ent)
 
 	switch (ent->recipient.type) {
 	case SBK_CONTACT:
-		free(ent->recipient.contact->name);
-		free(ent->recipient.contact->profile_name);
-		free(ent->recipient.contact->profile_family_name);
-		free(ent->recipient.contact->profile_joined_name);
-		free(ent->recipient.contact);
+		if (ent->recipient.contact != NULL) {
+			free(ent->recipient.contact->name);
+			free(ent->recipient.contact->profile_name);
+			free(ent->recipient.contact->profile_family_name);
+			free(ent->recipient.contact->profile_joined_name);
+			free(ent->recipient.contact);
+		}
 		break;
 	case SBK_GROUP:
-		free(ent->recipient.group->name);
-		free(ent->recipient.group);
+		if (ent->recipient.group != NULL) {
+			free(ent->recipient.group->name);
+			free(ent->recipient.group);
+		}
 		break;
 	}
 
@@ -856,10 +860,12 @@ sbk_is_outgoing_message(const struct sbk_message *msg)
 static void
 sbk_free_attachment(struct sbk_attachment *att)
 {
-	free(att->path);
-	free(att->filename);
-	free(att->content_type);
-	free(att);
+	if (att != NULL) {
+		free(att->path);
+		free(att->filename);
+		free(att->content_type);
+		free(att);
+	}
 }
 
 static void
