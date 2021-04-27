@@ -31,6 +31,7 @@
 
 #include "jsmn.h"
 #include "sigtop.h"
+#include "utf.h"
 
 struct sbk_recipient_entry {
 	char		*id;
@@ -190,7 +191,7 @@ sbk_sqlite_column_text_copy(struct sbk_ctx *ctx, char **buf, sqlite3_stmt *stm,
 		return -1;
 	}
 
-	if ((*buf = strdup(txt)) == NULL) {
+	if ((*buf = strdup((const char *)txt)) == NULL) {
 		sbk_error_set(ctx, NULL);
 		return -1;
 	}
@@ -336,11 +337,15 @@ sbk_write_database(struct sbk_ctx *ctx, const char *path)
 	    "ATTACH DATABASE ? AS plaintext KEY ''") == -1)
 		goto error;
 
-	if (sbk_sqlite_bind_text(ctx, db, stm, 1, path) == -1)
+	if (sbk_sqlite_bind_text(ctx, db, stm, 1, path) == -1) {
+		sqlite3_finalize(stm);
 		goto error;
+	}
 
-	if (sbk_sqlite_step(ctx, db, stm) != SQLITE_DONE)
+	if (sbk_sqlite_step(ctx, db, stm) != SQLITE_DONE) {
+		sqlite3_finalize(stm);
 		goto error;
+	}
 
 	sqlite3_finalize(stm);
 
@@ -518,6 +523,177 @@ sbk_jsmn_strdup(const char *json, const jsmntok_t *token)
 	return strndup(json + token->start, token->end - token->start);
 }
 
+/* Auxiliary function for sbk_jsmn_parse_unicode_escape() */
+static int
+sbk_jsmn_parse_hex(uint16_t *u, const char *s)
+{
+	int		i;
+	uint16_t	v;
+	char		c;
+
+	*u = 0;
+	for (i = 0; i < 4; i++) {
+		c = s[i];
+		if (c >= '0' && c <= '9')
+			v = c - '0';
+		else if (c >= 'a' && c <= 'f')
+			v = c - 'a' + 10;
+		else if (c >= 'A' && c <= 'F')
+			v = c - 'A' + 10;
+		else
+			return -1;
+		*u = *u * 16 + v;
+	}
+	return 0;
+}
+
+static int
+sbk_jsmn_parse_unicode_escape(char **r, char **w)
+{
+	size_t		len;
+	uint32_t	cp;		/* Unicode code point */
+	uint16_t	utf16[2];
+
+	/* Skip the leading "\u". */
+	*r += 2;
+
+	/* Parse the four hexadecimal digits that should follow. */
+	if (sbk_jsmn_parse_hex(&utf16[0], *r) == -1)
+		return -1;
+	*r += 4;
+
+	if (!utf16_is_high_surrogate(utf16[0])) {
+		/*
+		 * The \u escape does not contain a high surrogate, so either
+		 * it represents a character or it contains an unpaired low
+		 * surrogate, which we'll also allow.
+		 */
+		cp = utf16[0];
+		goto finish;
+	}
+
+	/*
+	 * The \u escape contains a high surrogate, so it should be followed
+	 * by a second \u escape containing the low surrogate.
+	 */
+	if ((*r)[0] != '\\' || (*r)[1] != 'u') {
+		/*
+		 * There's no \u escape following, so we end up with an
+		 * unpaired high surrogate. Allow it.
+		 */
+		cp = utf16[0];
+		goto finish;
+	}
+
+	/* Parse the four hexadecimal digits of the second \u escape. */
+	if (sbk_jsmn_parse_hex(&utf16[1], *r + 2) == -1)
+		return -1;
+
+	if (!utf16_is_low_surrogate(utf16[1])) {
+		/*
+		 * The second \u escape does not contain a low surrogate, so we
+		 * end up with an unpaired high surrogate. Allow it. (We will
+		 * not parse the second \u escape further; it will be revisited
+		 * in the next call.)
+		 */
+		cp = utf16[0];
+		goto finish;
+	}
+
+	/*
+	 * The second \u escape contains a low surrogate, so we now have a
+	 * complete surrogate pair. First decode the code point in the
+	 * surrogate pair. Then update the read pointer to point after the
+	 * second \u escape.
+	 */
+	cp = utf16_decode_surrogate_pair(utf16[0], utf16[1]);
+	*r += 6;
+
+finish:
+	/* Write the UTF-8 encoding of the code point. */
+	if ((len = utf8_encode((uint8_t *)*w, cp)) == 0)
+		return -1;
+	*w += len;
+
+	return 0;
+}
+
+static int
+sbk_jsmn_parse_escape(char **r, char **w)
+{
+	switch ((*r)[1]) {
+	case '"':
+	case '\\':
+	case '/':
+		**w = (*r)[1];
+		break;
+	case 'b':
+		**w = '\b';
+		break;
+	case 'f':
+		**w = '\f';
+		break;
+	case 'n':
+		**w = '\n';
+		break;
+	case 'r':
+		**w = '\r';
+		break;
+	case 't':
+		**w = '\t';
+		break;
+	case 'u':
+		/* Handle \u escapes separately */
+		return sbk_jsmn_parse_unicode_escape(r, w);
+	default:
+		return -1;
+	}
+
+	*r += 2;	/* We read a 2-char escape sequence... */
+	*w += 1;	/* ... and wrote one char */
+	return 0;
+}
+
+/*
+ * Perform in-place substitution of escape sequences in a JSON string. In-place
+ * substitution is possible because each escape sequence is longer than its
+ * substitute.
+ */
+static char *
+sbk_jsmn_unescape(char *s)
+{
+	char	*r, *w;
+	size_t	 len;
+
+	r = w = s + strcspn(s, "\\");
+	while (*r == '\\') {
+		if (sbk_jsmn_parse_escape(&r, &w) == -1) {
+			*s = '\0';
+			return NULL;
+		}
+		len = strcspn(r, "\\");
+		memmove(w, r, len);
+		r += len;
+		w += len;
+	}
+	*w = '\0';
+	return s;
+}
+
+static char *
+sbk_jsmn_parse_string(const char *json, const jsmntok_t *token)
+{
+	char *s;
+
+	if ((s = sbk_jsmn_strdup(json, token)) == NULL)
+		return NULL;
+	if (sbk_jsmn_unescape(s) == NULL) {
+		free(s);
+		return NULL;
+	}
+	return s;
+}
+
 static int
 sbk_jsmn_parse_number(long long int *num, const char *json,
     const jsmntok_t *token)
@@ -597,15 +773,19 @@ sbk_free_recipient_entry(struct sbk_recipient_entry *ent)
 
 	switch (ent->recipient.type) {
 	case SBK_CONTACT:
-		free(ent->recipient.contact->name);
-		free(ent->recipient.contact->profile_name);
-		free(ent->recipient.contact->profile_family_name);
-		free(ent->recipient.contact->profile_joined_name);
-		free(ent->recipient.contact);
+		if (ent->recipient.contact != NULL) {
+			free(ent->recipient.contact->name);
+			free(ent->recipient.contact->profile_name);
+			free(ent->recipient.contact->profile_family_name);
+			free(ent->recipient.contact->profile_joined_name);
+			free(ent->recipient.contact);
+		}
 		break;
 	case SBK_GROUP:
-		free(ent->recipient.group->name);
-		free(ent->recipient.group);
+		if (ent->recipient.group != NULL) {
+			free(ent->recipient.group->name);
+			free(ent->recipient.group);
+		}
 		break;
 	}
 
@@ -656,9 +836,9 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		goto error;
 	}
 
-	if (strcmp(type, "private") == 0)
+	if (strcmp((const char *)type, "private") == 0)
 		ent->recipient.type = SBK_CONTACT;
-	else if (strcmp(type, "group") == 0)
+	else if (strcmp((const char *)type, "group") == 0)
 		ent->recipient.type = SBK_GROUP;
 	else {
 		sbk_error_setx(ctx, "Unknown recipient type");
@@ -791,10 +971,12 @@ sbk_is_outgoing_message(const struct sbk_message *msg)
 static void
 sbk_free_attachment(struct sbk_attachment *att)
 {
-	free(att->path);
-	free(att->filename);
-	free(att->content_type);
-	free(att);
+	if (att != NULL) {
+		free(att->path);
+		free(att->filename);
+		free(att->content_type);
+		free(att);
+	}
 }
 
 static void
@@ -814,11 +996,13 @@ sbk_free_attachment_list(struct sbk_attachment_list *lst)
 static void
 sbk_free_message(struct sbk_message *msg)
 {
-	free(msg->type);
-	free(msg->text);
-	free(msg->json);
-	sbk_free_attachment_list(msg->attachments);
-	free(msg);
+	if (msg != NULL) {
+		free(msg->type);
+		free(msg->text);
+		free(msg->json);
+		sbk_free_attachment_list(msg->attachments);
+		free(msg);
+	}
 }
 
 void
@@ -840,6 +1024,7 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
     jsmntok_t *tokens)
 {
 	struct sbk_attachment	*att;
+	char			*c;
 	long long int		 size;
 	int			 idx;
 
@@ -855,27 +1040,35 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "path");
 	if (idx != -1) {
-		att->path = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		att->path = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (att->path == NULL) {
-			sbk_error_set(ctx, NULL);
+			sbk_error_setx(ctx, "Cannot parse JSON string");
 			goto error;
 		}
 	}
 
+	/* Replace Windows directory separators, if any */
+	if (att->path != NULL) {
+		c = att->path;
+		while ((c = strchr(c, '\\')) != NULL)
+			*c++ = '/';
+	}
+
 	idx = sbk_jsmn_get_string(msg->json, tokens, "fileName");
 	if (idx != -1) {
-		att->filename = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (att->filename == NULL) {
-			sbk_error_set(ctx, NULL);
+			sbk_error_setx(ctx, "Cannot parse JSON string");
 			goto error;
 		}
 	}
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "contentType");
 	if (idx != -1) {
-		att->content_type = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		att->content_type = sbk_jsmn_parse_string(msg->json,
+		    &tokens[idx]);
 		if (att->content_type == NULL) {
-			sbk_error_set(ctx, NULL);
+			sbk_error_setx(ctx, "Cannot parse JSON string");
 			goto error;
 		}
 	}
@@ -885,11 +1078,11 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 		if (sbk_jsmn_parse_number(&size, msg->json, &tokens[idx]) ==
 		    -1) {
 			sbk_error_setx(ctx, "Cannot parse JSON number");
-			return -1;
+			goto error;
 		}
 		if (size < 0) {
 			sbk_error_setx(ctx, "Invalid attachment size");
-			return -1;
+			goto error;
 		}
 		att->size = size;
 	}
@@ -1007,7 +1200,7 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		msg->conversation = NULL;
 	} else {
 		msg->conversation = sbk_get_recipient_from_conversation_id(ctx,
-		    id);
+		    (const char *)id);
 		if (msg->conversation == NULL)
 			goto error;
 	}
@@ -1015,7 +1208,8 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	if ((id = sqlite3_column_text(stm, 1)) == NULL) {
 		msg->source = NULL;
 	} else {
-		msg->source = sbk_get_recipient_from_conversation_id(ctx, id);
+		msg->source = sbk_get_recipient_from_conversation_id(ctx,
+		    (const char *)id);
 		if (msg->source == NULL)
 			goto error;
 	}
