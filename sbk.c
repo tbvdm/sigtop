@@ -160,33 +160,6 @@ static int
 sbk_sqlite_column_text_copy(struct sbk_ctx *ctx, char **buf, sqlite3_stmt *stm,
     int idx)
 {
-#ifdef notyet
-	const unsigned char	*txt;
-	int			 len;
-
-	*buf = NULL;
-
-	if (sqlite3_column_type(stm, idx) == SQLITE_NULL)
-		return 0;
-
-	if ((txt = sqlite3_column_text(stm, idx)) == NULL) {
-		sbk_error_sqlite_set(ctx, "Cannot get column text");
-		return -1;
-	}
-
-	if ((len = sqlite3_column_bytes(stm, idx)) < 0) {
-		sbk_error_sqlite_set(ctx, "Cannot get column size");
-		return -1;
-	}
-
-	if ((*buf = malloc((size_t)len + 1)) == NULL) {
-		sbk_error_set(ctx, NULL);
-		return -1;
-	}
-
-	memcpy(*buf, txt, (size_t)len + 1);
-	return len;
-#else
 	const unsigned char	*sub, *txt;
 	size_t			 len;
 
@@ -225,7 +198,6 @@ sbk_sqlite_column_text_copy(struct sbk_ctx *ctx, char **buf, sqlite3_stmt *stm,
 	}
 
 	return 0;
-#endif
 }
 
 static int
