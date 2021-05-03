@@ -35,6 +35,12 @@
 #include "sigtop.h"
 #include "utf.h"
 
+/* UTF-8 encoding of FSI (U+2068) and PDI (U+2069) */
+#define SBK_FSI		"\xe2\x81\xa8"
+#define SBK_FSI_LEN	(sizeof SBK_FSI - 1)
+#define SBK_PDI		"\xe2\x81\xa9"
+#define SBK_PDI_LEN	(sizeof SBK_PDI - 1)
+
 struct sbk_recipient_entry {
 	char		*id;
 	struct sbk_recipient recipient;
@@ -181,7 +187,8 @@ sbk_sqlite_column_text_copy(struct sbk_ctx *ctx, char **buf, sqlite3_stmt *stm,
 	memcpy(*buf, txt, (size_t)len + 1);
 	return len;
 #else
-	const unsigned char *txt;
+	const unsigned char	*sub, *txt;
+	size_t			 len;
 
 	*buf = NULL;
 
@@ -193,7 +200,26 @@ sbk_sqlite_column_text_copy(struct sbk_ctx *ctx, char **buf, sqlite3_stmt *stm,
 		return -1;
 	}
 
-	if ((*buf = strdup((const char *)txt)) == NULL) {
+	/*
+	 * If the FSI character (U+2068) appears at the beginning of the text
+	 * and the PDI character (U+2069) at the end, then skip both
+	 */
+	sub = NULL;
+	if (strncmp(txt, SBK_FSI, SBK_FSI_LEN) == 0) {
+		len = strlen(txt + SBK_FSI_LEN);
+		if (len >= SBK_PDI_LEN) {
+			len -= SBK_PDI_LEN;
+			if (strcmp(txt + SBK_FSI_LEN + len, SBK_PDI) == 0)
+				sub = txt + SBK_FSI_LEN;
+		}
+	}
+
+	if (sub == NULL)
+		*buf = strdup((const char *)txt);
+	else
+		*buf = strndup((const char *)sub, len);
+
+	if (*buf == NULL) {
 		sbk_error_set(ctx, NULL);
 		return -1;
 	}
