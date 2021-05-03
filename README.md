@@ -37,7 +37,7 @@ If you are unsure what to do with `config.h`, then leave it as is and just run
 
 [1]: https://github.com/tbvdm/sigtop
 [2]: https://github.com/signalapp/Signal-Desktop
-[3]: https://www.kariliq.nl/sigtop/manual.html
+[3]: https://www.kariliq.nl/man/sigtop.1.html
 [4]: https://www.libressl.org/
 [5]: https://www.openssl.org/
 [6]: https://www.zetetic.net/sqlcipher/
