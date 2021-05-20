@@ -33,7 +33,6 @@
 
 #include "jsmn.h"
 #include "sigtop.h"
-#include "utf.h"
 
 /* UTF-8 encoding of FSI (U+2068) and PDI (U+2069) */
 #define SBK_FSI		"\xe2\x81\xa8"
