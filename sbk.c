@@ -304,6 +304,30 @@ sbk_set_database_version(struct sbk_ctx *ctx, sqlite3 *db, const char *schema,
 	return ret;
 }
 
+/*
+ * To decrypt an encrypted database to a plaintext database, the SQLCipher
+ * documentation recommends to do the following:
+ *
+ * 1. Open the encrypted database.
+ * 2. Attach the plaintext database.
+ * 3. Use the sqlcipher_export() SQL function to decrypt.
+ *
+ * This doesn't work in our case, because we insist on opening the Signal
+ * Desktop database in read-only mode.
+ *
+ * The SQLite backup API doesn't work either, because it does not support
+ * encrypted-to-plaintext backups.
+ *
+ * However, since SQLCipher 4.3.0, the backup API does support
+ * encrypted-to-encrypted backups. This allows us to do the following:
+ *
+ * 1. Open the Signal Desktop database in read-only mode.
+ * 2. Create a temporary encrypted database in memory.
+ * 3. Back up the Signal Desktop database to the temporary database.
+ * 4. Attach a new plaintext database to the temporary database.
+ * 5. Use sqlcipher_export() to decrypt the temporary database to the plaintext
+ *    database.
+ */
 int
 sbk_write_database(struct sbk_ctx *ctx, const char *path)
 {
@@ -332,7 +356,7 @@ sbk_write_database(struct sbk_ctx *ctx, const char *path)
 
 	sqlite3_backup_finish(bak);
 
-	/* Attaching with an empty key will disable encryption */
+	/* Attaching with an empty key disables encryption */
 	if (sbk_sqlite_prepare(ctx, db, &stm,
 	    "ATTACH DATABASE ? AS plaintext KEY ''") == -1)
 		goto error;
