@@ -1,5 +1,6 @@
 PROG=		sigtop
-SRCS=		cmd-messages.c cmd-sqlite.c sbk.c sigtop.c utf.c
+SRCS=		cmd-attachments.c cmd-messages.c cmd-sqlite.c mime.c sbk.c \
+		sigtop.c utf.c
 
 .if !(make(clean) || make(cleandir) || make(obj))
 CFLAGS+!=	pkg-config --cflags sqlcipher
