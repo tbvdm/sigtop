@@ -1,10 +1,10 @@
 sigtop
 ======
 
-[sigtop][1] is a utility to export messages and other data from [Signal
-Desktop][2].
+[sigtop][1] is a utility to export messages, attachments and other data from
+[Signal Desktop][2].
 
-Documentation is available in the `sigtop.1` manual page. It can also be [read
+Documentation is available in the `sigtop.1` manual page. You can also [read it
 online][3].
 
 Dependencies
@@ -13,31 +13,40 @@ Dependencies
 sigtop depends on libcrypto (from either [LibreSSL][4] or [OpenSSL][5]). You
 will also need a C compiler, `make` and `pkg-config`.
 
+On OpenBSD, sigtop additionally depends on the `sqlcipher` package.
+
 Building on OpenBSD
 -------------------
 
-On OpenBSD, sigtop also depends on [SQLCipher][6]. So install the `sqlcipher`
-package first. Then run `make` and optionally `make install`.
+To build sigtop on OpenBSD, clone the repository and run `make`.
 
 Building on other systems
 -------------------------
 
-To build sigtop on other systems, first check out the `portable` branch:
+To build sigtop on other systems, clone the repository, switch to the
+`portable` branch and run `make`:
 
-	$ git checkout portable
+	git clone https://github.com/tbvdm/sigtop.git
+	cd sigtop
+	git checkout portable
+	make
 
-Then check if `config.h` is suited to your system. Edit it if necessary.
-`config.h` already has support for several systems. On those systems, no
-editing should be necessary.
+sigtop should build without problems on Linux and the BSDs.
 
-Finally, run `make` and optionally `make install`.
+If the build does fail, check if `config.h` is suited to your system. You may
+have to edit it. After editing `config.h`, run `make` to retry the build.
 
-If you are unsure what to do with `config.h`, then leave it as is and just run
-`make`. It is likely to work fine.
+Reporting problems
+------------------
 
-[1]: https://github.com/tbvdm/sigtop
+Please report bugs and other problems with sigtop. If sigtop shows errors or
+warnings unexpectedly, please report them as well. You can [open an issue on
+GitHub][6] or send an email. You can find my email address at the top of the
+`sigtop.c` file.
+
+[1]: https://www.kariliq.nl/sigbak/
 [2]: https://github.com/signalapp/Signal-Desktop
-[3]: https://www.kariliq.nl/sigtop/manual.html
+[3]: https://www.kariliq.nl/man/sigtop.1.html
 [4]: https://www.libressl.org/
 [5]: https://www.openssl.org/
-[6]: https://www.zetetic.net/sqlcipher/
+[6]: https://github.com/tbvdm/sigtop/issues

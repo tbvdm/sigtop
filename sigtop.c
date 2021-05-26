@@ -68,6 +68,8 @@ main(int argc, char **argv)
 	argc--;
 	argv++;
 
+	if (strcmp(argv[0], "attachments") == 0)
+		return cmd_attachments(argc, argv);
 	if (strcmp(argv[0], "messages") == 0)
 		return cmd_messages(argc, argv);
 	if (strcmp(argv[0], "sqlite") == 0)

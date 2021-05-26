@@ -31,7 +31,14 @@
 
 #include "jsmn.h"
 #include "sigtop.h"
-#include "utf.h"
+
+#define SBK_ATTACHMENT_DIR	"attachments.noindex"
+
+/* UTF-8 encoding of FSI (U+2068) and PDI (U+2069) */
+#define SBK_FSI		"\xe2\x81\xa8"
+#define SBK_FSI_LEN	(sizeof SBK_FSI - 1)
+#define SBK_PDI		"\xe2\x81\xa9"
+#define SBK_PDI_LEN	(sizeof SBK_PDI - 1)
 
 struct sbk_recipient_entry {
 	char		*id;
@@ -42,6 +49,7 @@ struct sbk_recipient_entry {
 RB_HEAD(sbk_recipient_tree, sbk_recipient_entry);
 
 struct sbk_ctx {
+	char		*dir;
 	sqlite3		*db;
 	int		 db_version;
 	char		*error;
@@ -152,52 +160,44 @@ static int
 sbk_sqlite_column_text_copy(struct sbk_ctx *ctx, char **buf, sqlite3_stmt *stm,
     int idx)
 {
-#ifdef notyet
-	const unsigned char	*txt;
-	int			 len;
+	const char	*sub, *txt;
+	size_t		 len;
 
 	*buf = NULL;
 
 	if (sqlite3_column_type(stm, idx) == SQLITE_NULL)
 		return 0;
 
-	if ((txt = sqlite3_column_text(stm, idx)) == NULL) {
+	if ((txt = (const char *)sqlite3_column_text(stm, idx)) == NULL) {
 		sbk_error_sqlite_set(ctx, "Cannot get column text");
 		return -1;
 	}
 
-	if ((len = sqlite3_column_bytes(stm, idx)) < 0) {
-		sbk_error_sqlite_set(ctx, "Cannot get column size");
-		return -1;
+	/*
+	 * If the FSI character (U+2068) appears at the beginning of the text
+	 * and the PDI character (U+2069) at the end, then skip both
+	 */
+	sub = NULL;
+	if (strncmp(txt, SBK_FSI, SBK_FSI_LEN) == 0) {
+		len = strlen(txt + SBK_FSI_LEN);
+		if (len >= SBK_PDI_LEN) {
+			len -= SBK_PDI_LEN;
+			if (strcmp(txt + SBK_FSI_LEN + len, SBK_PDI) == 0)
+				sub = txt + SBK_FSI_LEN;
+		}
 	}
 
-	if ((*buf = malloc((size_t)len + 1)) == NULL) {
-		sbk_error_set(ctx, NULL);
-		return -1;
-	}
+	if (sub == NULL)
+		*buf = strdup(txt);
+	else
+		*buf = strndup(sub, len);
 
-	memcpy(*buf, txt, (size_t)len + 1);
-	return len;
-#else
-	const unsigned char *txt;
-
-	*buf = NULL;
-
-	if (sqlite3_column_type(stm, idx) == SQLITE_NULL)
-		return 0;
-
-	if ((txt = sqlite3_column_text(stm, idx)) == NULL) {
-		sbk_error_sqlite_set(ctx, "Cannot get column text");
-		return -1;
-	}
-
-	if ((*buf = strdup((const char *)txt)) == NULL) {
+	if (*buf == NULL) {
 		sbk_error_set(ctx, NULL);
 		return -1;
 	}
 
 	return 0;
-#endif
 }
 
 static int
@@ -304,6 +304,30 @@ sbk_set_database_version(struct sbk_ctx *ctx, sqlite3 *db, const char *schema,
 	return ret;
 }
 
+/*
+ * To decrypt an encrypted database to a plaintext database, the SQLCipher
+ * documentation recommends to do the following:
+ *
+ * 1. Open the encrypted database.
+ * 2. Attach the plaintext database.
+ * 3. Use the sqlcipher_export() SQL function to decrypt.
+ *
+ * This doesn't work in our case, because we insist on opening the Signal
+ * Desktop database in read-only mode.
+ *
+ * The SQLite backup API doesn't work either, because it does not support
+ * encrypted-to-plaintext backups.
+ *
+ * However, since SQLCipher 4.3.0, the backup API does support
+ * encrypted-to-encrypted backups. This allows us to do the following:
+ *
+ * 1. Open the Signal Desktop database in read-only mode.
+ * 2. Create a temporary encrypted database in memory.
+ * 3. Back up the Signal Desktop database to the temporary database.
+ * 4. Attach a new plaintext database to the temporary database.
+ * 5. Use sqlcipher_export() to decrypt the temporary database to the plaintext
+ *    database.
+ */
 int
 sbk_write_database(struct sbk_ctx *ctx, const char *path)
 {
@@ -332,7 +356,7 @@ sbk_write_database(struct sbk_ctx *ctx, const char *path)
 
 	sqlite3_backup_finish(bak);
 
-	/* Attaching with an empty key will disable encryption */
+	/* Attaching with an empty key disables encryption */
 	if (sbk_sqlite_prepare(ctx, db, &stm,
 	    "ATTACH DATABASE ? AS plaintext KEY ''") == -1)
 		goto error;
@@ -979,7 +1003,7 @@ sbk_free_attachment(struct sbk_attachment *att)
 	}
 }
 
-static void
+void
 sbk_free_attachment_list(struct sbk_attachment_list *lst)
 {
 	struct sbk_attachment *att;
@@ -991,6 +1015,52 @@ sbk_free_attachment_list(struct sbk_attachment_list *lst)
 		}
 		free(lst);
 	}
+}
+
+struct sbk_attachment_list *
+sbk_get_all_attachments(struct sbk_ctx *ctx)
+{
+	struct sbk_attachment_list	*att_lst;
+	struct sbk_message_list		*msg_lst;
+	struct sbk_message		*msg;
+
+	if ((att_lst = malloc(sizeof *att_lst)) == NULL) {
+		sbk_error_set(ctx, NULL);
+		return NULL;
+	}
+
+	TAILQ_INIT(att_lst);
+
+	if ((msg_lst = sbk_get_all_messages(ctx)) == NULL) {
+		free(att_lst);
+		return NULL;
+	}
+
+	SIMPLEQ_FOREACH(msg, msg_lst, entries)
+		if (msg->attachments != NULL)
+			TAILQ_CONCAT(att_lst, msg->attachments, entries);
+
+	sbk_free_message_list(msg_lst);
+	return att_lst;
+}
+
+char *
+sbk_get_attachment_path(struct sbk_ctx *ctx, struct sbk_attachment *att)
+{
+	char *path;
+
+	if (att->path == NULL) {
+		sbk_error_setx(ctx, "Cannot get attachment path");
+		return NULL;
+	}
+
+	if (asprintf(&path, "%s/%s/%s", ctx->dir, SBK_ATTACHMENT_DIR,
+	    att->path) == -1) {
+		sbk_error_setx(ctx, "asprintf() failed");
+		return NULL;
+	}
+
+	return path;
 }
 
 static void
@@ -1307,6 +1377,11 @@ sbk_open(struct sbk_ctx **ctx, const char *dir)
 	(*ctx)->error = NULL;
 	RB_INIT(&(*ctx)->recipients);
 
+	if (((*ctx)->dir = strdup(dir)) == NULL) {
+		sbk_error_set(*ctx, NULL);
+		goto out;
+	}
+
 	if (asprintf(&dbfile, "%s/sql/db.sqlite", dir) == -1) {
 		sbk_error_setx(*ctx, "asprintf() failed");
 		dbfile = NULL;
@@ -1365,6 +1440,7 @@ void
 sbk_close(struct sbk_ctx *ctx)
 {
 	if (ctx != NULL) {
+		free(ctx->dir);
 		sqlite3_close(ctx->db);
 		sbk_free_recipient_tree(ctx);
 		sbk_error_clear(ctx);
