@@ -28,6 +28,7 @@
 #include "sigtop.h"
 
 enum mode {
+	MODE_COPY,
 	MODE_LINK,
 	MODE_SYMLINK
 };
@@ -151,6 +152,50 @@ get_filename(int dfd, struct sbk_attachment *att)
 	return name;
 }
 
+#define COPY_BUFSIZE (1024 * 1024)
+
+static int
+copy_attachment(const char *src, int dfd, const char *dst)
+{
+	char	*buf;
+	int	 n, ret, rfd, wfd;
+
+	ret = rfd = wfd = -1;
+
+	if ((buf = malloc(COPY_BUFSIZE)) == NULL) {
+		warn(NULL);
+		goto out;
+	}
+	if ((rfd = open(src, O_RDONLY)) == -1) {
+		warn("open: %s", src);
+		goto out;
+	}
+	if ((wfd = openat(dfd, dst, O_WRONLY | O_CREAT | O_EXCL, 0666)) ==
+	    -1) {
+		warn("openat: %s", dst);
+		goto out;
+	}
+	while ((n = read(rfd, buf, COPY_BUFSIZE)) > 0)
+		if (write(wfd, buf, n) != n) {
+			warn("write: %s", dst);
+			goto out;
+		}
+	if (n < 0) {
+		warn("read: %s", src);
+		goto out;
+	}
+
+	ret = 0;
+
+out:
+	if (rfd != -1)
+		close(rfd);
+	if (wfd != -1)
+		close(wfd);
+	free(buf);
+	return ret;
+}
+
 static int
 process_attachments(struct sbk_ctx *ctx, const char *dir,
     struct sbk_attachment_list *lst, enum mode mode)
@@ -187,6 +232,10 @@ process_attachments(struct sbk_ctx *ctx, const char *dir,
 			continue;
 		}
 		switch (mode) {
+		case MODE_COPY:
+			if (copy_attachment(src, dfd, dst) == -1)
+				ret = -1;
+			break;
 		case MODE_LINK:
 			if (linkat(AT_FDCWD, src, dfd, dst, 0) == -1) {
 				warn("linkat: %s", dst);
@@ -218,7 +267,7 @@ cmd_attachments(int argc, char **argv)
 	int				 c, ret;
 	enum mode			 mode;
 
-	mode = MODE_LINK;
+	mode = MODE_COPY;
 
 	while ((c = getopt(argc, argv, "Ll")) != -1)
 		switch (c) {
