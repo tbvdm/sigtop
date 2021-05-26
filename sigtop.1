@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd April 9, 2021
+.Dd May 26, 2021
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -24,7 +24,8 @@
 .Op Ar argument ...
 .Sh DESCRIPTION
 .Nm
-is a utility to export messages and other data from Signal Desktop.
+is a utility to export messages, attachments and other data from Signal
+Desktop.
 .Pp
 .Nm
 needs access to the directory where Signal Desktop stores all messages,
@@ -47,6 +48,29 @@ create, remove or modify files in this directory.
 .Pp
 The commands are as follows.
 .Bl -tag -width Ds
+.It Xo
+.Ic attachments
+.Op Fl Ll
+.Ar signal-directory
+.Op Ar directory
+.Xc
+Export all attachments.
+The attachment files are created in
+.Ar directory ,
+or in the current directory if
+.Ar directory
+is not specified.
+.Pp
+Attachments are stored in unencrypted files in the Signal Desktop directory.
+.Nm
+can copy these files, or create hard links or symbolic links to them.
+By default, attachments are copied.
+If the
+.Fl L
+option is specified, hard links are created.
+If the
+.Fl l
+option is specified, symbolic links are created.
 .It Xo
 .Ic messages
 .Oo Fl f Ar format Oc

@@ -1,8 +1,8 @@
 sigtop
 ======
 
-[sigtop][1] is a utility to export messages and other data from [Signal
-Desktop][2].
+[sigtop][1] is a utility to export messages, attachments and other data from
+[Signal Desktop][2].
 
 Documentation is available in the `sigtop.1` manual page. You can also [read it
 online][3].
