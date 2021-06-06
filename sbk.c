@@ -1395,7 +1395,11 @@ sbk_open(struct sbk_ctx **ctx, const char *dir)
 		goto out;
 	}
 
-	if (access(dbfile, F_OK) == -1) {
+	/*
+	 * SQLite doesn't provide a useful error message if the database
+	 * doesn't exist or can't be read
+	 */
+	if (access(dbfile, R_OK) == -1) {
 		sbk_error_set(*ctx, "%s", dbfile);
 		goto out;
 	}
