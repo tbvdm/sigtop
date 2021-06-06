@@ -1373,10 +1373,9 @@ sbk_open(struct sbk_ctx **ctx, const char *dir)
 	keyfile = NULL;
 	ret = -1;
 
-	if ((*ctx = malloc(sizeof **ctx)) == NULL)
+	if ((*ctx = calloc(1, sizeof **ctx)) == NULL)
 		goto out;
 
-	(*ctx)->error = NULL;
 	RB_INIT(&(*ctx)->recipients);
 
 	if (((*ctx)->dir = strdup(dir)) == NULL) {
