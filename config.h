@@ -23,6 +23,9 @@
 /* Define if you have pledge(). */
 /* #define HAVE_PLEDGE */
 
+/* Define if you have reallocarray(). */
+/* #define HAVE_REALLOCARRAY */
+
 /* Define if you have unveil(). */
 /* #define HAVE_UNVEIL */
 
@@ -33,6 +36,7 @@
 #define HAVE_EXPLICIT_BZERO
 #define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
+#define HAVE_REALLOCARRAY
 
 #elif defined(__FreeBSD__)
 
@@ -41,13 +45,17 @@
 #define HAVE_EXPLICIT_BZERO
 #define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
+#define HAVE_REALLOCARRAY
 
 #elif defined(__NetBSD__)
+
+#define _OPENBSD_SOURCE
 
 #define HAVE_ASPRINTF
 #define HAVE_ERR
 #define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
+#define HAVE_REALLOCARRAY
 
 #elif defined(__OpenBSD__)
 
@@ -57,6 +65,7 @@
 #define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
 #define HAVE_PLEDGE
+#define HAVE_REALLOCARRAY
 #define HAVE_UNVEIL
 
 #elif defined(__linux__)
@@ -76,6 +85,9 @@
 #  if __GLIBC_PREREQ(2, 25)
 #    define HAVE_EXPLICIT_BZERO
 #  endif
+#  if __GLIBC_PREREQ(2, 26)
+#    define HAVE_REALLOCARRAY
+#  endif
 #endif
 
 /* bionic */
@@ -84,11 +96,17 @@
 #  if __ANDROID_API__ >= 21
 #    define HAVE_GETPROGNAME
 #  endif
+#  if __ANDROID_API__ >= 29
+#    define HAVE_REALLOCARRAY
+#  endif
 #endif
 
 /* musl */
 
 /* Define if you have musl >= 1.1.20. */
 /* #define HAVE_EXPLICIT_BZERO */
+
+/* Define if you have musl >= 1.2.2. */
+/* #define HAVE_REALLOCARRAY */
 
 #endif

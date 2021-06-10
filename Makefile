@@ -18,7 +18,7 @@ LDFLAGS+=	${PKGS_LDFLAGS}
 
 COMPAT_OBJS=	compat/asprintf.o compat/err.o compat/explicit_bzero.o \
 		compat/fopen.o compat/getprogname.o compat/pledge.o \
-		compat/unveil.o
+		compat/reallocarray.o compat/unveil.o
 
 OBJS=		cmd-attachments.o cmd-check.o cmd-messages.o cmd-sqlite.o \
 		mime.o sbk.o sigtop.o sqlite3.o utf.o ${COMPAT_OBJS}
