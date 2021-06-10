@@ -75,6 +75,8 @@ int		 sbk_open(struct sbk_ctx **, const char *);
 void		 sbk_close(struct sbk_ctx *);
 const char	*sbk_error(struct sbk_ctx *);
 
+int		 sbk_check(struct sbk_ctx *, char ***);
+
 struct sbk_attachment_list *sbk_get_all_attachments(struct sbk_ctx *);
 void		 sbk_free_attachment_list(struct sbk_attachment_list *);
 char		*sbk_get_attachment_path(struct sbk_ctx *,
@@ -98,6 +100,7 @@ uint32_t	 utf16_decode_surrogate_pair(uint16_t, uint16_t);
 int		 unveil_dirname(const char *, const char *);
 void		 usage(const char *, const char *) __dead;
 
+int		 cmd_check(int, char **);
 int		 cmd_attachments(int, char **);
 int		 cmd_messages(int, char **);
 int		 cmd_sqlite(int, char **);
