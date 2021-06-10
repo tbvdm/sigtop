@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 26, 2021
+.Dd June 10, 2021
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -71,6 +71,13 @@ option is specified, hard links are created.
 If the
 .Fl l
 option is specified, symbolic links are created.
+.It Ic check Ar signal-directory
+Check the integrity of the encrypted Signal Desktop database.
+The check is performed using the SQLite/SQLCipher
+.Cm cipher_integrity_check
+and
+.Cm integrity_check
+pragmas.
 .It Xo
 .Ic messages
 .Oo Fl f Ar format Oc
