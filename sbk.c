@@ -1365,7 +1365,7 @@ sbk_get_all_messages(struct sbk_ctx *ctx)
 int
 sbk_open(struct sbk_ctx **ctx, const char *dir)
 {
-	char	*dbfile, *keyfile;
+	char	*dbfile, *errmsg, *keyfile;
 	int	 ret;
 	char	 key[128];
 
@@ -1420,8 +1420,9 @@ sbk_open(struct sbk_ctx **ctx, const char *dir)
 
 	/* Verify key */
 	if (sqlite3_exec((*ctx)->db, "SELECT count(*) FROM sqlite_master",
-	    NULL, NULL, NULL) != SQLITE_OK) {
-		sbk_error_setx(*ctx, "Incorrect key");
+	    NULL, NULL, &errmsg) != SQLITE_OK) {
+		sbk_error_setx(*ctx, "Cannot verify key: %s", errmsg);
+		sqlite3_free(errmsg);
 		goto out;
 	}
 
