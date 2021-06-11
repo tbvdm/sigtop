@@ -1363,8 +1363,7 @@ sbk_get_all_messages(struct sbk_ctx *ctx)
 }
 
 static int
-sbk_run_pragma(struct sbk_ctx *ctx, char ***errorsp,
-    const char *pragma)
+sbk_run_pragma(struct sbk_ctx *ctx, char ***errorsp, const char *pragma)
 {
 	sqlite3_stmt	 *stm;
 	char		**errors, **newerrors;
