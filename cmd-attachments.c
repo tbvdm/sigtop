@@ -64,12 +64,13 @@ get_unique_filename(int dfd, char **name)
 		ext = NULL;
 	}
 
-	if (namelen > SIZE_MAX - 4 || baselen > INT_MAX) {
+	if (namelen > SIZE_MAX - 5 || baselen > INT_MAX) {
 		warnx("Attachment filename too long");
 		return -1;
 	}
 
-	size = namelen + 4;
+	/* 4 for the "-n" affix and 1 for the NUL */
+	size = namelen + 5;
 	if ((newname = malloc(size)) == NULL) {
 		warn(NULL);
 		return -1;
