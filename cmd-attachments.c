@@ -42,7 +42,8 @@ static int
 get_unique_filename(int dfd, char **name)
 {
 	struct stat	 st;
-	char		*ext, *newname;
+	char		*newname;
+	const char	*ext;
 	size_t		 baselen, namelen, size;
 	int		 i;
 
@@ -61,7 +62,7 @@ get_unique_filename(int dfd, char **name)
 		baselen = ext - *name;
 	else {
 		baselen = namelen;
-		ext = NULL;
+		ext = "";
 	}
 
 	if (namelen > SIZE_MAX - 5 || baselen > INT_MAX) {
@@ -78,7 +79,7 @@ get_unique_filename(int dfd, char **name)
 
 	for (i = 2; i < 1000; i++) {
 		snprintf(newname, size, "%.*s-%d%s", (int)baselen, *name, i,
-		    (ext != NULL) ? ext : "");
+		    ext);
 		if (fstatat(dfd, newname, &st, AT_SYMLINK_NOFOLLOW) == -1) {
 			if (errno != ENOENT) {
 				warn("fstatat: %s", newname);
