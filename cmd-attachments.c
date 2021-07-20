@@ -43,7 +43,8 @@ static int
 get_unique_filename(int dfd, char **name)
 {
 	struct stat	 st;
-	char		*ext, *newname;
+	char		*newname;
+	const char	*ext;
 	size_t		 baselen, namelen, size;
 	int		 i;
 
@@ -62,15 +63,16 @@ get_unique_filename(int dfd, char **name)
 		baselen = ext - *name;
 	else {
 		baselen = namelen;
-		ext = NULL;
+		ext = "";
 	}
 
-	if (namelen > SIZE_MAX - 4 || baselen > INT_MAX) {
+	if (namelen > SIZE_MAX - 5 || baselen > INT_MAX) {
 		warnx("Attachment filename too long");
 		return -1;
 	}
 
-	size = namelen + 4;
+	/* 4 for the "-n" affix and 1 for the NUL */
+	size = namelen + 5;
 	if ((newname = malloc(size)) == NULL) {
 		warn(NULL);
 		return -1;
@@ -78,7 +80,7 @@ get_unique_filename(int dfd, char **name)
 
 	for (i = 2; i < 1000; i++) {
 		snprintf(newname, size, "%.*s-%d%s", (int)baselen, *name, i,
-		    (ext != NULL) ? ext : "");
+		    ext);
 		if (fstatat(dfd, newname, &st, AT_SYMLINK_NOFOLLOW) == -1) {
 			if (errno != ENOENT) {
 				warn("fstatat: %s", newname);

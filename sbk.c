@@ -989,7 +989,7 @@ sbk_get_recipient_display_name(const struct sbk_recipient *rcp)
 int
 sbk_is_outgoing_message(const struct sbk_message *msg)
 {
-	return strcmp(msg->type, "outgoing") == 0;
+	return msg->type != NULL && strcmp(msg->type, "outgoing") == 0;
 }
 
 static void
@@ -1206,7 +1206,7 @@ error:
 static int
 sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 {
-	jsmntok_t	tokens[512];
+	jsmntok_t	tokens[2048];
 	int		idx;
 
 	if (msg->json == NULL)
@@ -1361,8 +1361,7 @@ sbk_get_all_messages(struct sbk_ctx *ctx)
 }
 
 static int
-sbk_run_pragma(struct sbk_ctx *ctx, char ***errorsp,
-    const char *pragma)
+sbk_run_pragma(struct sbk_ctx *ctx, char ***errorsp, const char *pragma)
 {
 	sqlite3_stmt	 *stm;
 	char		**errors, **newerrors;
