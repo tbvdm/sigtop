@@ -991,7 +991,7 @@ sbk_get_recipient_display_name(const struct sbk_recipient *rcp)
 int
 sbk_is_outgoing_message(const struct sbk_message *msg)
 {
-	return strcmp(msg->type, "outgoing") == 0;
+	return msg->type != NULL && strcmp(msg->type, "outgoing") == 0;
 }
 
 static void
