@@ -1208,7 +1208,7 @@ error:
 static int
 sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 {
-	jsmntok_t	tokens[512];
+	jsmntok_t	tokens[2048];
 	int		idx;
 
 	if (msg->json == NULL)
