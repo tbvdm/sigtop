@@ -17,6 +17,7 @@
 #include "config.h"
 
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -24,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "sigtop.h"
@@ -101,8 +103,11 @@ get_unique_filename(int dfd, char **name)
 static char *
 get_filename(int dfd, struct sbk_attachment *att)
 {
-	char		*base, *c, *name;
+	char		*c, *name;
 	const char	*ext;
+	struct tm	*tm;
+	time_t		 tt;
+	char		 base[32];
 
 	if (att->filename != NULL && *att->filename != '\0') {
 		if (strcmp(att->filename, ".") == 0)
@@ -121,15 +126,19 @@ get_filename(int dfd, struct sbk_attachment *att)
 			return NULL;
 		}
 	} else {
-		if ((base = strrchr(att->path, '/')) != NULL)
-			base++;
-		else
-			base = att->path;
-		if (*base == '\0' || strcmp(base, ".") == 0 ||
-		    strcmp(base, "..") == 0) {
-			warnx("Invalid attachment path");
+		tt = att->time_sent / 1000;
+		if ((tm = localtime(&tt)) == NULL) {
+			warnx("localtime() failed");
 			return NULL;
 		}
+		snprintf(base, sizeof base,
+		    "attachment-%d-%02d-%02d-%02d-%02d-%02d",
+		    tm->tm_year + 1900,
+		    tm->tm_mon + 1,
+		    tm->tm_mday,
+		    tm->tm_hour,
+		    tm->tm_min,
+		    tm->tm_sec);
 		if (att->content_type == NULL)
 			ext = NULL;
 		else
