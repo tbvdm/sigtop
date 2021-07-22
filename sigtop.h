@@ -52,6 +52,8 @@ struct sbk_attachment {
 	char		*filename;
 	char		*content_type;
 	uint64_t	 size;
+	uint64_t	 time_sent;
+	uint64_t	 time_recv;
 	TAILQ_ENTRY(sbk_attachment) entries;
 };
 

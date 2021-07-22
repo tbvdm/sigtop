@@ -1159,6 +1159,8 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 		att->size = size;
 	}
 
+	att->time_sent = msg->time_sent;
+	att->time_recv = msg->time_recv;
 	TAILQ_INSERT_TAIL(msg->attachments, att, entries);
 	return 0;
 
