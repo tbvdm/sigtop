@@ -3,7 +3,7 @@ name: build
 on: push
 
 jobs:
-  build:
+  ubuntu:
 
     strategy:
       matrix:
@@ -13,7 +13,34 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: install dependencies
       run: sudo apt-get install build-essential libssl-dev pkg-config
+
     - name: build
       run: make
+
+  macos:
+
+    strategy:
+      matrix:
+        os: [macos-latest]
+        ssl: [libressl, openssl]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: install dependencies
+      # Also install make because Xcode provides GNU make 3.81 which is too old
+      run: brew install make pkg-config ${{ matrix.ssl }}
+
+    - name: build
+      env:
+        # Per the instructions from "brew install"
+        PKG_CONFIG_PATH: /usr/local/opt/${{ matrix.ssl }}/lib/pkgconfig
+      run: gmake
+
+    - name: run
+      run: ./sigtop check doesnotexist || test $? = 1

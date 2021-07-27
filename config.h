@@ -29,7 +29,14 @@
 /* Define if you have unveil(). */
 /* #define HAVE_UNVEIL */
 
-#ifdef __DragonFly__
+#ifdef __APPLE__
+
+#define HAVE_ASPRINTF
+#define HAVE_ERR
+#define HAVE_FOPEN_X_MODE
+#define HAVE_GETPROGNAME
+
+#elif defined(__DragonFly__)
 
 #define HAVE_ASPRINTF
 #define HAVE_ERR
