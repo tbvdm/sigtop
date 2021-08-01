@@ -219,6 +219,9 @@ cmd_messages(int argc, char **argv)
 		break;
 	}
 
+	if (fp != stdout)
+		fclose(fp);
+
 	sbk_close(ctx);
 	return (ret == 0) ? 0 : 1;
 
