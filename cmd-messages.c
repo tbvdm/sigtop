@@ -137,11 +137,13 @@ cmd_messages(int argc, char **argv)
 	struct sbk_message_list	*lst;
 	FILE			*fp;
 	char			*dir, *file;
+	time_t			 max, min;
 	int			 c, format, ret;
 
 	format = FORMAT_TEXT;
+	min = max = (time_t)-1;
 
-	while ((c = getopt(argc, argv, "f:")) != -1)
+	while ((c = getopt(argc, argv, "f:s:")) != -1)
 		switch (c) {
 		case 'f':
 			if (strcmp(optarg, "json") == 0)
@@ -150,6 +152,10 @@ cmd_messages(int argc, char **argv)
 				format = FORMAT_TEXT;
 			else
 				errx(1, "%s: invalid format", optarg);
+			break;
+		case 's':
+			if (parse_time_interval(optarg, &min, &max) == -1)
+				return -1;
 			break;
 		default:
 			goto usage;
@@ -189,7 +195,16 @@ cmd_messages(int argc, char **argv)
 		return 1;
 	}
 
-	if ((lst = sbk_get_all_messages(ctx)) == NULL) {
+	if (min == (time_t)-1 && max == (time_t)-1)
+		lst = sbk_get_all_messages(ctx);
+	else if (min == (time_t)-1)
+		lst = sbk_get_messages_sent_before(ctx, max);
+	else if (max == (time_t)-1)
+		lst = sbk_get_messages_sent_after(ctx, min);
+	else
+		lst = sbk_get_messages_sent_between(ctx, min, max);
+
+	if (lst == NULL) {
 		warnx("%s", sbk_error(ctx));
 		sbk_close(ctx);
 		return -1;
@@ -221,5 +236,5 @@ cmd_messages(int argc, char **argv)
 	return (ret == 0) ? 0 : 1;
 
 usage:
-	usage("messages", "[-f format] signal-directory [file]");
+	usage("messages", "[-f format] [-s interval] signal-directory [file]");
 }
