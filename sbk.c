@@ -1262,7 +1262,7 @@ static struct sbk_message *
 sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 {
 	struct sbk_message	*msg;
-	unsigned const char	*id;
+	const unsigned char	*id;
 
 	if ((msg = calloc(1, sizeof *msg)) == NULL) {
 		sbk_error_set(ctx, NULL);
