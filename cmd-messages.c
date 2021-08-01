@@ -32,15 +32,9 @@ enum {
 };
 
 static int
-json_write_messages(struct sbk_ctx *ctx, FILE *fp)
+json_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
-	struct sbk_message_list	*lst;
-	struct sbk_message	*msg;
-
-	if ((lst = sbk_get_all_messages(ctx)) == NULL) {
-		warnx("%s", sbk_error(ctx));
-		return -1;
-	}
+	struct sbk_message *msg;
 
 	fputs("[\n", fp);
 	SIMPLEQ_FOREACH(msg, lst, entries)
@@ -48,7 +42,6 @@ json_write_messages(struct sbk_ctx *ctx, FILE *fp)
 		    (SIMPLEQ_NEXT(msg, entries) != NULL) ? "," : "");
 	fputs("]\n", fp);
 
-	sbk_free_message_list(lst);
 	return 0;
 }
 
@@ -105,15 +98,9 @@ text_write_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
 }
 
 static int
-text_write_messages(struct sbk_ctx *ctx, FILE *fp)
+text_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
-	struct sbk_message_list	*lst;
-	struct sbk_message	*msg;
-
-	if ((lst = sbk_get_all_messages(ctx)) == NULL) {
-		warnx("%s", sbk_error(ctx));
-		return -1;
-	}
+	struct sbk_message *msg;
 
 	SIMPLEQ_FOREACH(msg, lst, entries) {
 		fprintf(fp, "Conversation: %s\n",
@@ -140,17 +127,17 @@ text_write_messages(struct sbk_ctx *ctx, FILE *fp)
 		putc('\n', fp);
 	}
 
-	sbk_free_message_list(lst);
 	return 0;
 }
 
 int
 cmd_messages(int argc, char **argv)
 {
-	struct sbk_ctx	*ctx;
-	FILE		*fp;
-	char		*dir, *file;
-	int		 c, format, ret;
+	struct sbk_ctx		*ctx;
+	struct sbk_message_list	*lst;
+	FILE			*fp;
+	char			*dir, *file;
+	int			 c, format, ret;
 
 	format = FORMAT_TEXT;
 
@@ -202,26 +189,34 @@ cmd_messages(int argc, char **argv)
 		return 1;
 	}
 
+	if ((lst = sbk_get_all_messages(ctx)) == NULL) {
+		warnx("%s", sbk_error(ctx));
+		sbk_close(ctx);
+		return -1;
+	}
+
 	if (file == NULL)
 		fp = stdout;
 	else if ((fp = fopen(file, "wx")) == NULL) {
 		warn("fopen: %s", file);
+		sbk_free_message_list(lst);
 		sbk_close(ctx);
 		return 1;
 	}
 
 	switch (format) {
 	case FORMAT_JSON:
-		ret = json_write_messages(ctx, fp);
+		ret = json_write_messages(fp, lst);
 		break;
 	case FORMAT_TEXT:
-		ret = text_write_messages(ctx, fp);
+		ret = text_write_messages(fp, lst);
 		break;
 	}
 
 	if (fp != stdout)
 		fclose(fp);
 
+	sbk_free_message_list(lst);
 	sbk_close(ctx);
 	return (ret == 0) ? 0 : 1;
 

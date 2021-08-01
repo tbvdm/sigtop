@@ -1231,20 +1231,19 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 }
 
 /* For database versions 8 to 19 */
-#define SBK_MESSAGES_QUERY_8						\
+#define SBK_MESSAGES_SELECT_8						\
 	"SELECT "							\
-	"conversationId, "						\
-	"source, "							\
-	"type, "							\
-	"body, "							\
-	"json, "							\
-	"sent_at, "							\
-	"received_at "							\
-	"FROM messages "						\
-	"ORDER BY received_at"
+	"m.conversationId, "						\
+	"m.source, "							\
+	"m.type, "							\
+	"m.body, "							\
+	"m.json, "							\
+	"m.sent_at, "							\
+	"m.received_at "						\
+	"FROM messages AS m "
 
 /* For database versions >= 20 */
-#define SBK_MESSAGES_QUERY_20						\
+#define SBK_MESSAGES_SELECT_20						\
 	"SELECT "							\
 	"m.conversationId, "						\
 	"c.id, "							\
@@ -1255,8 +1254,18 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	"m.received_at "						\
 	"FROM messages AS m "						\
 	"LEFT JOIN conversations AS c "					\
-	"ON m.sourceUuid = c.uuid "					\
+	"ON m.sourceUuid = c.uuid "
+
+#define SBK_MESSAGES_ORDER						\
 	"ORDER BY m.received_at"
+
+#define SBK_MESSAGES_QUERY_ALL_8					\
+	SBK_MESSAGES_SELECT_8						\
+	SBK_MESSAGES_ORDER
+
+#define SBK_MESSAGES_QUERY_ALL_20					\
+	SBK_MESSAGES_SELECT_20						\
+	SBK_MESSAGES_ORDER
 
 static struct sbk_message *
 sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
@@ -1354,9 +1363,9 @@ sbk_get_all_messages(struct sbk_ctx *ctx)
 	const char	*query;
 
 	if (ctx->db_version < 20)
-		query = SBK_MESSAGES_QUERY_8;
+		query = SBK_MESSAGES_QUERY_ALL_8;
 	else
-		query = SBK_MESSAGES_QUERY_20;
+		query = SBK_MESSAGES_QUERY_ALL_20;
 
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return NULL;
