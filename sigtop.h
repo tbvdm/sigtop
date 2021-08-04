@@ -17,6 +17,8 @@
 #ifndef SIGTOP_H
 #define SIGTOP_H
 
+#include <sys/types.h>
+
 #include <stdint.h>
 
 #include "compat.h"
@@ -80,11 +82,22 @@ const char	*sbk_error(struct sbk_ctx *);
 int		 sbk_check(struct sbk_ctx *, char ***);
 
 struct sbk_attachment_list *sbk_get_all_attachments(struct sbk_ctx *);
+struct sbk_attachment_list *sbk_get_attachments_sent_after(struct sbk_ctx *,
+		    time_t);
+struct sbk_attachment_list *sbk_get_attachments_sent_before(struct sbk_ctx *,
+		    time_t);
+struct sbk_attachment_list *sbk_get_attachments_sent_between(struct sbk_ctx *,
+		    time_t, time_t);
 void		 sbk_free_attachment_list(struct sbk_attachment_list *);
 char		*sbk_get_attachment_path(struct sbk_ctx *,
 		    struct sbk_attachment *);
 
 struct sbk_message_list *sbk_get_all_messages(struct sbk_ctx *);
+struct sbk_message_list *sbk_get_messages_sent_after(struct sbk_ctx *, time_t);
+struct sbk_message_list *sbk_get_messages_sent_before(struct sbk_ctx *,
+		    time_t);
+struct sbk_message_list *sbk_get_messages_sent_between(struct sbk_ctx *,
+		    time_t, time_t);
 void		 sbk_free_message_list(struct sbk_message_list *);
 int		 sbk_is_outgoing_message(const struct sbk_message *);
 
@@ -100,6 +113,7 @@ int		 utf16_is_low_surrogate(uint16_t);
 uint32_t	 utf16_decode_surrogate_pair(uint16_t, uint16_t);
 
 int		 unveil_dirname(const char *, const char *);
+int		 parse_time_interval(char *, time_t *, time_t *);
 void		 usage(const char *, const char *) __dead;
 
 int		 cmd_check(int, char **);

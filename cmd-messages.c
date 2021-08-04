@@ -33,15 +33,9 @@ enum {
 };
 
 static int
-json_write_messages(struct sbk_ctx *ctx, FILE *fp)
+json_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
-	struct sbk_message_list	*lst;
-	struct sbk_message	*msg;
-
-	if ((lst = sbk_get_all_messages(ctx)) == NULL) {
-		warnx("%s", sbk_error(ctx));
-		return -1;
-	}
+	struct sbk_message *msg;
 
 	fputs("[\n", fp);
 	SIMPLEQ_FOREACH(msg, lst, entries)
@@ -49,7 +43,6 @@ json_write_messages(struct sbk_ctx *ctx, FILE *fp)
 		    (SIMPLEQ_NEXT(msg, entries) != NULL) ? "," : "");
 	fputs("]\n", fp);
 
-	sbk_free_message_list(lst);
 	return 0;
 }
 
@@ -106,15 +99,9 @@ text_write_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
 }
 
 static int
-text_write_messages(struct sbk_ctx *ctx, FILE *fp)
+text_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
-	struct sbk_message_list	*lst;
-	struct sbk_message	*msg;
-
-	if ((lst = sbk_get_all_messages(ctx)) == NULL) {
-		warnx("%s", sbk_error(ctx));
-		return -1;
-	}
+	struct sbk_message *msg;
 
 	SIMPLEQ_FOREACH(msg, lst, entries) {
 		fprintf(fp, "Conversation: %s\n",
@@ -141,21 +128,23 @@ text_write_messages(struct sbk_ctx *ctx, FILE *fp)
 		putc('\n', fp);
 	}
 
-	sbk_free_message_list(lst);
 	return 0;
 }
 
 int
 cmd_messages(int argc, char **argv)
 {
-	struct sbk_ctx	*ctx;
-	FILE		*fp;
-	char		*dir, *file;
-	int		 c, format, ret;
+	struct sbk_ctx		*ctx;
+	struct sbk_message_list	*lst;
+	FILE			*fp;
+	char			*dir, *file;
+	time_t			 max, min;
+	int			 c, format, ret;
 
 	format = FORMAT_TEXT;
+	min = max = (time_t)-1;
 
-	while ((c = getopt(argc, argv, "f:")) != -1)
+	while ((c = getopt(argc, argv, "f:s:")) != -1)
 		switch (c) {
 		case 'f':
 			if (strcmp(optarg, "json") == 0)
@@ -164,6 +153,10 @@ cmd_messages(int argc, char **argv)
 				format = FORMAT_TEXT;
 			else
 				errx(1, "%s: invalid format", optarg);
+			break;
+		case 's':
+			if (parse_time_interval(optarg, &min, &max) == -1)
+				return -1;
 			break;
 		default:
 			goto usage;
@@ -203,26 +196,46 @@ cmd_messages(int argc, char **argv)
 		return 1;
 	}
 
+	if (min == (time_t)-1 && max == (time_t)-1)
+		lst = sbk_get_all_messages(ctx);
+	else if (min == (time_t)-1)
+		lst = sbk_get_messages_sent_before(ctx, max);
+	else if (max == (time_t)-1)
+		lst = sbk_get_messages_sent_after(ctx, min);
+	else
+		lst = sbk_get_messages_sent_between(ctx, min, max);
+
+	if (lst == NULL) {
+		warnx("%s", sbk_error(ctx));
+		sbk_close(ctx);
+		return -1;
+	}
+
 	if (file == NULL)
 		fp = stdout;
 	else if ((fp = fopen(file, "wx")) == NULL) {
 		warn("fopen: %s", file);
+		sbk_free_message_list(lst);
 		sbk_close(ctx);
 		return 1;
 	}
 
 	switch (format) {
 	case FORMAT_JSON:
-		ret = json_write_messages(ctx, fp);
+		ret = json_write_messages(fp, lst);
 		break;
 	case FORMAT_TEXT:
-		ret = text_write_messages(ctx, fp);
+		ret = text_write_messages(fp, lst);
 		break;
 	}
 
+	if (fp != stdout)
+		fclose(fp);
+
+	sbk_free_message_list(lst);
 	sbk_close(ctx);
 	return (ret == 0) ? 0 : 1;
 
 usage:
-	usage("messages", "[-f format] signal-directory [file]");
+	usage("messages", "[-f format] [-s interval] signal-directory [file]");
 }

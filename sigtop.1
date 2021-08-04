@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd June 10, 2021
+.Dd August 1, 2021
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -51,10 +51,11 @@ The commands are as follows.
 .It Xo
 .Ic attachments
 .Op Fl Ll
+.Op Fl s Ar time-interval
 .Ar signal-directory
 .Op Ar directory
 .Xc
-Export all attachments.
+Export attachments.
 The attachment files are created in
 .Ar directory ,
 or in the current directory if
@@ -71,6 +72,15 @@ option is specified, hard links are created.
 If the
 .Fl l
 option is specified, symbolic links are created.
+.Pp
+By default, all attachments are exported.
+The
+.Fl s
+option may be used to export only the attachments that were sent in the
+specified time interval.
+See the
+.Sx TIME INTERVALS
+section below for details.
 .It Ic check Ar signal-directory
 Check the integrity of the encrypted Signal Desktop database.
 The check is performed using the SQLite/SQLCipher
@@ -80,11 +90,12 @@ and
 pragmas.
 .It Xo
 .Ic messages
-.Oo Fl f Ar format Oc
+.Op Fl f Ar format
+.Op Fl s Ar time-interval
 .Ar signal-directory
 .Op Ar file
 .Xc
-Export all messages.
+Export messages.
 The messages are written to
 .Ar file ,
 or to standard output if
@@ -109,11 +120,37 @@ structure may differ between Signal Desktop versions.
 With the
 .Cm text
 format, messages are written as plain text.
+.Pp
+By default, all messages are exported.
+The
+.Fl s
+option may be used to export only the messages that were sent in the specified
+time interval.
+See the
+.Sx TIME INTERVALS
+section below details.
 .It Ic sqlite Ar signal-directory Ar file
 Decrypt and export the Signal Desktop database to
 .Ar file .
 The exported database is a regular SQLite database.
 .El
+.Sh TIME INTERVALS
+A time interval is specified using the format
+.Sm off
+.Sq Oo Ar time Oc Cm \&, Oo Ar time Oc ,
+.Sm on
+and a time is specified using the format
+.Sm off
+.Sq Ar yyyy Cm - Ar mm Cm - Ar dd Cm T Ar hh Cm \&: Ar mm Cm \&: Ar ss .
+.Sm on
+The endpoints of the interval are inclusive, and either endpoint may be
+omitted.
+Examples of time intervals are:
+.Bd -literal -offset indent
+2020-01-01T00:00:00,2020-12-31T23:59:59
+2016-10-13T21:43:27,
+,2038-01-19T03:14:07
+.Ed
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
@@ -127,6 +164,11 @@ Export all messages as plain text, fold long lines for readability and view the
 result:
 .Bd -literal -offset indent
 $ sigtop messages ~/.config/Signal | fold -s | less
+.Ed
+.Pp
+Export all attachments sent at or after 12:34:56 on 23 January 2021:
+.Bd -literal -offset indent
+$ sigtop attachments -s 2021-01-23T12:34:56, ~/.config/Signal
 .Ed
 .Pp
 Export the database from a Signal Desktop directory on a Windows disk mounted

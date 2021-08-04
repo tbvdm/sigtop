@@ -276,18 +276,24 @@ cmd_attachments(int argc, char **argv)
 	struct sbk_attachment_list	*lst;
 	char				*signaldir;
 	const char			*outdir;
+	time_t				 max, min;
 	int				 c, ret;
 	enum mode			 mode;
 
 	mode = MODE_COPY;
+	min = max = (time_t)-1;
 
-	while ((c = getopt(argc, argv, "Ll")) != -1)
+	while ((c = getopt(argc, argv, "Lls:")) != -1)
 		switch (c) {
 		case 'L':
 			mode = MODE_LINK;
 			break;
 		case 'l':
 			mode = MODE_SYMLINK;
+			break;
+		case 's':
+			if (parse_time_interval(optarg, &min, &max) == -1)
+				return -1;
 			break;
 		default:
 			goto usage;
@@ -332,7 +338,16 @@ cmd_attachments(int argc, char **argv)
 		goto out;
 	}
 
-	if ((lst = sbk_get_all_attachments(ctx)) == NULL) {
+	if (min == (time_t)-1 && max == (time_t)-1)
+		lst = sbk_get_all_attachments(ctx);
+	else if (min == (time_t)-1)
+		lst = sbk_get_attachments_sent_before(ctx, max);
+	else if (max == (time_t)-1)
+		lst = sbk_get_attachments_sent_after(ctx, min);
+	else
+		lst = sbk_get_attachments_sent_between(ctx, min, max);
+
+	if (lst == NULL) {
 		warnx("%s", sbk_error(ctx));
 		goto out;
 	}
@@ -348,5 +363,6 @@ out:
 	return ret;
 
 usage:
-	usage("attachments", "[-Ll] signal-directory [directory]");
+	usage("attachments", "[-Ll] [-s interval] signal-directory "
+	    "[directory]");
 }

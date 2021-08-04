@@ -16,10 +16,13 @@
 
 #include "config.h"
 
+#include <sys/types.h>
+
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "sigtop.h"
@@ -54,6 +57,60 @@ unveil_dirname(const char *path, const char *perms)
 	}
 
 	free(tmp);
+	return 0;
+}
+
+static int
+parse_time(const char *str, time_t *tt)
+{
+	struct tm	 tm;
+	char		*c;
+
+	if (*str == '\0') {
+		*tt = (time_t)-1;
+		return 0;
+	}
+
+	memset(&tm, 0, sizeof tm);
+	c = strptime(str, "%Y-%m-%dT%H:%M:%S", &tm);
+
+	if (c == NULL || *c != '\0') {
+		warnx("%s: Invalid time specification", str);
+		return -1;
+	}
+
+	tm.tm_isdst = -1;
+
+	if ((*tt = mktime(&tm)) < 0) {
+		warnx("mktime() failed");
+		return -1;
+	}
+
+	return 0;
+}
+
+int
+parse_time_interval(char *str, time_t *min, time_t *max)
+{
+	char *maxstr, *minstr, *sep;
+
+	if ((sep = strchr(str, ',')) == NULL) {
+		warnx("%s: Missing separator in time interval", str);
+		return -1;
+	}
+
+	*sep = '\0';
+	minstr = str;
+	maxstr = sep + 1;
+
+	if (parse_time(minstr, min) == -1 || parse_time(maxstr, max) == -1)
+		return -1;
+
+	if (*max != (time_t)-1 && *min > *max) {
+		warnx("%s is later than %s", minstr, maxstr);
+		return -1;
+	}
+
 	return 0;
 }
 
