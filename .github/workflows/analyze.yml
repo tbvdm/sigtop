@@ -1,0 +1,29 @@
+name: analyze
+
+on: push
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: install dependencies
+      run: sudo apt-get install build-essential libssl-dev pkg-config
+
+    - name: initialize
+      uses: github/codeql-action/init@v1
+      with:
+        languages: cpp
+
+    - name: autobuild
+      uses: github/codeql-action/autobuild@v1
+
+    - name: analyze
+      uses: github/codeql-action/analyze@v1
