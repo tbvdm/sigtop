@@ -1372,6 +1372,7 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 {
 	struct sbk_message	*msg;
 	const unsigned char	*id;
+	int			 found = 1;
 
 	if ((msg = calloc(1, sizeof *msg)) == NULL) {
 		sbk_error_set(ctx, NULL);
@@ -1384,8 +1385,11 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	} else {
 		msg->conversation = sbk_get_recipient_from_conversation_id(ctx,
 		    (const char *)id);
-		if (msg->conversation == NULL)
-			goto error;
+		if (msg->conversation == NULL) {
+			fprintf(stderr, "%s: conversation lookup failed\n",
+			    id);
+			found = 0;
+		}
 	}
 
 	if ((id = sqlite3_column_text(stm, 1)) == NULL) {
@@ -1393,8 +1397,10 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	} else {
 		msg->source = sbk_get_recipient_from_conversation_id(ctx,
 		    (const char *)id);
-		if (msg->source == NULL)
-			goto error;
+		if (msg->source == NULL) {
+			fprintf(stderr, "%s: source lookup failed\n", id);
+			found = 0;
+		}
 	}
 
 	if (sbk_sqlite_column_text_copy(ctx, &msg->type, stm, 2) == -1)
@@ -1411,6 +1417,9 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 
 	if (sbk_parse_message_json(ctx, msg) == -1)
 		goto error;
+
+	if (!found)
+		fprintf(stderr, "message: %s\n", msg->json);
 
 	return msg;
 
@@ -1701,6 +1710,8 @@ sbk_open(struct sbk_ctx **ctx, const char *dir)
 
 	if (((*ctx)->db_version = sbk_get_database_version(*ctx)) == -1)
 		goto out;
+
+	fprintf(stderr, "database version: %d\n", (*ctx)->db_version);
 
 	if ((*ctx)->db_version < 19) {
 		sbk_error_setx(*ctx, "Database version not supported (yet)");
