@@ -12,7 +12,8 @@ jobs:
       security-events: write
 
     steps:
-    - uses: actions/checkout@v2
+    - name: checkout
+      uses: actions/checkout@v2
 
     - name: install dependencies
       run: sudo apt-get install build-essential libssl-dev pkg-config
