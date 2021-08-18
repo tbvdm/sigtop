@@ -23,7 +23,7 @@ jobs:
   macos:
     strategy:
       matrix:
-        os: [macos-10.15]
+        os: [macos-10.15, macos-11]
         ssl: [libressl, openssl]
 
     runs-on: ${{ matrix.os }}
@@ -37,10 +37,12 @@ jobs:
       run: brew install make pkg-config ${{ matrix.ssl }}
 
     - name: build
-      env:
-        # Per the instructions from "brew install"
-        PKG_CONFIG_PATH: /usr/local/opt/${{ matrix.ssl }}/lib/pkgconfig
-      run: gmake
+      # Set PKG_CONFIG_PATH as per the instructions from "brew install". See
+      # also:
+      # https://docs.brew.sh/How-to-Build-Software-Outside-Homebrew-with-Homebrew-keg-only-Dependencies
+      run: |
+        PKG_CONFIG_PATH=$(brew --prefix)/opt/${{ matrix.ssl }}/lib/pkgconfig \
+          gmake
 
     - name: run
       run: ./sigtop check doesnotexist || test $? = 1
