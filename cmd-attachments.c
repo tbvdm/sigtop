@@ -316,8 +316,8 @@ cmd_attachments(int argc, char **argv)
 		goto usage;
 	}
 
-	if (unveil(signaldir, "r") == -1)
-		err(1, "unveil");
+	if (unveil_signal_dir(signaldir) == -1)
+		return 1;
 
 	if (unveil(outdir, "rwc") == -1)
 		err(1, "unveil");

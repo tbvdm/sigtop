@@ -59,6 +59,36 @@ unveil_dirname(const char *path, const char *perms)
 	return 0;
 }
 
+int
+unveil_signal_dir(const char *dir)
+{
+	char *dbdir;
+
+	if (unveil(dir, "r") == -1) {
+		warn("unveil");
+		return -1;
+	}
+
+	/*
+	 * SQLCipher needs to create the sql/db.sqlite-{shm,wal} files if they
+	 * don't exist already
+	 */
+
+	if (asprintf(&dbdir, "%s/sql", dir) == -1) {
+		warnx("asprintf() failed");
+		return -1;
+	}
+
+	if (unveil(dbdir, "rwc") == -1) {
+		warn("unveil");
+		free(dbdir);
+		return -1;
+	}
+
+	free(dbdir);
+	return 0;
+}
+
 static int
 parse_time(const char *str, time_t *tt)
 {
