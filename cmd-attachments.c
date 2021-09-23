@@ -320,11 +320,11 @@ cmd_attachments(int argc, char **argv)
 		return 1;
 
 	if (unveil(outdir, "rwc") == -1)
-		err(1, "unveil");
+		err(1, "unveil: %s", outdir);
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
-		err(1, "unveil");
+		err(1, "unveil: /dev/urandom");
 
 	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
 		err(1, "pledge");

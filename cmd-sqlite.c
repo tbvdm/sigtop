@@ -38,7 +38,7 @@ cmd_sqlite(int argc, char **argv)
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
-		err(1, "unveil");
+		err(1, "unveil: /dev/urandom");
 
 	/* For the export database and its temporary files */
 	if (unveil_dirname(db, "rwc") == -1)

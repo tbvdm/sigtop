@@ -50,7 +50,7 @@ unveil_dirname(const char *path, const char *perms)
 	}
 
 	if (unveil(dir, perms) == -1) {
-		warn("unveil");
+		warn("unveil: %s", dir);
 		free(tmp);
 		return -1;
 	}
@@ -65,7 +65,7 @@ unveil_signal_dir(const char *dir)
 	char *dbdir;
 
 	if (unveil(dir, "r") == -1) {
-		warn("unveil");
+		warn("unveil: %s", dir);
 		return -1;
 	}
 
@@ -80,7 +80,7 @@ unveil_signal_dir(const char *dir)
 	}
 
 	if (unveil(dbdir, "rwc") == -1) {
-		warn("unveil");
+		warn("unveil: %s", dbdir);
 		free(dbdir);
 		return -1;
 	}
