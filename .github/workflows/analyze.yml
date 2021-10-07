@@ -16,7 +16,9 @@ jobs:
       uses: actions/checkout@v2
 
     - name: install dependencies
-      run: sudo apt-get install build-essential libssl-dev pkg-config
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential libssl-dev pkg-config
 
     - name: initialize
       uses: github/codeql-action/init@v1
