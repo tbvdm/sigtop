@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd August 1, 2021
+.Dd September 22, 2021
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -28,8 +28,7 @@ is a utility to export messages, attachments and other data from Signal
 Desktop.
 .Pp
 .Nm
-needs access to the directory where Signal Desktop stores all messages,
-attachments and other data.
+needs access to the directory where Signal Desktop stores its data.
 Depending on the operating system, this directory is usually found at one of
 the following locations:
 .Pp
@@ -41,10 +40,6 @@ the following locations:
 .It Windows
 .Pa C:\eUsers\e Ns Em <username> Ns Pa \eAppData\eRoaming\eSignal
 .El
-.Pp
-.Nm
-only needs read-only access to the Signal Desktop directory \(en it will not
-create, remove or modify files in this directory.
 .Pp
 The commands are as follows.
 .Bl -tag -width Ds

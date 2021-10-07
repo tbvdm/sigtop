@@ -34,12 +34,12 @@ cmd_sqlite(int argc, char **argv)
 	dir = argv[1];
 	db = argv[2];
 
-	if (unveil(dir, "r") == -1)
-		err(1, "unveil");
+	if (unveil_signal_dir(dir) == -1)
+		return 1;
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
-		err(1, "unveil");
+		err(1, "unveil: /dev/urandom");
 
 	/* For the export database and its temporary files */
 	if (unveil_dirname(db, "rwc") == -1)

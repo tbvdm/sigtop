@@ -172,7 +172,7 @@ cmd_messages(int argc, char **argv)
 	case 2:
 		file = argv[1];
 		if (unveil(file, "wc") == -1)
-			err(1, "unveil");
+			err(1, "unveil: %s", file);
 		break;
 	default:
 		goto usage;
@@ -180,12 +180,12 @@ cmd_messages(int argc, char **argv)
 
 	dir = argv[0];
 
-	if (unveil(dir, "r") == -1)
-		err(1, "unveil");
+	if (unveil_signal_dir(dir) == -1)
+		return 1;
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
-		err(1, "unveil");
+		err(1, "unveil: /dev/urandom");
 
 	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
 		err(1, "pledge");

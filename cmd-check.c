@@ -33,12 +33,12 @@ cmd_check(int argc, char **argv)
 
 	dir = argv[1];
 
-	if (unveil(dir, "r") == -1)
-		err(1, "unveil");
+	if (unveil_signal_dir(dir) == -1)
+		return 1;
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1)
-		err(1, "unveil");
+		err(1, "unveil: /dev/urandom");
 
 	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
 		err(1, "pledge");

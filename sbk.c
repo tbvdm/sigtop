@@ -863,6 +863,13 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 	"profileFullName "						\
 	"FROM conversations"
 
+#define SBK_RECIPIENTS_COLUMN_ID		0
+#define SBK_RECIPIENTS_COLUMN_TYPE		1
+#define SBK_RECIPIENTS_COLUMN_NAME		2
+#define SBK_RECIPIENTS_COLUMN_PROFILENAME	3
+#define SBK_RECIPIENTS_COLUMN_PROFILEFAMILYNAME	4
+#define SBK_RECIPIENTS_COLUMN_PROFILEFULLNAME	5
+
 static struct sbk_recipient_entry *
 sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 {
@@ -876,10 +883,12 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		return NULL;
 	}
 
-	if (sbk_sqlite_column_text_copy(ctx, &ent->id, stm, 0) == -1)
+	if (sbk_sqlite_column_text_copy(ctx, &ent->id, stm,
+	    SBK_RECIPIENTS_COLUMN_ID) == -1)
 		goto error;
 
-	if ((type = sqlite3_column_text(stm, 1)) == NULL) {
+	if ((type = sqlite3_column_text(stm, SBK_RECIPIENTS_COLUMN_TYPE)) ==
+	    NULL) {
 		sbk_error_sqlite_set(ctx, "Cannot get column text");
 		goto error;
 	}
@@ -902,19 +911,19 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		}
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->name,
-		    stm, 2) == -1)
+		    stm, SBK_RECIPIENTS_COLUMN_NAME) == -1)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->profile_name,
-		    stm, 3) == -1)
+		    stm, SBK_RECIPIENTS_COLUMN_PROFILENAME) == -1)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->profile_family_name,
-		    stm, 4) == -1)
+		    stm, SBK_RECIPIENTS_COLUMN_PROFILEFAMILYNAME) == -1)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->profile_joined_name,
-		    stm, 5) == -1)
+		    stm, SBK_RECIPIENTS_COLUMN_PROFILEFULLNAME) == -1)
 			goto error;
 
 		break;
@@ -927,7 +936,7 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		}
 
 		if (sbk_sqlite_column_text_copy(ctx, &grp->name,
-		    stm, 2) == -1)
+		    stm, SBK_RECIPIENTS_COLUMN_NAME) == -1)
 			goto error;
 	}
 
@@ -1367,6 +1376,14 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	SBK_MESSAGES_WHERE_SENT_BETWEEN					\
 	SBK_MESSAGES_ORDER
 
+#define SBK_MESSAGES_COLUMN_CONVERSATIONID	0
+#define SBK_MESSAGES_COLUMN_ID			1
+#define SBK_MESSAGES_COLUMN_TYPE		2
+#define SBK_MESSAGES_COLUMN_BODY		3
+#define SBK_MESSAGES_COLUMN_JSON		4
+#define SBK_MESSAGES_COLUMN_SENT_AT		5
+#define SBK_MESSAGES_COLUMN_RECEIVED_AT		6
+
 static struct sbk_message *
 sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 {
@@ -1378,7 +1395,8 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		return NULL;
 	}
 
-	if ((id = sqlite3_column_text(stm, 0)) == NULL) {
+	if ((id = sqlite3_column_text(stm, SBK_MESSAGES_COLUMN_CONVERSATIONID))
+	    == NULL) {
 		/* Likely message with error */
 		msg->conversation = NULL;
 	} else {
@@ -1388,7 +1406,7 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 			goto error;
 	}
 
-	if ((id = sqlite3_column_text(stm, 1)) == NULL) {
+	if ((id = sqlite3_column_text(stm, SBK_MESSAGES_COLUMN_ID)) == NULL) {
 		msg->source = NULL;
 	} else {
 		msg->source = sbk_get_recipient_from_conversation_id(ctx,
@@ -1397,17 +1415,22 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 			goto error;
 	}
 
-	if (sbk_sqlite_column_text_copy(ctx, &msg->type, stm, 2) == -1)
+	if (sbk_sqlite_column_text_copy(ctx, &msg->type, stm,
+	    SBK_MESSAGES_COLUMN_TYPE) == -1)
 		goto error;
 
-	if (sbk_sqlite_column_text_copy(ctx, &msg->text, stm, 3) == -1)
+	if (sbk_sqlite_column_text_copy(ctx, &msg->text, stm,
+	    SBK_MESSAGES_COLUMN_BODY) == -1)
 		goto error;
 
-	if (sbk_sqlite_column_text_copy(ctx, &msg->json, stm, 4) == -1)
+	if (sbk_sqlite_column_text_copy(ctx, &msg->json, stm,
+	    SBK_MESSAGES_COLUMN_JSON) == -1)
 		goto error;
 
-	msg->time_sent = sqlite3_column_int64(stm, 5);
-	msg->time_recv = sqlite3_column_int64(stm, 6);
+	msg->time_sent = sqlite3_column_int64(stm,
+	    SBK_MESSAGES_COLUMN_SENT_AT);
+	msg->time_recv = sqlite3_column_int64(stm,
+	    SBK_MESSAGES_COLUMN_RECEIVED_AT);
 
 	if (sbk_parse_message_json(ctx, msg) == -1)
 		goto error;

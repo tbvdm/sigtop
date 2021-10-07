@@ -113,6 +113,7 @@ int		 utf16_is_low_surrogate(uint16_t);
 uint32_t	 utf16_decode_surrogate_pair(uint16_t, uint16_t);
 
 int		 unveil_dirname(const char *, const char *);
+int		 unveil_signal_dir(const char *);
 int		 parse_time_interval(char *, time_t *, time_t *);
 void		 usage(const char *, const char *) __dead;
 
