@@ -169,7 +169,8 @@ static int
 copy_attachment(const char *src, int dfd, const char *dst)
 {
 	char	*buf;
-	int	 n, ret, rfd, wfd;
+	ssize_t	 nr, nw, off;
+	int	 ret, rfd, wfd;
 
 	ret = rfd = wfd = -1;
 
@@ -186,12 +187,13 @@ copy_attachment(const char *src, int dfd, const char *dst)
 		warn("openat: %s", dst);
 		goto out;
 	}
-	while ((n = read(rfd, buf, COPY_BUFSIZE)) > 0)
-		if (write(wfd, buf, n) != n) {
-			warn("write: %s", dst);
-			goto out;
-		}
-	if (n < 0) {
+	while ((nr = read(rfd, buf, COPY_BUFSIZE)) > 0)
+		for (off = 0; off < nr; off += nw)
+			if ((nw = write(wfd, buf + off, nr - off)) == -1) {
+				warn("write: %s", dst);
+				goto out;
+			}
+	if (nr < 0) {
 		warn("read: %s", src);
 		goto out;
 	}
