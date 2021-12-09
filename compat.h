@@ -21,6 +21,11 @@
 #define __attribute__(a)
 #endif
 
+/* macOS defines __dead away */
+#if defined(__APPLE__) && defined(__dead)
+#undef __dead
+#endif
+
 #ifndef __dead
 #define __dead		__attribute__((__noreturn__))
 #endif
