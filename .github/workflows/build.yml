@@ -85,3 +85,22 @@ jobs:
           set +e
           ./sigtop check doesnotexist
           test $? = 1
+
+  # https://github.com/vmactions/solaris-vm
+  solaris:
+    runs-on: macos-10.15
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+
+    - name: run vm
+      uses: vmactions/solaris-vm@v0.0.3
+      with:
+        prepare: pkgutil -iy gcc5core gmake libssl_dev pkgconfig
+        run: |
+          uname -a
+          CC=gcc gmake
+          set +e
+          ./sigtop check doesnotexist
+          test $? = 1

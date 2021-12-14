@@ -125,4 +125,11 @@
 /* Define if you have musl >= 1.2.2. */
 /* #define HAVE_REALLOCARRAY */
 
+#elif defined(__sun)
+
+#define HAVE_ASPRINTF
+#define HAVE_ERR
+#define HAVE_FOPEN_X_MODE
+#define HAVE_GETPROGNAME
+
 #endif
