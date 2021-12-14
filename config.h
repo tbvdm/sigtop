@@ -26,6 +26,9 @@
 /* Define if you have reallocarray(). */
 /* #define HAVE_REALLOCARRAY */
 
+/* Define if your struct tm has a tm_gmtoff member. */
+/* #define HAVE_TM_GMTOFF */
+
 /* Define if you have unveil(). */
 /* #define HAVE_UNVEIL */
 
@@ -35,6 +38,7 @@
 #define HAVE_ERR
 #define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
+#define HAVE_TM_GMTOFF
 
 #elif defined(__DragonFly__)
 
@@ -44,6 +48,7 @@
 #define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
 #define HAVE_REALLOCARRAY
+#define HAVE_TM_GMTOFF
 
 #elif defined(__FreeBSD__)
 
@@ -53,6 +58,7 @@
 #define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
 #define HAVE_REALLOCARRAY
+#define HAVE_TM_GMTOFF
 
 #elif defined(__NetBSD__)
 
@@ -63,6 +69,7 @@
 #define HAVE_FOPEN_X_MODE
 #define HAVE_GETPROGNAME
 #define HAVE_REALLOCARRAY
+#define HAVE_TM_GMTOFF
 
 #elif defined(__OpenBSD__)
 
@@ -73,6 +80,7 @@
 #define HAVE_GETPROGNAME
 #define HAVE_PLEDGE
 #define HAVE_REALLOCARRAY
+#define HAVE_TM_GMTOFF
 #define HAVE_UNVEIL
 
 #elif defined(__linux__)
@@ -83,6 +91,7 @@
 #define HAVE_ASPRINTF
 #define HAVE_ERR
 #define HAVE_FOPEN_X_MODE
+#define HAVE_TM_GMTOFF
 
 #include <features.h>
 
