@@ -22,7 +22,7 @@
 #endif
 
 /* macOS defines __dead away */
-#if defined(__APPLE__) && defined(__dead)
+#ifdef __APPLE__
 #undef __dead
 #endif
 
