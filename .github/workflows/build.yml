@@ -104,3 +104,29 @@ jobs:
           set +e
           ./sigtop check doesnotexist
           test $? = 1
+
+  # https://github.com/cygwin/cygwin-install-action
+  cygwin:
+    runs-on: windows-latest
+
+    steps:
+    - name: configure git
+      run: git config --global core.autocrlf input
+
+    - name: checkout
+      uses: actions/checkout@v2
+
+    - name: install Cygwin
+      uses: cygwin/cygwin-install-action@master
+      with:
+        packages: gcc-core libssl-devel make pkg-config
+
+    - name: install and run sigtop
+      shell: C:\cygwin\bin\bash.exe -elo pipefail -o igncr '{0}'
+      run: |
+        uname -a
+        cd $GITHUB_WORKSPACE
+        make install
+        set +e
+        sigtop check doesnotexist
+        test $? = 1

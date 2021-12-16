@@ -40,6 +40,19 @@
 #define HAVE_GETPROGNAME
 #define HAVE_TM_GMTOFF
 
+#elif defined(__CYGWIN__)
+
+#define _GNU_SOURCE
+
+#define HAVE_ASPRINTF
+#define HAVE_ERR
+/* Cygwin's explicit_bzero() merely is a wrapper around bzero() */
+/* #define HAVE_EXPLICIT_BZERO */
+#define HAVE_FOPEN_X_MODE
+#define HAVE_GETPROGNAME
+#define HAVE_REALLOCARRAY
+#define HAVE_TM_GMTOFF
+
 #elif defined(__DragonFly__)
 
 #define HAVE_ASPRINTF
