@@ -22,6 +22,7 @@
 #include <sys/tree.h>
 #include <sys/types.h>
 
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -38,10 +39,12 @@
 #define SBK_ATTACHMENT_DIR	"attachments.noindex"
 
 /* UTF-8 encoding of FSI (U+2068) and PDI (U+2069) */
-#define SBK_FSI		"\xe2\x81\xa8"
-#define SBK_FSI_LEN	(sizeof SBK_FSI - 1)
-#define SBK_PDI		"\xe2\x81\xa9"
-#define SBK_PDI_LEN	(sizeof SBK_PDI - 1)
+#define SBK_FSI			"\xe2\x81\xa8"
+#define SBK_FSI_LEN		(sizeof SBK_FSI - 1)
+#define SBK_PDI			"\xe2\x81\xa9"
+#define SBK_PDI_LEN		(sizeof SBK_PDI - 1)
+
+#define sbk_warnx(ctx, ...)	warnx(__VA_ARGS__)
 
 struct sbk_recipient_entry {
 	char		*id;
@@ -990,32 +993,27 @@ sbk_get_recipient_from_conversation_id(struct sbk_ctx *ctx, const char *id)
 
 	find.id = (char *)id;
 	result = RB_FIND(sbk_recipient_tree, &ctx->recipients, &find);
-
-	if (result == NULL) {
-		sbk_error_setx(ctx, "Cannot find recipient");
-		return NULL;
-	}
-
-	return &result->recipient;
+	return (result == NULL) ? NULL : &result->recipient;
 }
 
 const char *
 sbk_get_recipient_display_name(const struct sbk_recipient *rcp)
 {
-	switch (rcp->type) {
-	case SBK_CONTACT:
-		if (rcp->contact->name != NULL)
-			return rcp->contact->name;
-		if (rcp->contact->profile_joined_name != NULL)
-			return rcp->contact->profile_joined_name;
-		if (rcp->contact->profile_name != NULL)
-			return rcp->contact->profile_name;
-		break;
-	case SBK_GROUP:
-		if (rcp->group->name != NULL)
-			return rcp->group->name;
-		break;
-	}
+	if (rcp != NULL)
+		switch (rcp->type) {
+		case SBK_CONTACT:
+			if (rcp->contact->name != NULL)
+				return rcp->contact->name;
+			if (rcp->contact->profile_joined_name != NULL)
+				return rcp->contact->profile_joined_name;
+			if (rcp->contact->profile_name != NULL)
+				return rcp->contact->profile_name;
+			break;
+		case SBK_GROUP:
+			if (rcp->group->name != NULL)
+				return rcp->group->name;
+			break;
+		}
 
 	return "Unknown";
 }
@@ -1399,12 +1397,15 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	if ((id = sqlite3_column_text(stm, SBK_MESSAGES_COLUMN_CONVERSATIONID))
 	    == NULL) {
 		/* Likely message with error */
+		sbk_warnx(ctx, "Conversation recipient has null id");
 		msg->conversation = NULL;
 	} else {
 		msg->conversation = sbk_get_recipient_from_conversation_id(ctx,
 		    (const char *)id);
 		if (msg->conversation == NULL)
-			goto error;
+			sbk_warnx(ctx,
+			    "Cannot find conversation recipient for id %s",
+			    id);
 	}
 
 	if ((id = sqlite3_column_text(stm, SBK_MESSAGES_COLUMN_ID)) == NULL) {
@@ -1413,7 +1414,8 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		msg->source = sbk_get_recipient_from_conversation_id(ctx,
 		    (const char *)id);
 		if (msg->source == NULL)
-			goto error;
+			sbk_warnx(ctx,
+			    "Cannot find source recipient for id %s", id);
 	}
 
 	if (sbk_sqlite_column_text_copy(ctx, &msg->type, stm,
@@ -1460,12 +1462,7 @@ sbk_get_messages(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	while ((ret = sbk_sqlite_step(ctx, ctx->db, stm)) == SQLITE_ROW) {
 		if ((msg = sbk_get_message(ctx, stm)) == NULL)
 			goto error;
-		if (msg->conversation == NULL) {
-			/* Likely message with error; skip it */
-			sbk_free_message(msg);
-		} else {
-			SIMPLEQ_INSERT_TAIL(lst, msg, entries);
-		}
+		SIMPLEQ_INSERT_TAIL(lst, msg, entries);
 	}
 
 	if (ret != SQLITE_DONE)
