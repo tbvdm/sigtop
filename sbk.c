@@ -983,17 +983,19 @@ error:
 	return -1;
 }
 
-static struct sbk_recipient *
-sbk_get_recipient_from_conversation_id(struct sbk_ctx *ctx, const char *id)
+static int
+sbk_get_recipient_from_conversation_id(struct sbk_ctx *ctx,
+    struct sbk_recipient **rcp, const char *id)
 {
 	struct sbk_recipient_entry find, *result;
 
 	if (sbk_build_recipient_tree(ctx) == -1)
-		return NULL;
+		return -1;
 
 	find.id = (char *)id;
 	result = RB_FIND(sbk_recipient_tree, &ctx->recipients, &find);
-	return (result == NULL) ? NULL : &result->recipient;
+	*rcp = (result == NULL) ? NULL : &result->recipient;
+	return 0;
 }
 
 const char *
@@ -1400,8 +1402,9 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		sbk_warnx(ctx, "Conversation recipient has null id");
 		msg->conversation = NULL;
 	} else {
-		msg->conversation = sbk_get_recipient_from_conversation_id(ctx,
-		    (const char *)id);
+		if (sbk_get_recipient_from_conversation_id(ctx,
+		    &msg->conversation, (const char *)id) == -1)
+			goto error;
 		if (msg->conversation == NULL)
 			sbk_warnx(ctx,
 			    "Cannot find conversation recipient for id %s",
@@ -1411,8 +1414,9 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	if ((id = sqlite3_column_text(stm, SBK_MESSAGES_COLUMN_ID)) == NULL) {
 		msg->source = NULL;
 	} else {
-		msg->source = sbk_get_recipient_from_conversation_id(ctx,
-		    (const char *)id);
+		if (sbk_get_recipient_from_conversation_id(ctx, &msg->source,
+		    (const char *)id) == -1)
+			goto error;
 		if (msg->source == NULL)
 			sbk_warnx(ctx,
 			    "Cannot find source recipient for id %s", id);
