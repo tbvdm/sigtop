@@ -155,7 +155,7 @@ cmd_messages(int argc, char **argv)
 			break;
 		case 's':
 			if (parse_time_interval(optarg, &min, &max) == -1)
-				return -1;
+				return 1;
 			break;
 		default:
 			goto usage;
@@ -207,7 +207,7 @@ cmd_messages(int argc, char **argv)
 	if (lst == NULL) {
 		warnx("%s", sbk_error(ctx));
 		sbk_close(ctx);
-		return -1;
+		return 1;
 	}
 
 	if (file == NULL)

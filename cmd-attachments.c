@@ -294,7 +294,7 @@ cmd_attachments(int argc, char **argv)
 			break;
 		case 's':
 			if (parse_time_interval(optarg, &min, &max) == -1)
-				return -1;
+				return 1;
 			break;
 		default:
 			goto usage;
