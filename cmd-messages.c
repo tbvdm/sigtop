@@ -106,6 +106,9 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 		fprintf(fp, "Conversation: %s\n",
 		    sbk_get_recipient_display_name(msg->conversation));
 
+		fprintf(fp, "Type: %s\n",
+		    (msg->type != NULL) ? msg->type : "Unknown");
+
 		if (sbk_is_outgoing_message(msg))
 			fprintf(fp, "To: %s\n",
 			    sbk_get_recipient_display_name(msg->conversation));
