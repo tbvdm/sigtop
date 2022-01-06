@@ -830,6 +830,7 @@ sbk_free_recipient_entry(struct sbk_recipient_entry *ent)
 			free(ent->recipient.contact->profile_name);
 			free(ent->recipient.contact->profile_family_name);
 			free(ent->recipient.contact->profile_joined_name);
+			free(ent->recipient.contact->phone);
 			free(ent->recipient.contact);
 		}
 		break;
@@ -856,7 +857,7 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 	}
 }
 
-/* For database versions >= 19 */
+/* For database version 19 */
 #define SBK_RECIPIENTS_QUERY_19						\
 	"SELECT "							\
 	"id, "								\
@@ -864,7 +865,20 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 	"name, "							\
 	"profileName, "							\
 	"profileFamilyName, "						\
-	"profileFullName "						\
+	"profileFullName, "						\
+	"'+' || id "							\
+	"FROM conversations"
+
+/* For database versions >= 20 */
+#define SBK_RECIPIENTS_QUERY_20						\
+	"SELECT "							\
+	"id, "								\
+	"type, "							\
+	"name, "							\
+	"profileName, "							\
+	"profileFamilyName, "						\
+	"profileFullName, "						\
+	"e164 "								\
 	"FROM conversations"
 
 #define SBK_RECIPIENTS_COLUMN_ID		0
@@ -873,6 +887,7 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 #define SBK_RECIPIENTS_COLUMN_PROFILENAME	3
 #define SBK_RECIPIENTS_COLUMN_PROFILEFAMILYNAME	4
 #define SBK_RECIPIENTS_COLUMN_PROFILEFULLNAME	5
+#define SBK_RECIPIENTS_COLUMN_E164		6
 
 static struct sbk_recipient_entry *
 sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
@@ -930,6 +945,10 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		    stm, SBK_RECIPIENTS_COLUMN_PROFILEFULLNAME) == -1)
 			goto error;
 
+		if (sbk_sqlite_column_text_copy(ctx, &con->phone,
+		    stm, SBK_RECIPIENTS_COLUMN_E164) == -1)
+			goto error;
+
 		break;
 
 	case SBK_GROUP:
@@ -956,13 +975,18 @@ sbk_build_recipient_tree(struct sbk_ctx *ctx)
 {
 	struct sbk_recipient_entry	*ent;
 	sqlite3_stmt			*stm;
+	const char			*query;
 	int				 ret;
 
 	if (!RB_EMPTY(&ctx->recipients))
 		return 0;
 
-	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, SBK_RECIPIENTS_QUERY_19) ==
-	    -1)
+	if (ctx->db_version < 20)
+		query = SBK_RECIPIENTS_QUERY_19;
+	else
+		query = SBK_RECIPIENTS_QUERY_20;
+
+	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return -1;
 
 	while ((ret = sbk_sqlite_step(ctx, ctx->db, stm)) == SQLITE_ROW) {
@@ -1010,6 +1034,8 @@ sbk_get_recipient_display_name(const struct sbk_recipient *rcp)
 				return rcp->contact->profile_joined_name;
 			if (rcp->contact->profile_name != NULL)
 				return rcp->contact->profile_name;
+			if (rcp->contact->phone != NULL)
+				return rcp->contact->phone;
 			break;
 		case SBK_GROUP:
 			if (rcp->group->name != NULL)

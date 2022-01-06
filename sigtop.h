@@ -33,6 +33,7 @@ struct sbk_contact {
 	char		*profile_name;
 	char		*profile_family_name;
 	char		*profile_joined_name;
+	char		*phone;
 };
 
 struct sbk_group {
