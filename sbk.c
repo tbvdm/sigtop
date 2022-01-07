@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -747,14 +748,24 @@ sbk_jsmn_parse_string(const char *json, const jsmntok_t *token)
 }
 
 static int
-sbk_jsmn_parse_number(long long int *num, const char *json,
-    const jsmntok_t *token)
+sbk_jsmn_parse_uint64(uint64_t *val, const char *json, const jsmntok_t *token)
 {
-	char *end;
+	char			*end;
+	unsigned long long	 num;
 
 	errno = 0;
-	*num = strtoll(json + token->start, &end, 10);
-	return (errno != 0 || end != json + token->end) ? -1 : 0;
+	num = strtoull(json + token->start, &end, 10);
+
+	if (errno != 0 || end != json + token->end)
+		return -1;
+
+#if ULLONG_MAX > UINT64_MAX
+	if (num > UINT64_MAX)
+		return -1;
+#endif
+
+	*val = num;
+	return 0;
 }
 
 /* Read the database encryption key from a JSON file */
@@ -1194,7 +1205,6 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 {
 	struct sbk_attachment	*att;
 	char			*c;
-	long long int		 size;
 	int			 idx;
 
 	if ((att = calloc(1, sizeof *att)) == NULL) {
@@ -1244,16 +1254,11 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_number(msg->json, tokens, "size");
 	if (idx != -1) {
-		if (sbk_jsmn_parse_number(&size, msg->json, &tokens[idx]) ==
-		    -1) {
+		if (sbk_jsmn_parse_uint64(&att->size, msg->json, &tokens[idx])
+		    == -1) {
 			sbk_error_setx(ctx, "Cannot parse JSON number");
 			goto error;
 		}
-		if (size < 0) {
-			sbk_error_setx(ctx, "Invalid attachment size");
-			goto error;
-		}
-		att->size = size;
 	}
 
 	att->time_sent = msg->time_sent;
