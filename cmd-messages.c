@@ -97,6 +97,16 @@ text_write_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
 	}
 }
 
+static void
+text_write_reaction_fields(FILE *fp, struct sbk_reaction_list *lst)
+{
+	struct sbk_reaction *rct;
+
+	SIMPLEQ_FOREACH(rct, lst, entries)
+		fprintf(fp, "Reaction: %s from %s\n", rct->emoji,
+		    sbk_get_recipient_display_name(rct->recipient));
+}
+
 static int
 text_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
@@ -123,6 +133,9 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 
 		if (msg->attachments != NULL)
 			text_write_attachment_fields(fp, msg->attachments);
+
+		if (msg->reactions != NULL)
+			text_write_reaction_fields(fp, msg->reactions);
 
 		if (msg->text != NULL)
 			fprintf(fp, "\n%s\n", msg->text);

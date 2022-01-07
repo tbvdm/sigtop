@@ -1174,6 +1174,29 @@ sbk_get_attachment_path(struct sbk_ctx *ctx, struct sbk_attachment *att)
 }
 
 static void
+sbk_free_reaction(struct sbk_reaction *rct)
+{
+	if (rct != NULL) {
+		free(rct->emoji);
+		free(rct);
+	}
+}
+
+static void
+sbk_free_reaction_list(struct sbk_reaction_list *lst)
+{
+	struct sbk_reaction *rct;
+
+	if (lst != NULL) {
+		while ((rct = SIMPLEQ_FIRST(lst)) != NULL) {
+			SIMPLEQ_REMOVE_HEAD(lst, entries);
+			sbk_free_reaction(rct);
+		}
+		free(lst);
+	}
+}
+
+static void
 sbk_free_message(struct sbk_message *msg)
 {
 	if (msg != NULL) {
@@ -1181,6 +1204,7 @@ sbk_free_message(struct sbk_message *msg)
 		free(msg->text);
 		free(msg->json);
 		sbk_free_attachment_list(msg->attachments);
+		sbk_free_reaction_list(msg->reactions);
 		free(msg);
 	}
 }
@@ -1272,6 +1296,151 @@ error:
 }
 
 static int
+sbk_get_recipient_from_reaction_id(struct sbk_ctx *ctx,
+    struct sbk_recipient **rcp, const char *id)
+{
+	/* XXX */
+	if (ctx->db_version < 20 && id[0] == '+')
+		id++;
+
+	return sbk_get_recipient_from_conversation_id(ctx, rcp, id);
+}
+
+static int
+sbk_insert_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
+    jsmntok_t *tokens)
+{
+	struct sbk_reaction	*rct;
+	char			*id;
+	int			 idx, ret;
+
+	if ((rct = calloc(1, sizeof *rct)) == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	if (tokens[0].type != JSMN_OBJECT) {
+		sbk_error_setx(ctx, "Unexpected reaction JSON type");
+		goto error;
+	}
+
+	/*
+	 * Get recipient
+	 */
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "fromId");
+	if (idx == -1)
+		goto invalid;
+
+	id = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+	if (id == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	ret = sbk_get_recipient_from_reaction_id(ctx, &rct->recipient, id);
+	if (ret == -1) {
+		free(id);
+		goto error;
+	}
+
+	if (rct->recipient == NULL)
+		sbk_warnx(ctx, "Cannot find reaction recipient for id %s", id);
+
+	free(id);
+
+	/*
+	 * Get emoji
+	 */
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "emoji");
+	if (idx == -1)
+		goto invalid;
+
+	rct->emoji = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+	if (rct->emoji == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	/*
+	 * Get sent time
+	 */
+
+	idx = sbk_jsmn_get_number(msg->json, tokens, "targetTimestamp");
+	if (idx == -1)
+		goto invalid;
+
+	if (sbk_jsmn_parse_uint64(&rct->time_sent, msg->json, &tokens[idx]) ==
+	    -1) {
+		sbk_error_setx(ctx, "Cannot parse JSON number");
+		goto error;
+	}
+
+	/*
+	 * Get received time
+	 */
+
+	idx = sbk_jsmn_get_number(msg->json, tokens, "timestamp");
+	if (idx == -1)
+		goto invalid;
+
+	if (sbk_jsmn_parse_uint64(&rct->time_recv, msg->json, &tokens[idx]) ==
+	    -1) {
+		sbk_error_setx(ctx, "Cannot parse JSON number");
+		goto error;
+	}
+
+	SIMPLEQ_INSERT_TAIL(msg->reactions, rct, entries);
+	return 0;
+
+invalid:
+	sbk_error_setx(ctx, "Cannot parse reaction JSON data");
+
+error:
+	sbk_free_reaction(rct);
+	return -1;
+}
+
+static int
+sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
+    jsmntok_t *tokens)
+{
+	int i, idx, size;
+
+	if (tokens[0].size == 0)
+		return 0;
+
+	msg->reactions = malloc(sizeof *msg->reactions);
+	if (msg->reactions == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	SIMPLEQ_INIT(msg->reactions);
+
+	idx = 1;
+	for (i = 0; i < tokens[0].size; i++) {
+		if (sbk_insert_reaction(ctx, msg, &tokens[idx]) == -1)
+			goto error;
+		/* Skip to next element in array */
+		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
+		if (size == -1) {
+			sbk_error_setx(ctx, "Cannot parse message JSON data");
+			goto error;
+		}
+		idx += size;
+	}
+
+	return 0;
+
+error:
+	sbk_free_reaction_list(msg->reactions);
+	msg->reactions = NULL;
+	return -1;
+}
+
+static int
 sbk_parse_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
     jsmntok_t *tokens)
 {
@@ -1327,6 +1496,11 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
 	if (idx != -1 &&
 	    sbk_parse_attachment_json(ctx, msg, &tokens[idx]) == -1)
+		return -1;
+
+	idx = sbk_jsmn_get_array(msg->json, tokens, "reactions");
+	if (idx != -1 &&
+	    sbk_parse_reaction_json(ctx, msg, &tokens[idx]) == -1)
 		return -1;
 
 	return 0;
