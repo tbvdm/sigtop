@@ -110,6 +110,16 @@ text_write_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
 	}
 }
 
+static void
+text_write_reaction_fields(FILE *fp, struct sbk_reaction_list *lst)
+{
+	struct sbk_reaction *rct;
+
+	SIMPLEQ_FOREACH(rct, lst, entries)
+		fprintf(fp, "Reaction: %s from %s\n", rct->emoji,
+		    sbk_get_recipient_display_name(rct->recipient));
+}
+
 static int
 text_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
@@ -118,6 +128,9 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 	SIMPLEQ_FOREACH(msg, lst, entries) {
 		fprintf(fp, "Conversation: %s\n",
 		    sbk_get_recipient_display_name(msg->conversation));
+
+		fprintf(fp, "Type: %s\n",
+		    (msg->type != NULL) ? msg->type : "Unknown");
 
 		if (sbk_is_outgoing_message(msg))
 			fprintf(fp, "To: %s\n",
@@ -133,6 +146,9 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 
 		if (msg->attachments != NULL)
 			text_write_attachment_fields(fp, msg->attachments);
+
+		if (msg->reactions != NULL)
+			text_write_reaction_fields(fp, msg->reactions);
 
 		if (msg->text != NULL)
 			fprintf(fp, "\n%s\n", msg->text);
@@ -168,7 +184,7 @@ cmd_messages(int argc, char **argv)
 			break;
 		case 's':
 			if (parse_time_interval(optarg, &min, &max) == -1)
-				return -1;
+				return 1;
 			break;
 		default:
 			goto usage;
@@ -220,7 +236,7 @@ cmd_messages(int argc, char **argv)
 	if (lst == NULL) {
 		warnx("%s", sbk_error(ctx));
 		sbk_close(ctx);
-		return -1;
+		return 1;
 	}
 
 	if (file == NULL)

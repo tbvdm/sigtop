@@ -34,6 +34,7 @@ struct sbk_contact {
 	char		*profile_name;
 	char		*profile_family_name;
 	char		*profile_joined_name;
+	char		*phone;
 };
 
 struct sbk_group {
@@ -61,6 +62,16 @@ struct sbk_attachment {
 
 TAILQ_HEAD(sbk_attachment_list, sbk_attachment);
 
+struct sbk_reaction {
+	struct sbk_recipient *recipient;
+	uint64_t	 time_sent;
+	uint64_t	 time_recv;
+	char		*emoji;
+	SIMPLEQ_ENTRY(sbk_reaction) entries;
+};
+
+SIMPLEQ_HEAD(sbk_reaction_list, sbk_reaction);
+
 struct sbk_message {
 	struct sbk_recipient *conversation;
 	struct sbk_recipient *source;
@@ -70,6 +81,7 @@ struct sbk_message {
 	char		*text;
 	char		*json;
 	struct sbk_attachment_list *attachments;
+	struct sbk_reaction_list *reactions;
 	SIMPLEQ_ENTRY(sbk_message) entries;
 };
 

@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -745,14 +746,24 @@ sbk_jsmn_parse_string(const char *json, const jsmntok_t *token)
 }
 
 static int
-sbk_jsmn_parse_number(long long int *num, const char *json,
-    const jsmntok_t *token)
+sbk_jsmn_parse_uint64(uint64_t *val, const char *json, const jsmntok_t *token)
 {
-	char *end;
+	char			*end;
+	unsigned long long	 num;
 
 	errno = 0;
-	*num = strtoll(json + token->start, &end, 10);
-	return (errno != 0 || end != json + token->end) ? -1 : 0;
+	num = strtoull(json + token->start, &end, 10);
+
+	if (errno != 0 || end != json + token->end)
+		return -1;
+
+#if ULLONG_MAX > UINT64_MAX
+	if (num > UINT64_MAX)
+		return -1;
+#endif
+
+	*val = num;
+	return 0;
 }
 
 /* Read the database encryption key from a JSON file */
@@ -828,6 +839,7 @@ sbk_free_recipient_entry(struct sbk_recipient_entry *ent)
 			free(ent->recipient.contact->profile_name);
 			free(ent->recipient.contact->profile_family_name);
 			free(ent->recipient.contact->profile_joined_name);
+			free(ent->recipient.contact->phone);
 			free(ent->recipient.contact);
 		}
 		break;
@@ -854,7 +866,7 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 	}
 }
 
-/* For database versions >= 19 */
+/* For database version 19 */
 #define SBK_RECIPIENTS_QUERY_19						\
 	"SELECT "							\
 	"id, "								\
@@ -862,7 +874,20 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 	"name, "							\
 	"profileName, "							\
 	"profileFamilyName, "						\
-	"profileFullName "						\
+	"profileFullName, "						\
+	"'+' || id "							\
+	"FROM conversations"
+
+/* For database versions >= 20 */
+#define SBK_RECIPIENTS_QUERY_20						\
+	"SELECT "							\
+	"id, "								\
+	"type, "							\
+	"name, "							\
+	"profileName, "							\
+	"profileFamilyName, "						\
+	"profileFullName, "						\
+	"e164 "								\
 	"FROM conversations"
 
 #define SBK_RECIPIENTS_COLUMN_ID		0
@@ -871,6 +896,7 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 #define SBK_RECIPIENTS_COLUMN_PROFILENAME	3
 #define SBK_RECIPIENTS_COLUMN_PROFILEFAMILYNAME	4
 #define SBK_RECIPIENTS_COLUMN_PROFILEFULLNAME	5
+#define SBK_RECIPIENTS_COLUMN_E164		6
 
 static struct sbk_recipient_entry *
 sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
@@ -928,6 +954,10 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		    stm, SBK_RECIPIENTS_COLUMN_PROFILEFULLNAME) == -1)
 			goto error;
 
+		if (sbk_sqlite_column_text_copy(ctx, &con->phone,
+		    stm, SBK_RECIPIENTS_COLUMN_E164) == -1)
+			goto error;
+
 		break;
 
 	case SBK_GROUP:
@@ -954,13 +984,18 @@ sbk_build_recipient_tree(struct sbk_ctx *ctx)
 {
 	struct sbk_recipient_entry	*ent;
 	sqlite3_stmt			*stm;
+	const char			*query;
 	int				 ret;
 
 	if (!RB_EMPTY(&ctx->recipients))
 		return 0;
 
-	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, SBK_RECIPIENTS_QUERY_19) ==
-	    -1)
+	if (ctx->db_version < 20)
+		query = SBK_RECIPIENTS_QUERY_19;
+	else
+		query = SBK_RECIPIENTS_QUERY_20;
+
+	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return -1;
 
 	while ((ret = sbk_sqlite_step(ctx, ctx->db, stm)) == SQLITE_ROW) {
@@ -981,17 +1016,19 @@ error:
 	return -1;
 }
 
-static struct sbk_recipient *
-sbk_get_recipient_from_conversation_id(struct sbk_ctx *ctx, const char *id)
+static int
+sbk_get_recipient_from_conversation_id(struct sbk_ctx *ctx,
+    struct sbk_recipient **rcp, const char *id)
 {
 	struct sbk_recipient_entry find, *result;
 
 	if (sbk_build_recipient_tree(ctx) == -1)
-		return NULL;
+		return -1;
 
 	find.id = (char *)id;
 	result = RB_FIND(sbk_recipient_tree, &ctx->recipients, &find);
-	return (result == NULL) ? NULL : &result->recipient;
+	*rcp = (result == NULL) ? NULL : &result->recipient;
+	return 0;
 }
 
 const char *
@@ -1006,6 +1043,8 @@ sbk_get_recipient_display_name(const struct sbk_recipient *rcp)
 				return rcp->contact->profile_joined_name;
 			if (rcp->contact->profile_name != NULL)
 				return rcp->contact->profile_name;
+			if (rcp->contact->phone != NULL)
+				return rcp->contact->phone;
 			break;
 		case SBK_GROUP:
 			if (rcp->group->name != NULL)
@@ -1133,6 +1172,29 @@ sbk_get_attachment_path(struct sbk_ctx *ctx, struct sbk_attachment *att)
 }
 
 static void
+sbk_free_reaction(struct sbk_reaction *rct)
+{
+	if (rct != NULL) {
+		free(rct->emoji);
+		free(rct);
+	}
+}
+
+static void
+sbk_free_reaction_list(struct sbk_reaction_list *lst)
+{
+	struct sbk_reaction *rct;
+
+	if (lst != NULL) {
+		while ((rct = SIMPLEQ_FIRST(lst)) != NULL) {
+			SIMPLEQ_REMOVE_HEAD(lst, entries);
+			sbk_free_reaction(rct);
+		}
+		free(lst);
+	}
+}
+
+static void
 sbk_free_message(struct sbk_message *msg)
 {
 	if (msg != NULL) {
@@ -1140,6 +1202,7 @@ sbk_free_message(struct sbk_message *msg)
 		free(msg->text);
 		free(msg->json);
 		sbk_free_attachment_list(msg->attachments);
+		sbk_free_reaction_list(msg->reactions);
 		free(msg);
 	}
 }
@@ -1164,7 +1227,6 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 {
 	struct sbk_attachment	*att;
 	char			*c;
-	long long int		 size;
 	int			 idx;
 
 	if ((att = calloc(1, sizeof *att)) == NULL) {
@@ -1214,16 +1276,11 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_number(msg->json, tokens, "size");
 	if (idx != -1) {
-		if (sbk_jsmn_parse_number(&size, msg->json, &tokens[idx]) ==
-		    -1) {
+		if (sbk_jsmn_parse_uint64(&att->size, msg->json, &tokens[idx])
+		    == -1) {
 			sbk_error_setx(ctx, "Cannot parse JSON number");
 			goto error;
 		}
-		if (size < 0) {
-			sbk_error_setx(ctx, "Invalid attachment size");
-			goto error;
-		}
-		att->size = size;
 	}
 
 	att->time_sent = msg->time_sent;
@@ -1233,6 +1290,151 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 error:
 	sbk_free_attachment(att);
+	return -1;
+}
+
+static int
+sbk_get_recipient_from_reaction_id(struct sbk_ctx *ctx,
+    struct sbk_recipient **rcp, const char *id)
+{
+	/* XXX */
+	if (ctx->db_version < 20 && id[0] == '+')
+		id++;
+
+	return sbk_get_recipient_from_conversation_id(ctx, rcp, id);
+}
+
+static int
+sbk_insert_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
+    jsmntok_t *tokens)
+{
+	struct sbk_reaction	*rct;
+	char			*id;
+	int			 idx, ret;
+
+	if ((rct = calloc(1, sizeof *rct)) == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	if (tokens[0].type != JSMN_OBJECT) {
+		sbk_error_setx(ctx, "Unexpected reaction JSON type");
+		goto error;
+	}
+
+	/*
+	 * Get recipient
+	 */
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "fromId");
+	if (idx == -1)
+		goto invalid;
+
+	id = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+	if (id == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	ret = sbk_get_recipient_from_reaction_id(ctx, &rct->recipient, id);
+	if (ret == -1) {
+		free(id);
+		goto error;
+	}
+
+	if (rct->recipient == NULL)
+		sbk_warnx(ctx, "Cannot find reaction recipient for id %s", id);
+
+	free(id);
+
+	/*
+	 * Get emoji
+	 */
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "emoji");
+	if (idx == -1)
+		goto invalid;
+
+	rct->emoji = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+	if (rct->emoji == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	/*
+	 * Get sent time
+	 */
+
+	idx = sbk_jsmn_get_number(msg->json, tokens, "targetTimestamp");
+	if (idx == -1)
+		goto invalid;
+
+	if (sbk_jsmn_parse_uint64(&rct->time_sent, msg->json, &tokens[idx]) ==
+	    -1) {
+		sbk_error_setx(ctx, "Cannot parse JSON number");
+		goto error;
+	}
+
+	/*
+	 * Get received time
+	 */
+
+	idx = sbk_jsmn_get_number(msg->json, tokens, "timestamp");
+	if (idx == -1)
+		goto invalid;
+
+	if (sbk_jsmn_parse_uint64(&rct->time_recv, msg->json, &tokens[idx]) ==
+	    -1) {
+		sbk_error_setx(ctx, "Cannot parse JSON number");
+		goto error;
+	}
+
+	SIMPLEQ_INSERT_TAIL(msg->reactions, rct, entries);
+	return 0;
+
+invalid:
+	sbk_error_setx(ctx, "Cannot parse reaction JSON data");
+
+error:
+	sbk_free_reaction(rct);
+	return -1;
+}
+
+static int
+sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
+    jsmntok_t *tokens)
+{
+	int i, idx, size;
+
+	if (tokens[0].size == 0)
+		return 0;
+
+	msg->reactions = malloc(sizeof *msg->reactions);
+	if (msg->reactions == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	SIMPLEQ_INIT(msg->reactions);
+
+	idx = 1;
+	for (i = 0; i < tokens[0].size; i++) {
+		if (sbk_insert_reaction(ctx, msg, &tokens[idx]) == -1)
+			goto error;
+		/* Skip to next element in array */
+		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
+		if (size == -1) {
+			sbk_error_setx(ctx, "Cannot parse message JSON data");
+			goto error;
+		}
+		idx += size;
+	}
+
+	return 0;
+
+error:
+	sbk_free_reaction_list(msg->reactions);
+	msg->reactions = NULL;
 	return -1;
 }
 
@@ -1292,6 +1494,11 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
 	if (idx != -1 &&
 	    sbk_parse_attachment_json(ctx, msg, &tokens[idx]) == -1)
+		return -1;
+
+	idx = sbk_jsmn_get_array(msg->json, tokens, "reactions");
+	if (idx != -1 &&
+	    sbk_parse_reaction_json(ctx, msg, &tokens[idx]) == -1)
 		return -1;
 
 	return 0;
@@ -1398,8 +1605,9 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		sbk_warnx(ctx, "Conversation recipient has null id");
 		msg->conversation = NULL;
 	} else {
-		msg->conversation = sbk_get_recipient_from_conversation_id(ctx,
-		    (const char *)id);
+		if (sbk_get_recipient_from_conversation_id(ctx,
+		    &msg->conversation, (const char *)id) == -1)
+			goto error;
 		if (msg->conversation == NULL)
 			sbk_warnx(ctx,
 			    "Cannot find conversation recipient for id %s",
@@ -1409,8 +1617,9 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	if ((id = sqlite3_column_text(stm, SBK_MESSAGES_COLUMN_ID)) == NULL) {
 		msg->source = NULL;
 	} else {
-		msg->source = sbk_get_recipient_from_conversation_id(ctx,
-		    (const char *)id);
+		if (sbk_get_recipient_from_conversation_id(ctx, &msg->source,
+		    (const char *)id) == -1)
+			goto error;
 		if (msg->source == NULL)
 			sbk_warnx(ctx,
 			    "Cannot find source recipient for id %s", id);
