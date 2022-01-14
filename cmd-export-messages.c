@@ -36,7 +36,7 @@ static enum cmd_status cmd_export_messages(int, char **);
 const struct cmd_entry cmd_export_messages_entry = {
 	.name = "export-messages",
 	.alias = "msg",
-	.usage = "[-f format] [-s interval] signal-directory [file]",
+	.usage = "[-d signal-directory] [-f format] [-s interval] [file]",
 	.exec = cmd_export_messages
 };
 
@@ -167,11 +167,19 @@ cmd_export_messages(int argc, char **argv)
 
 	ctx = NULL;
 	lst = NULL;
+	signaldir = NULL;
 	format = FORMAT_TEXT;
 	min = max = (time_t)-1;
 
-	while ((c = getopt(argc, argv, "f:s:")) != -1)
+	while ((c = getopt(argc, argv, "d:f:s:")) != -1)
 		switch (c) {
+		case 'd':
+			free(signaldir);
+			if ((signaldir = strdup(optarg)) == NULL) {
+				warn(NULL);
+				goto error;
+			}
+			break;
 		case 'f':
 			if (strcmp(optarg, "json") == 0)
 				format = FORMAT_JSON;
@@ -194,24 +202,28 @@ cmd_export_messages(int argc, char **argv)
 	argv += optind;
 
 	switch (argc) {
-	case 1:
+	case 0:
 		file = NULL;
 		break;
-	case 2:
-		file = argv[1];
-		if (unveil(file, "wc") == -1) {
-			warn("unveil: %s", file);
-			goto error;
-		}
+	case 1:
+		file = argv[0];
 		break;
 	default:
 		goto usage;
 	}
 
-	signaldir = argv[0];
+	if (signaldir == NULL)
+		if ((signaldir = get_signal_dir()) == NULL)
+			goto error;
 
 	if (unveil_signal_dir(signaldir) == -1)
 		goto error;
+
+	if (file != NULL)
+		if (unveil(file, "wc") == -1) {
+			warn("unveil: %s", file);
+			goto error;
+		}
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1) {
@@ -277,5 +289,6 @@ usage:
 out:
 	sbk_free_message_list(lst);
 	sbk_close(ctx);
+	free(signaldir);
 	return ret;
 }

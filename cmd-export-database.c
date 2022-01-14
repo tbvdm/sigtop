@@ -16,6 +16,8 @@
 
 #include <err.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "sigtop.h"
@@ -25,7 +27,7 @@ static enum cmd_status cmd_export_database(int, char **);
 const struct cmd_entry cmd_export_database_entry = {
 	.name = "export-database",
 	.alias = "db",
-	.usage = "signal-directory file",
+	.usage = "[-d signal-directory] file",
 	.exec = cmd_export_database
 };
 
@@ -34,15 +36,35 @@ cmd_export_database(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
 	char		*db, *signaldir;
-	int		 fd, ret;
+	int		 c, fd, ret;
 
 	ctx = NULL;
+	signaldir = NULL;
 
-	if (argc != 3)
+	while ((c = getopt(argc, argv, "d:")) != -1)
+		switch (c) {
+		case 'd':
+			free(signaldir);
+			if ((signaldir = strdup(optarg)) == NULL) {
+				warn(NULL);
+				goto error;
+			}
+			break;
+		default:
+			goto usage;
+		}
+
+	argc -= optind;
+	argv += optind;
+
+	if (argc != 1)
 		goto usage;
 
-	signaldir = argv[1];
-	db = argv[2];
+	db = argv[0];
+
+	if (signaldir == NULL)
+		if ((signaldir = get_signal_dir()) == NULL)
+			goto error;
 
 	if (unveil_signal_dir(signaldir) == -1)
 		goto error;
@@ -91,5 +113,6 @@ usage:
 
 out:
 	sbk_close(ctx);
+	free(signaldir);
 	return ret;
 }

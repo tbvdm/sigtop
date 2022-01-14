@@ -40,7 +40,7 @@ static enum cmd_status cmd_export_attachments(int, char **);
 const struct cmd_entry cmd_export_attachments_entry = {
 	.name = "export-attachments",
 	.alias = "att",
-	.usage = "[-Ll] [-s interval] signal-directory [directory]",
+	.usage = "[-Ll] [-d signal-directory] [-s interval] [directory]",
 	.exec = cmd_export_attachments
 };
 
@@ -292,11 +292,19 @@ cmd_export_attachments(int argc, char **argv)
 
 	ctx = NULL;
 	lst = NULL;
+	signaldir = NULL;
 	mode = MODE_COPY;
 	min = max = (time_t)-1;
 
-	while ((c = getopt(argc, argv, "Lls:")) != -1)
+	while ((c = getopt(argc, argv, "d:Lls:")) != -1)
 		switch (c) {
+		case 'd':
+			free(signaldir);
+			if ((signaldir = strdup(optarg)) == NULL) {
+				warn(NULL);
+				goto error;
+			}
+			break;
 		case 'L':
 			mode = MODE_LINK;
 			break;
@@ -315,13 +323,11 @@ cmd_export_attachments(int argc, char **argv)
 	argv += optind;
 
 	switch (argc) {
-	case 1:
-		signaldir = argv[0];
+	case 0:
 		outdir = ".";
 		break;
-	case 2:
-		signaldir = argv[0];
-		outdir = argv[1];
+	case 1:
+		outdir = argv[0];
 		if (mkdir(outdir, 0777) == -1 && errno != EEXIST) {
 			warn("mkdir: %s", outdir);
 			goto error;
@@ -330,6 +336,10 @@ cmd_export_attachments(int argc, char **argv)
 	default:
 		goto usage;
 	}
+
+	if (signaldir == NULL)
+		if ((signaldir = get_signal_dir()) == NULL)
+			goto error;
 
 	if (unveil_signal_dir(signaldir) == -1)
 		goto error;
@@ -385,5 +395,6 @@ usage:
 out:
 	sbk_free_attachment_list(lst);
 	sbk_close(ctx);
+	free(signaldir);
 	return ret;
 }

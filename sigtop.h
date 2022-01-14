@@ -136,6 +136,7 @@ int		 utf16_is_high_surrogate(uint16_t);
 int		 utf16_is_low_surrogate(uint16_t);
 uint32_t	 utf16_decode_surrogate_pair(uint16_t, uint16_t);
 
+char		*get_signal_dir(void);
 int		 unveil_dirname(const char *, const char *);
 int		 unveil_signal_dir(const char *);
 int		 parse_time_interval(char *, time_t *, time_t *);

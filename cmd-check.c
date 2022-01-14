@@ -16,6 +16,7 @@
 
 #include <err.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "sigtop.h"
@@ -25,7 +26,7 @@ static enum cmd_status cmd_check(int, char **);
 const struct cmd_entry cmd_check_entry = {
 	.name = "check",
 	.alias = "chk",
-	.usage = "signal-directory",
+	.usage = "[-d signal-directory]",
 	.exec = cmd_check
 };
 
@@ -34,14 +35,30 @@ cmd_check(int argc, char **argv)
 {
 	struct sbk_ctx	 *ctx;
 	char		**errors, *signaldir;
-	int		  i, n, ret;
+	int		  c, i, n, ret;
 
 	ctx = NULL;
+	signaldir = NULL;
 
-	if (argc != 2)
+	while ((c = getopt(argc, argv, "d:")) != -1)
+		switch (c) {
+		case 'd':
+			free(signaldir);
+			if ((signaldir = strdup(optarg)) == NULL) {
+				warn(NULL);
+				goto error;
+			}
+			break;
+		default:
+			goto usage;
+		}
+
+	if (argc - optind != 0)
 		goto usage;
 
-	signaldir = argv[1];
+	if (signaldir == NULL)
+		if ((signaldir = get_signal_dir()) == NULL)
+			goto error;
 
 	if (unveil_signal_dir(signaldir) == -1)
 		goto error;
@@ -88,5 +105,6 @@ usage:
 
 out:
 	sbk_close(ctx);
+	free(signaldir);
 	return ret;
 }

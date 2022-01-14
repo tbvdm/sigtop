@@ -29,22 +29,35 @@ Desktop.
 .Pp
 .Nm
 needs access to the directory where Signal Desktop stores its data.
-Depending on the operating system, this directory is usually found at one of
-the following locations:
-.Pp
-.Bl -tag -width "Windows" -compact
-.It Linux
-.Pa ~/.config/Signal
+By default,
+.Nm
+tries the following locations.
+.Bl -tag -width Ds
 .It macOS
-.Pa /Users/ Ns Em <username> Ns Pa "/Library/Application Support/Signal"
-.It Windows
-.Pa C:\eUsers\e Ns Em <username> Ns Pa \eAppData\eRoaming\eSignal
+.Pa "~/Library/Application Support/Signal" .
+.It Cygwin (Windows)
+.Pa $APPDATA\eSignal .
+.Ev APPDATA
+is usually set by Cygwin, and usually to
+.Pa C:\eUsers\e Ns Em <username> Ns Pa \eAppData\eRoaming .
+.It Other systems
+.Pa $XDG_CONFIG_HOME/Signal ,
+or
+.Pa ~/.config/Signal
+if
+.Ev XDG_CONFIG_HOME
+is unset or empty.
 .El
+.Pp
+A different location for the Signal Desktop directory can be specified using
+the
+.Fl d
+option (see below).
 .Pp
 The commands are as follows.
 .Bl -tag -width Ds
 .Tg chk
-.It Ic check Ar signal-directory
+.It Ic check Op Fl d Ar signal-directory
 Alias:
 .Ic chk
 .Pp
@@ -58,8 +71,8 @@ pragmas.
 .It Xo
 .Ic export-attachments
 .Op Fl Ll
-.Op Fl s Ar time-interval
-.Ar signal-directory
+.Op Fl d Ar signal-directory
+.Op Fl s Ar interval
 .Op Ar directory
 .Xc
 Alias:
@@ -92,7 +105,7 @@ See the
 .Sx TIME INTERVALS
 section below for details.
 .Tg db
-.It Ic export-database Ar signal-directory Ar file
+.It Ic export-database Oo Fl d Ar signal-directory Oc Ar file
 Alias:
 .Ic db
 .Pp
@@ -102,9 +115,9 @@ The exported database is a regular SQLite database.
 .Tg msg
 .It Xo
 .Ic export-messages
+.Op Fl d Ar signal-directory
 .Op Fl f Ar format
-.Op Fl s Ar time-interval
-.Ar signal-directory
+.Op Fl s Ar interval
 .Op Ar file
 .Xc
 Alias:
@@ -168,37 +181,37 @@ Examples of time intervals are:
 Export all messages to the file
 .Pa messages.txt :
 .Bd -literal -offset indent
-$ sigtop export-messages ~/.config/Signal messages.txt
+$ sigtop export-messages messages.txt
 .Ed
 .Pp
 Use the shorter command alias:
 .Bd -literal -offset indent
-$ sigtop msg ~/.config/Signal messages.txt
+$ sigtop msg messages.txt
 .Ed
 .Pp
 Export all messages in JSON format to the file
 .Pa messages.json :
 .Bd -literal -offset indent
-$ sigtop msg -f json ~/.config/Signal messages.json
+$ sigtop msg -f json messages.json
 .Ed
 .Pp
 Export all messages, fold long lines for readability and view the result:
 .Bd -literal -offset indent
-$ sigtop msg ~/.config/Signal | fold -s | less
+$ sigtop msg | fold -s | less
 .Ed
 .Pp
 Export all attachments sent at or after 12:34:56 on 23 January 2021 to the
 directory
 .Pa media :
 .Bd -literal -offset indent
-$ sigtop att -s 2021-01-23T12:34:56, ~/.config/Signal media
+$ sigtop att -s 2021-01-23T12:34:56, media
 .Ed
 .Pp
 Export the database from a Signal Desktop directory on a Windows disk mounted
 at
 .Pa /mnt :
 .Bd -literal -offset indent
-$ sigtop db /mnt/Users/Alice/AppData/Roaming/Signal signal.db
+$ sigtop db -d /mnt/Users/Alice/AppData/Roaming/Signal signal.db
 .Ed
 .Sh SEE ALSO
 .Xr sigbak 1

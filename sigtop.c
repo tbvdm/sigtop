@@ -17,7 +17,9 @@
 #include <sys/types.h>
 
 #include <err.h>
+#include <errno.h>
 #include <libgen.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +45,69 @@ usage(const char *cmd, const char *args)
 {
 	fprintf(stderr, "usage: %s %s %s\n", getprogname(), cmd, args);
 	exit(1);
+}
+
+static char *
+get_home_dir(void)
+{
+	struct passwd	*pw;
+	char		*home;
+
+	home = getenv("HOME");
+	if (home != NULL && home[0] != '\0')
+		return home;
+
+	errno = 0;
+	if ((pw = getpwuid(getuid())) == NULL) {
+		if (errno)
+			warn("getpwuid");
+		else
+			warnx("Unknown user");
+		return NULL;
+	}
+
+	return pw->pw_dir;
+}
+
+static char *
+get_xdg_config_dir(void)
+{
+	char *config, *dir, *home;
+
+	config = getenv("XDG_CONFIG_HOME");
+	if (config != NULL && config[0] != '\0') {
+		if ((dir = strdup(config)) == NULL)
+			warn(NULL);
+		return dir;
+	}
+
+	if ((home = get_home_dir()) == NULL)
+		return NULL;
+
+	if (asprintf(&dir, "%s/.config", home) == -1) {
+		warnx("asprintf() failed");
+		return NULL;
+	}
+
+	return dir;
+}
+
+char *
+get_signal_dir(void)
+{
+	char *config, *dir;
+
+	if ((config = get_xdg_config_dir()) == NULL)
+		return NULL;
+
+	if (asprintf(&dir, "%s/Signal", config) == -1) {
+		warnx("asprintf() failed");
+		free(config);
+		return NULL;
+	}
+
+	free(config);
+	return dir;
 }
 
 int
