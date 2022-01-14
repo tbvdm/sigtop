@@ -26,7 +26,19 @@
 
 #include "sigtop.h"
 
-void
+extern const struct cmd_entry cmd_attachments_entry;
+extern const struct cmd_entry cmd_check_entry;
+extern const struct cmd_entry cmd_messages_entry;
+extern const struct cmd_entry cmd_sqlite_entry;
+
+static const struct cmd_entry *commands[] = {
+	&cmd_attachments_entry,
+	&cmd_check_entry,
+	&cmd_messages_entry,
+	&cmd_sqlite_entry,
+};
+
+__dead static void
 usage(const char *cmd, const char *args)
 {
 	fprintf(stderr, "usage: %s %s %s\n", getprogname(), cmd, args);
@@ -146,20 +158,32 @@ parse_time_interval(char *str, time_t *min, time_t *max)
 int
 main(int argc, char **argv)
 {
+	const struct cmd_entry	*cmd;
+	size_t			 i;
+
 	if (argc < 2)
 		usage("command", "[argument ...]");
 
 	argc--;
 	argv++;
+	cmd = NULL;
 
-	if (strcmp(argv[0], "attachments") == 0)
-		return cmd_attachments(argc, argv);
-	if (strcmp(argv[0], "check") == 0)
-		return cmd_check(argc, argv);
-	if (strcmp(argv[0], "messages") == 0)
-		return cmd_messages(argc, argv);
-	if (strcmp(argv[0], "sqlite") == 0)
-		return cmd_sqlite(argc, argv);
+	for (i = 0; i < nitems(commands); i++)
+		if (strcmp(argv[0], commands[i]->name) == 0) {
+			cmd = commands[i];
+			break;
+		}
 
-	errx(1, "%s: Invalid command", argv[0]);
+	if (cmd == NULL)
+		errx(1, "%s: Invalid command", argv[0]);
+
+	switch (cmd->exec(argc, argv)) {
+	case CMD_OK:
+		return 0;
+	case CMD_ERROR:
+		return 1;
+	case CMD_USAGE:
+		usage(cmd->name, cmd->usage);
+		return 1;
+	}
 }

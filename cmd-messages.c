@@ -31,6 +31,14 @@ enum {
 	FORMAT_TEXT
 };
 
+static enum cmd_status cmd_messages(int, char **);
+
+const struct cmd_entry cmd_messages_entry = {
+	.name = "messages",
+	.usage = "[-f format] [-s interval] signal-directory [file]",
+	.exec = cmd_messages
+};
+
 static int
 json_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
@@ -146,16 +154,18 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 	return 0;
 }
 
-int
+static enum cmd_status
 cmd_messages(int argc, char **argv)
 {
 	struct sbk_ctx		*ctx;
 	struct sbk_message_list	*lst;
 	FILE			*fp;
-	char			*dir, *file;
+	char			*file, *signaldir;
 	time_t			 max, min;
 	int			 c, format, ret;
 
+	ctx = NULL;
+	lst = NULL;
 	format = FORMAT_TEXT;
 	min = max = (time_t)-1;
 
@@ -166,12 +176,14 @@ cmd_messages(int argc, char **argv)
 				format = FORMAT_JSON;
 			else if (strcmp(optarg, "text") == 0)
 				format = FORMAT_TEXT;
-			else
-				errx(1, "%s: invalid format", optarg);
+			else {
+				warnx("%s: Invalid format", optarg);
+				goto error;
+			}
 			break;
 		case 's':
 			if (parse_time_interval(optarg, &min, &max) == -1)
-				return 1;
+				goto error;
 			break;
 		default:
 			goto usage;
@@ -186,29 +198,33 @@ cmd_messages(int argc, char **argv)
 		break;
 	case 2:
 		file = argv[1];
-		if (unveil(file, "wc") == -1)
-			err(1, "unveil: %s", file);
+		if (unveil(file, "wc") == -1) {
+			warn("unveil: %s", file);
+			goto error;
+		}
 		break;
 	default:
 		goto usage;
 	}
 
-	dir = argv[0];
+	signaldir = argv[0];
 
-	if (unveil_signal_dir(dir) == -1)
-		return 1;
+	if (unveil_signal_dir(signaldir) == -1)
+		goto error;
 
 	/* For SQLite/SQLCipher */
-	if (unveil("/dev/urandom", "r") == -1)
-		err(1, "unveil: /dev/urandom");
+	if (unveil("/dev/urandom", "r") == -1) {
+		warn("unveil: /dev/urandom");
+		goto error;
+	}
 
-	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
-		err(1, "pledge");
+	if (pledge("stdio rpath wpath cpath flock", NULL) == -1) {
+		warn("pledge");
+		goto error;
+	}
 
-	if (sbk_open(&ctx, dir) == -1) {
+	if (sbk_open(&ctx, signaldir) == -1) {
 		warnx("%s", sbk_error(ctx));
-		sbk_close(ctx);
-		return 1;
 	}
 
 	if (min == (time_t)-1 && max == (time_t)-1)
@@ -222,17 +238,14 @@ cmd_messages(int argc, char **argv)
 
 	if (lst == NULL) {
 		warnx("%s", sbk_error(ctx));
-		sbk_close(ctx);
-		return 1;
+		goto error;
 	}
 
 	if (file == NULL)
 		fp = stdout;
 	else if ((fp = fopen(file, "wx")) == NULL) {
 		warn("fopen: %s", file);
-		sbk_free_message_list(lst);
-		sbk_close(ctx);
-		return 1;
+		goto error;
 	}
 
 	switch (format) {
@@ -247,10 +260,21 @@ cmd_messages(int argc, char **argv)
 	if (fp != stdout)
 		fclose(fp);
 
-	sbk_free_message_list(lst);
-	sbk_close(ctx);
-	return (ret == 0) ? 0 : 1;
+	if (ret == -1)
+		goto error;
+
+	ret = CMD_OK;
+	goto out;
+
+error:
+	ret = CMD_ERROR;
+	goto out;
 
 usage:
-	usage("messages", "[-f format] [-s interval] signal-directory [file]");
+	ret = CMD_USAGE;
+
+out:
+	sbk_free_message_list(lst);
+	sbk_close(ctx);
+	return ret;
 }

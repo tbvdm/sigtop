@@ -26,6 +26,18 @@
 #define nitems(a) (sizeof (a) / sizeof (a)[0])
 #endif
 
+enum cmd_status {
+	CMD_OK,
+	CMD_ERROR,
+	CMD_USAGE
+};
+
+struct cmd_entry {
+	const char	*name;
+	const char	*usage;
+	enum cmd_status	 (*exec)(int, char **);
+};
+
 struct sbk_ctx;
 
 struct sbk_contact {
@@ -126,11 +138,5 @@ uint32_t	 utf16_decode_surrogate_pair(uint16_t, uint16_t);
 int		 unveil_dirname(const char *, const char *);
 int		 unveil_signal_dir(const char *);
 int		 parse_time_interval(char *, time_t *, time_t *);
-void		 usage(const char *, const char *) __dead;
-
-int		 cmd_check(int, char **);
-int		 cmd_attachments(int, char **);
-int		 cmd_messages(int, char **);
-int		 cmd_sqlite(int, char **);
 
 #endif
