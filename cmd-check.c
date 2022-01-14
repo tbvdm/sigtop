@@ -24,6 +24,7 @@ static enum cmd_status cmd_check(int, char **);
 
 const struct cmd_entry cmd_check_entry = {
 	.name = "check",
+	.alias = "chk",
 	.usage = "signal-directory",
 	.exec = cmd_check
 };

@@ -31,12 +31,13 @@ enum {
 	FORMAT_TEXT
 };
 
-static enum cmd_status cmd_messages(int, char **);
+static enum cmd_status cmd_export_messages(int, char **);
 
-const struct cmd_entry cmd_messages_entry = {
-	.name = "messages",
+const struct cmd_entry cmd_export_messages_entry = {
+	.name = "export-messages",
+	.alias = "msg",
 	.usage = "[-f format] [-s interval] signal-directory [file]",
-	.exec = cmd_messages
+	.exec = cmd_export_messages
 };
 
 static int
@@ -155,7 +156,7 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 }
 
 static enum cmd_status
-cmd_messages(int argc, char **argv)
+cmd_export_messages(int argc, char **argv)
 {
 	struct sbk_ctx		*ctx;
 	struct sbk_message_list	*lst;

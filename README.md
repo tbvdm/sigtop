@@ -84,7 +84,7 @@ You can access your Windows drives through the `/cygdrive` directory. For
 example:
 
 	cd /cygdrive/c/Users/Alice
-	sigtop messages AppData/Roaming/Signal Documents/messages.txt
+	sigtop export-messages AppData/Roaming/Signal Documents/messages.txt
 
 Reporting problems
 ------------------

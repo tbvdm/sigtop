@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd September 22, 2021
+.Dd January 14, 2022
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -43,13 +43,17 @@ the following locations:
 .Pp
 The commands are as follows.
 .Bl -tag -width Ds
+.Tg att
 .It Xo
-.Ic attachments
+.Ic export-attachments
 .Op Fl Ll
 .Op Fl s Ar time-interval
 .Ar signal-directory
 .Op Ar directory
 .Xc
+Alias:
+.Ic att
+.Pp
 Export attachments.
 The attachment files are created in
 .Ar directory ,
@@ -76,20 +80,28 @@ specified time interval.
 See the
 .Sx TIME INTERVALS
 section below for details.
+.Tg chk
 .It Ic check Ar signal-directory
+Alias:
+.Ic chk
+.Pp
 Check the integrity of the encrypted Signal Desktop database.
 The check is performed using the SQLite/SQLCipher
 .Cm cipher_integrity_check
 and
 .Cm integrity_check
 pragmas.
+.Tg msg
 .It Xo
-.Ic messages
+.Ic export-messages
 .Op Fl f Ar format
 .Op Fl s Ar time-interval
 .Ar signal-directory
 .Op Ar file
 .Xc
+Alias:
+.Ic msg
+.Pp
 Export messages.
 The messages are written to
 .Ar file ,
@@ -124,7 +136,11 @@ time interval.
 See the
 .Sx TIME INTERVALS
 section below details.
-.It Ic sqlite Ar signal-directory Ar file
+.Tg db
+.It Ic export-database Ar signal-directory Ar file
+Alias:
+.Ic db
+.Pp
 Decrypt and export the Signal Desktop database to
 .Ar file .
 The exported database is a regular SQLite database.
@@ -149,28 +165,40 @@ Examples of time intervals are:
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
+Export all messages to the file
+.Pa messages.txt :
+.Bd -literal -offset indent
+$ sigtop export-messages ~/.config/Signal messages.txt
+.Ed
+.Pp
+Use the shorter command alias:
+.Bd -literal -offset indent
+$ sigtop msg ~/.config/Signal messages.txt
+.Ed
+.Pp
 Export all messages in JSON format to the file
 .Pa messages.json :
 .Bd -literal -offset indent
-$ sigtop messages -f json ~/.config/Signal messages.json
+$ sigtop msg -f json ~/.config/Signal messages.json
 .Ed
 .Pp
-Export all messages as plain text, fold long lines for readability and view the
-result:
+Export all messages, fold long lines for readability and view the result:
 .Bd -literal -offset indent
-$ sigtop messages ~/.config/Signal | fold -s | less
+$ sigtop msg ~/.config/Signal | fold -s | less
 .Ed
 .Pp
-Export all attachments sent at or after 12:34:56 on 23 January 2021:
+Export all attachments sent at or after 12:34:56 on 23 January 2021 to the
+directory
+.Pa media :
 .Bd -literal -offset indent
-$ sigtop attachments -s 2021-01-23T12:34:56, ~/.config/Signal
+$ sigtop att -s 2021-01-23T12:34:56, ~/.config/Signal media
 .Ed
 .Pp
 Export the database from a Signal Desktop directory on a Windows disk mounted
 at
 .Pa /mnt :
 .Bd -literal -offset indent
-$ sigtop sqlite /mnt/Users/Alice/AppData/Roaming/Signal signal.db
+$ sigtop db /mnt/Users/Alice/AppData/Roaming/Signal signal.db
 .Ed
 .Sh SEE ALSO
 .Xr sigbak 1

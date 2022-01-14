@@ -34,6 +34,7 @@ enum cmd_status {
 
 struct cmd_entry {
 	const char	*name;
+	const char	*alias;
 	const char	*usage;
 	enum cmd_status	 (*exec)(int, char **);
 };

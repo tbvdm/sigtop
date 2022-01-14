@@ -35,12 +35,13 @@ enum mode {
 	MODE_SYMLINK
 };
 
-static enum cmd_status cmd_attachments(int, char **);
+static enum cmd_status cmd_export_attachments(int, char **);
 
-const struct cmd_entry cmd_attachments_entry = {
-	.name = "attachments",
+const struct cmd_entry cmd_export_attachments_entry = {
+	.name = "export-attachments",
+	.alias = "att",
 	.usage = "[-Ll] [-s interval] signal-directory [directory]",
-	.exec = cmd_attachments
+	.exec = cmd_export_attachments
 };
 
 /*
@@ -279,7 +280,7 @@ process_attachments(struct sbk_ctx *ctx, const char *dir,
 }
 
 static enum cmd_status
-cmd_attachments(int argc, char **argv)
+cmd_export_attachments(int argc, char **argv)
 {
 	struct sbk_ctx			*ctx;
 	struct sbk_attachment_list	*lst;

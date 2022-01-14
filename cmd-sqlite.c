@@ -20,16 +20,17 @@
 
 #include "sigtop.h"
 
-static enum cmd_status cmd_sqlite(int, char **);
+static enum cmd_status cmd_export_database(int, char **);
 
-const struct cmd_entry cmd_sqlite_entry = {
-	.name = "sqlite",
+const struct cmd_entry cmd_export_database_entry = {
+	.name = "export-database",
+	.alias = "db",
 	.usage = "signal-directory file",
-	.exec = cmd_sqlite
+	.exec = cmd_export_database
 };
 
 static enum cmd_status
-cmd_sqlite(int argc, char **argv)
+cmd_export_database(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
 	char		*db, *signaldir;

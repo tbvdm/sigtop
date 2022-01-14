@@ -26,16 +26,16 @@
 
 #include "sigtop.h"
 
-extern const struct cmd_entry cmd_attachments_entry;
 extern const struct cmd_entry cmd_check_entry;
-extern const struct cmd_entry cmd_messages_entry;
-extern const struct cmd_entry cmd_sqlite_entry;
+extern const struct cmd_entry cmd_export_attachments_entry;
+extern const struct cmd_entry cmd_export_database_entry;
+extern const struct cmd_entry cmd_export_messages_entry;
 
 static const struct cmd_entry *commands[] = {
-	&cmd_attachments_entry,
 	&cmd_check_entry,
-	&cmd_messages_entry,
-	&cmd_sqlite_entry,
+	&cmd_export_attachments_entry,
+	&cmd_export_database_entry,
+	&cmd_export_messages_entry,
 };
 
 __dead static void
@@ -169,7 +169,8 @@ main(int argc, char **argv)
 	cmd = NULL;
 
 	for (i = 0; i < nitems(commands); i++)
-		if (strcmp(argv[0], commands[i]->name) == 0) {
+		if (strcmp(argv[0], commands[i]->name) == 0 ||
+		    strcmp(argv[0], commands[i]->alias) == 0) {
 			cmd = commands[i];
 			break;
 		}
