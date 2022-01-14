@@ -233,12 +233,17 @@ main(int argc, char **argv)
 	argv++;
 	cmd = NULL;
 
-	for (i = 0; i < nitems(commands); i++)
+	for (i = 0; i < nitems(commands); i++) {
 		if (strcmp(argv[0], commands[i]->name) == 0 ||
 		    strcmp(argv[0], commands[i]->alias) == 0) {
 			cmd = commands[i];
 			break;
 		}
+		if (commands[i]->oldname != NULL &&
+		    strcmp(argv[0], commands[i]->oldname) == 0)
+			errx(1, "Command names and options have changed; see "
+			    "the manual page");
+	}
 
 	if (cmd == NULL)
 		errx(1, "%s: Invalid command", argv[0]);

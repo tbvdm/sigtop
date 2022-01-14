@@ -27,6 +27,7 @@ const struct cmd_entry cmd_check_entry = {
 	.name = "check",
 	.alias = "chk",
 	.usage = "[-d signal-directory]",
+	.oldname = NULL,
 	.exec = cmd_check
 };
 
