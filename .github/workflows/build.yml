@@ -26,7 +26,7 @@ jobs:
     - name: run
       run: |
         set +e
-        ./sigtop check doesnotexist
+        ./sigtop
         test $? = 1
 
   macos:
@@ -58,7 +58,7 @@ jobs:
     - name: run
       run: |
         set +e
-        ./sigtop check doesnotexist
+        ./sigtop
         test $? = 1
 
   # https://github.com/vmactions/freebsd-vm
@@ -83,7 +83,7 @@ jobs:
           uname -a
           make
           set +e
-          ./sigtop check doesnotexist
+          ./sigtop
           test $? = 1
 
   # https://github.com/vmactions/solaris-vm
@@ -102,7 +102,7 @@ jobs:
           uname -a
           CC=gcc gmake
           set +e
-          ./sigtop check doesnotexist
+          ./sigtop
           test $? = 1
 
   # https://github.com/cygwin/cygwin-install-action
@@ -128,5 +128,5 @@ jobs:
         cd $GITHUB_WORKSPACE
         make install
         set +e
-        sigtop check doesnotexist
+        sigtop
         test $? = 1
