@@ -17,42 +17,73 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "sigtop.h"
 
-int
+static enum cmd_status cmd_check(int, char **);
+
+const struct cmd_entry cmd_check_entry = {
+	.name = "check",
+	.alias = "chk",
+	.usage = "[-d signal-directory]",
+	.oldname = NULL,
+	.exec = cmd_check
+};
+
+static enum cmd_status
 cmd_check(int argc, char **argv)
 {
-	struct sbk_ctx	*ctx;
-	char		*dir, **errors;
-	int		 i, n;
+	struct sbk_ctx	 *ctx;
+	char		**errors, *signaldir;
+	int		  c, i, n, ret;
 
-	if (argc != 2)
+	ctx = NULL;
+	signaldir = NULL;
+
+	while ((c = getopt(argc, argv, "d:")) != -1)
+		switch (c) {
+		case 'd':
+			free(signaldir);
+			if ((signaldir = strdup(optarg)) == NULL) {
+				warn(NULL);
+				goto error;
+			}
+			break;
+		default:
+			goto usage;
+		}
+
+	if (argc - optind != 0)
 		goto usage;
 
-	dir = argv[1];
+	if (signaldir == NULL)
+		if ((signaldir = get_signal_dir()) == NULL)
+			goto error;
 
-	if (unveil_signal_dir(dir) == -1)
-		return 1;
+	if (unveil_signal_dir(signaldir) == -1)
+		goto error;
 
 	/* For SQLite/SQLCipher */
-	if (unveil("/dev/urandom", "r") == -1)
-		err(1, "unveil: /dev/urandom");
+	if (unveil("/dev/urandom", "r") == -1) {
+		warn("unveil: /dev/urandom");
+		goto error;
+	}
 
-	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
-		err(1, "pledge");
+	if (pledge("stdio rpath wpath cpath flock", NULL) == -1) {
+		warn("pledge");
+		goto error;
+	}
 
-	if (sbk_open(&ctx, dir) == -1) {
+	if (sbk_open(&ctx, signaldir) == -1) {
 		warnx("%s", sbk_error(ctx));
-		sbk_close(ctx);
-		return 1;
+		goto error;
 	}
 
 	if ((n = sbk_check(ctx, &errors)) == -1) {
 		warnx("%s", sbk_error(ctx));
-		sbk_close(ctx);
-		return 1;
+		goto error;
 	}
 
 	if (n > 0) {
@@ -61,11 +92,21 @@ cmd_check(int argc, char **argv)
 			free(errors[i]);
 		}
 		free(errors);
+		goto error;
 	}
 
-	sbk_close(ctx);
-	return (n == 0) ? 0 : 1;
+	ret = CMD_OK;
+	goto out;
+
+error:
+	ret = CMD_ERROR;
+	goto out;
 
 usage:
-	usage("check", "signal-directory");
+	ret = CMD_USAGE;
+
+out:
+	sbk_close(ctx);
+	free(signaldir);
+	return ret;
 }

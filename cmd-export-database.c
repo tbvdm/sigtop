@@ -17,55 +17,104 @@
 #include "config.h"
 
 #include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "sigtop.h"
 
-int
-cmd_sqlite(int argc, char **argv)
+static enum cmd_status cmd_export_database(int, char **);
+
+const struct cmd_entry cmd_export_database_entry = {
+	.name = "export-database",
+	.alias = "db",
+	.usage = "[-d signal-directory] file",
+	.oldname = "sqlite",
+	.exec = cmd_export_database
+};
+
+static enum cmd_status
+cmd_export_database(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
-	char		*db, *dir;
-	int		 fd, ret;
+	char		*db, *signaldir;
+	int		 c, fd, ret;
 
-	if (argc != 3)
+	ctx = NULL;
+	signaldir = NULL;
+
+	while ((c = getopt(argc, argv, "d:")) != -1)
+		switch (c) {
+		case 'd':
+			free(signaldir);
+			if ((signaldir = strdup(optarg)) == NULL) {
+				warn(NULL);
+				goto error;
+			}
+			break;
+		default:
+			goto usage;
+		}
+
+	argc -= optind;
+	argv += optind;
+
+	if (argc != 1)
 		goto usage;
 
-	dir = argv[1];
-	db = argv[2];
+	db = argv[0];
 
-	if (unveil_signal_dir(dir) == -1)
-		return 1;
+	if (signaldir == NULL)
+		if ((signaldir = get_signal_dir()) == NULL)
+			goto error;
 
-	/* For SQLite/SQLCipher */
-	if (unveil("/dev/urandom", "r") == -1)
-		err(1, "unveil: /dev/urandom");
+	if (unveil_signal_dir(signaldir) == -1)
+		goto error;
 
 	/* For the export database and its temporary files */
 	if (unveil_dirname(db, "rwc") == -1)
-		return 1;
+		goto error;
 
-	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
-		err(1, "pledge");
-
-	/* Ensure the export database does not already exist */
-	if ((fd = open(db, O_RDONLY | O_CREAT | O_EXCL, 0666)) == -1)
-		err(1, "%s", db);
-
-	close(fd);
-
-	if (sbk_open(&ctx, dir) == -1) {
-		warnx("%s", sbk_error(ctx));
-		sbk_close(ctx);
-		return 1;
+	/* For SQLite/SQLCipher */
+	if (unveil("/dev/urandom", "r") == -1) {
+		warn("unveil: /dev/urandom");
+		goto error;
 	}
 
-	if ((ret = sbk_write_database(ctx, db)) == -1)
-		warnx("%s", sbk_error(ctx));
+	if (pledge("stdio rpath wpath cpath flock", NULL) == -1) {
+		warn("pledge");
+		goto error;
+	}
 
-	sbk_close(ctx);
-	return (ret == 0) ? 0 : 1;
+	/* Ensure the export database does not already exist */
+	if ((fd = open(db, O_RDONLY | O_CREAT | O_EXCL, 0666)) == -1) {
+		warn("%s", db);
+		goto error;
+	}
+	close(fd);
+
+	if (sbk_open(&ctx, signaldir) == -1) {
+		warnx("%s", sbk_error(ctx));
+		goto error;
+	}
+
+	if (sbk_write_database(ctx, db) == -1) {
+		warnx("%s", sbk_error(ctx));
+		goto error;
+	}
+
+	ret = CMD_OK;
+	goto out;
+
+error:
+	ret = CMD_ERROR;
+	goto out;
 
 usage:
-	usage("sqlite", "signal-directory file");
+	ret = CMD_USAGE;
+
+out:
+	sbk_close(ctx);
+	free(signaldir);
+	return ret;
 }

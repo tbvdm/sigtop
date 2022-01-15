@@ -36,6 +36,16 @@ enum mode {
 	MODE_SYMLINK
 };
 
+static enum cmd_status cmd_export_attachments(int, char **);
+
+const struct cmd_entry cmd_export_attachments_entry = {
+	.name = "export-attachments",
+	.alias = "att",
+	.usage = "[-Ll] [-d signal-directory] [-s interval] [directory]",
+	.oldname = "attachments",
+	.exec = cmd_export_attachments
+};
+
 /*
  * Check if a file with the specified name exists. If so, replace the name with
  * a new, unique name. Given a name of the form "base[.ext]", the new name is
@@ -271,8 +281,8 @@ process_attachments(struct sbk_ctx *ctx, const char *dir,
 	return ret;
 }
 
-int
-cmd_attachments(int argc, char **argv)
+static enum cmd_status
+cmd_export_attachments(int argc, char **argv)
 {
 	struct sbk_ctx			*ctx;
 	struct sbk_attachment_list	*lst;
@@ -282,11 +292,21 @@ cmd_attachments(int argc, char **argv)
 	int				 c, ret;
 	enum mode			 mode;
 
+	ctx = NULL;
+	lst = NULL;
+	signaldir = NULL;
 	mode = MODE_COPY;
 	min = max = (time_t)-1;
 
-	while ((c = getopt(argc, argv, "Lls:")) != -1)
+	while ((c = getopt(argc, argv, "d:Lls:")) != -1)
 		switch (c) {
+		case 'd':
+			free(signaldir);
+			if ((signaldir = strdup(optarg)) == NULL) {
+				warn(NULL);
+				goto error;
+			}
+			break;
 		case 'L':
 			mode = MODE_LINK;
 			break;
@@ -295,7 +315,7 @@ cmd_attachments(int argc, char **argv)
 			break;
 		case 's':
 			if (parse_time_interval(optarg, &min, &max) == -1)
-				return 1;
+				goto error;
 			break;
 		default:
 			goto usage;
@@ -305,39 +325,46 @@ cmd_attachments(int argc, char **argv)
 	argv += optind;
 
 	switch (argc) {
-	case 1:
-		signaldir = argv[0];
+	case 0:
 		outdir = ".";
 		break;
-	case 2:
-		signaldir = argv[0];
-		outdir = argv[1];
-		if (mkdir(outdir, 0777) == -1 && errno != EEXIST)
-			err(1, "mkdir: %s", outdir);
+	case 1:
+		outdir = argv[0];
+		if (mkdir(outdir, 0777) == -1 && errno != EEXIST) {
+			warn("mkdir: %s", outdir);
+			goto error;
+		}
 		break;
 	default:
 		goto usage;
 	}
 
-	if (unveil_signal_dir(signaldir) == -1)
-		return 1;
+	if (signaldir == NULL)
+		if ((signaldir = get_signal_dir()) == NULL)
+			goto error;
 
-	if (unveil(outdir, "rwc") == -1)
-		err(1, "unveil: %s", outdir);
+	if (unveil_signal_dir(signaldir) == -1)
+		goto error;
+
+	if (unveil(outdir, "rwc") == -1) {
+		warn("unveil: %s", outdir);
+		goto error;
+	}
 
 	/* For SQLite/SQLCipher */
-	if (unveil("/dev/urandom", "r") == -1)
-		err(1, "unveil: /dev/urandom");
+	if (unveil("/dev/urandom", "r") == -1) {
+		warn("unveil: /dev/urandom");
+		goto error;
+	}
 
-	if (pledge("stdio rpath wpath cpath flock", NULL) == -1)
-		err(1, "pledge");
-
-	lst = NULL;
-	ret = 1;
+	if (pledge("stdio rpath wpath cpath flock", NULL) == -1) {
+		warn("pledge");
+		goto error;
+	}
 
 	if (sbk_open(&ctx, signaldir) == -1) {
 		warnx("%s", sbk_error(ctx));
-		goto out;
+		goto error;
 	}
 
 	if (min == (time_t)-1 && max == (time_t)-1)
@@ -351,20 +378,25 @@ cmd_attachments(int argc, char **argv)
 
 	if (lst == NULL) {
 		warnx("%s", sbk_error(ctx));
-		goto out;
+		goto error;
 	}
 
 	if (process_attachments(ctx, outdir, lst, mode) == -1)
-		goto out;
+		goto error;
 
-	ret = 0;
+	ret = CMD_OK;
+	goto out;
+
+error:
+	ret = CMD_ERROR;
+	goto out;
+
+usage:
+	ret = CMD_USAGE;
 
 out:
 	sbk_free_attachment_list(lst);
 	sbk_close(ctx);
+	free(signaldir);
 	return ret;
-
-usage:
-	usage("attachments", "[-Ll] [-s interval] signal-directory "
-	    "[directory]");
 }

@@ -18,7 +18,9 @@
 
 #include <sys/types.h>
 
+#include <errno.h>
 #include <libgen.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,11 +29,86 @@
 
 #include "sigtop.h"
 
-void
+extern const struct cmd_entry cmd_check_entry;
+extern const struct cmd_entry cmd_export_attachments_entry;
+extern const struct cmd_entry cmd_export_database_entry;
+extern const struct cmd_entry cmd_export_messages_entry;
+
+static const struct cmd_entry *commands[] = {
+	&cmd_check_entry,
+	&cmd_export_attachments_entry,
+	&cmd_export_database_entry,
+	&cmd_export_messages_entry,
+};
+
+__dead static void
 usage(const char *cmd, const char *args)
 {
 	fprintf(stderr, "usage: %s %s %s\n", getprogname(), cmd, args);
 	exit(1);
+}
+
+static char *
+get_home_dir(void)
+{
+	struct passwd	*pw;
+	char		*home;
+
+	home = getenv("HOME");
+	if (home != NULL && home[0] != '\0')
+		return home;
+
+	errno = 0;
+	if ((pw = getpwuid(getuid())) == NULL) {
+		if (errno)
+			warn("getpwuid");
+		else
+			warnx("Unknown user");
+		return NULL;
+	}
+
+	return pw->pw_dir;
+}
+
+static char *
+get_xdg_config_dir(void)
+{
+	char *config, *dir, *home;
+
+	config = getenv("XDG_CONFIG_HOME");
+	if (config != NULL && config[0] != '\0') {
+		if ((dir = strdup(config)) == NULL)
+			warn(NULL);
+		return dir;
+	}
+
+	if ((home = get_home_dir()) == NULL)
+		return NULL;
+
+	if (asprintf(&dir, "%s/.config", home) == -1) {
+		warnx("asprintf() failed");
+		return NULL;
+	}
+
+	return dir;
+}
+
+char *
+get_signal_dir(void)
+{
+	char *config, *dir;
+
+	if ((config = get_xdg_config_dir()) == NULL)
+		return NULL;
+
+	if (asprintf(&dir, "%s/Signal", config) == -1) {
+		warnx("asprintf() failed");
+		free(config);
+		return NULL;
+	}
+
+	free(config);
+	return dir;
 }
 
 int
@@ -147,6 +224,9 @@ parse_time_interval(char *str, time_t *min, time_t *max)
 int
 main(int argc, char **argv)
 {
+	const struct cmd_entry	*cmd;
+	size_t			 i;
+
 	setprogname(argv[0]);
 
 	if (argc < 2)
@@ -154,15 +234,30 @@ main(int argc, char **argv)
 
 	argc--;
 	argv++;
+	cmd = NULL;
 
-	if (strcmp(argv[0], "attachments") == 0)
-		return cmd_attachments(argc, argv);
-	if (strcmp(argv[0], "check") == 0)
-		return cmd_check(argc, argv);
-	if (strcmp(argv[0], "messages") == 0)
-		return cmd_messages(argc, argv);
-	if (strcmp(argv[0], "sqlite") == 0)
-		return cmd_sqlite(argc, argv);
+	for (i = 0; i < nitems(commands); i++) {
+		if (strcmp(argv[0], commands[i]->name) == 0 ||
+		    strcmp(argv[0], commands[i]->alias) == 0) {
+			cmd = commands[i];
+			break;
+		}
+		if (commands[i]->oldname != NULL &&
+		    strcmp(argv[0], commands[i]->oldname) == 0)
+			errx(1, "Command names and options have changed; see "
+			    "the manual page");
+	}
 
-	errx(1, "%s: Invalid command", argv[0]);
+	if (cmd == NULL)
+		errx(1, "%s: Invalid command", argv[0]);
+
+	switch (cmd->exec(argc, argv)) {
+	case CMD_OK:
+		return 0;
+	case CMD_ERROR:
+		return 1;
+	case CMD_USAGE:
+		usage(cmd->name, cmd->usage);
+		return 1;
+	}
 }
