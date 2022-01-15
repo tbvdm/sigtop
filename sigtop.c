@@ -70,7 +70,7 @@ get_home_dir(void)
 	return pw->pw_dir;
 }
 
-static char *
+__unused static char *
 get_xdg_config_dir(void)
 {
 	char *config, *dir, *home;
