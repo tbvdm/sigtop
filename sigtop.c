@@ -96,6 +96,43 @@ get_xdg_config_dir(void)
 char *
 get_signal_dir(void)
 {
+#ifdef __APPLE__
+	char *dir, *home;
+
+	if ((home = get_home_dir()) == NULL)
+		return NULL;
+
+	if (asprintf(&dir, "%s/Library/Application Support/Signal", home) ==
+	    -1) {
+		warnx("asprintf() failed");
+		return NULL;
+	}
+
+	return dir;
+#elif defined(__CYGWIN__)
+	char *appdata_posix, *appdata_win, *dir;
+
+	appdata_win = getenv("APPDATA");
+	if (appdata_win == NULL || appdata_win[0] == '\0') {
+		warnx("APPDATA unset or empty");
+		return NULL;
+	}
+
+	appdata_posix = cygwin_create_path(CCP_WIN_A_TO_POSIX, appdata_win);
+	if (appdata_posix == NULL) {
+		warn("cygwin_create_path");
+		return NULL;
+	}
+
+	if (asprintf(&dir, "%s/Signal", appdata_posix) == -1) {
+		warnx("asprintf() failed");
+		free(appdata_posix);
+		return NULL;
+	}
+
+	free(appdata_posix);
+	return dir;
+#else
 	char *config, *dir;
 
 	if ((config = get_xdg_config_dir()) == NULL)
@@ -109,6 +146,7 @@ get_signal_dir(void)
 
 	free(config);
 	return dir;
+#endif
 }
 
 int

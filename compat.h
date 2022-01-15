@@ -37,6 +37,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#ifdef __CYGWIN__
+#include <sys/cygwin.h>
+#endif
+
 #ifdef __OpenBSD__
 #include <sys/queue.h>
 #include <sys/tree.h>
