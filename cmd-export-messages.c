@@ -252,6 +252,7 @@ cmd_export_messages(int argc, char **argv)
 
 	if (sbk_open(&ctx, signaldir) == -1) {
 		warnx("%s", sbk_error(ctx));
+		goto error;
 	}
 
 	if (min == (time_t)-1 && max == (time_t)-1)
