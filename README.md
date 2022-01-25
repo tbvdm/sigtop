@@ -86,7 +86,7 @@ following commands to build and install sigtop:
 	git checkout portable
 	make install
 
-If you wish, you can also use [this PowerShell script][12] to install Cygwin
+If you wish, you can also use [this PowerShell script][11] to install Cygwin
 and sigtop automatically. To use it, first download the script file. Then
 navigate to the folder where you saved the script file. Right-click the script
 file and then click "Run with PowerShell".
@@ -101,7 +101,7 @@ Reporting problems
 
 Please report bugs and other problems with sigtop. If sigtop shows errors or
 warnings unexpectedly, please report them as well. You can [open an issue on
-GitHub][11] or send an email. You can find my email address at the top of the
+GitHub][12] or send an email. You can find my email address at the top of the
 `sigtop.c` file.
 
 [1]: https://www.kariliq.nl/sigbak/
