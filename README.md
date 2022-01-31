@@ -86,6 +86,11 @@ following commands to build and install sigtop:
 	git checkout portable
 	make install
 
+If you wish, you can also use [this PowerShell script][11] to install Cygwin
+and sigtop automatically. To use it, first download the script file. Then
+navigate to the folder where you saved the script file. Right-click the script
+file and then click "Run with PowerShell".
+
 You can access your Windows drives through the `/cygdrive` directory. For
 example:
 
@@ -96,7 +101,7 @@ Reporting problems
 
 Please report bugs and other problems with sigtop. If sigtop shows errors or
 warnings unexpectedly, please report them as well. You can [open an issue on
-GitHub][11] or send an email. You can find my email address at the top of the
+GitHub][12] or send an email. You can find my email address at the top of the
 `sigtop.c` file.
 
 [1]: https://www.kariliq.nl/sigbak/
@@ -109,4 +114,5 @@ GitHub][11] or send an email. You can find my email address at the top of the
 [8]: https://github.com/tbvdm/homebrew-tap
 [9]: https://cygwin.com/
 [10]: https://cygwin.com/cygwin-ug-net/setup-net.html#internet-setup
-[11]: https://github.com/tbvdm/sigtop/issues
+[11]: https://www.kariliq.nl/sigbak/install-cygwin-sigtop.ps1
+[12]: https://github.com/tbvdm/sigtop/issues
