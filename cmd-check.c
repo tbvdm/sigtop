@@ -21,18 +21,18 @@
 
 #include "sigtop.h"
 
-static enum cmd_status cmd_check(int, char **);
+static enum cmd_status cmd_check_database(int, char **);
 
-const struct cmd_entry cmd_check_entry = {
-	.name = "check",
-	.alias = "chk",
+const struct cmd_entry cmd_check_database_entry = {
+	.name = "check-database",
+	.alias = "check",
 	.usage = "[-d signal-directory]",
 	.oldname = NULL,
-	.exec = cmd_check
+	.exec = cmd_check_database
 };
 
 static enum cmd_status
-cmd_check(int argc, char **argv)
+cmd_check_database(int argc, char **argv)
 {
 	struct sbk_ctx	 *ctx;
 	char		**errors, *signaldir;
