@@ -255,6 +255,5 @@ main(int argc, char **argv)
 		return 1;
 	case CMD_USAGE:
 		usage(cmd->name, cmd->usage);
-		return 1;
 	}
 }
