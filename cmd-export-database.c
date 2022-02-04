@@ -37,7 +37,8 @@ cmd_export_database(int argc, char **argv)
 {
 	struct sbk_ctx	*ctx;
 	char		*db, *signaldir;
-	int		 c, fd, ret;
+	int		 c, fd;
+	enum cmd_status	 status;
 
 	ctx = NULL;
 	signaldir = NULL;
@@ -102,18 +103,18 @@ cmd_export_database(int argc, char **argv)
 		goto error;
 	}
 
-	ret = CMD_OK;
+	status = CMD_OK;
 	goto out;
 
 error:
-	ret = CMD_ERROR;
+	status = CMD_ERROR;
 	goto out;
 
 usage:
-	ret = CMD_USAGE;
+	status = CMD_USAGE;
 
 out:
 	sbk_close(ctx);
 	free(signaldir);
-	return ret;
+	return status;
 }

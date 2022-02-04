@@ -165,6 +165,7 @@ cmd_export_messages(int argc, char **argv)
 	char			*file, *signaldir;
 	time_t			 max, min;
 	int			 c, format, ret;
+	enum cmd_status		 status;
 
 	ctx = NULL;
 	lst = NULL;
@@ -278,19 +279,19 @@ cmd_export_messages(int argc, char **argv)
 	if (ret == -1)
 		goto error;
 
-	ret = CMD_OK;
+	status = CMD_OK;
 	goto out;
 
 error:
-	ret = CMD_ERROR;
+	status = CMD_ERROR;
 	goto out;
 
 usage:
-	ret = CMD_USAGE;
+	status = CMD_USAGE;
 
 out:
 	sbk_free_message_list(lst);
 	sbk_close(ctx);
 	free(signaldir);
-	return ret;
+	return status;
 }
