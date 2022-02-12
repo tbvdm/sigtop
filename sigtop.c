@@ -29,13 +29,13 @@
 
 #include "sigtop.h"
 
-extern const struct cmd_entry cmd_check_entry;
+extern const struct cmd_entry cmd_check_database_entry;
 extern const struct cmd_entry cmd_export_attachments_entry;
 extern const struct cmd_entry cmd_export_database_entry;
 extern const struct cmd_entry cmd_export_messages_entry;
 
 static const struct cmd_entry *commands[] = {
-	&cmd_check_entry,
+	&cmd_check_database_entry,
 	&cmd_export_attachments_entry,
 	&cmd_export_database_entry,
 	&cmd_export_messages_entry,
@@ -296,6 +296,5 @@ main(int argc, char **argv)
 		return 1;
 	case CMD_USAGE:
 		usage(cmd->name, cmd->usage);
-		return 1;
 	}
 }

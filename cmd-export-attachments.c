@@ -289,8 +289,9 @@ cmd_export_attachments(int argc, char **argv)
 	char				*signaldir;
 	const char			*outdir;
 	time_t				 max, min;
-	int				 c, ret;
+	int				 c;
 	enum mode			 mode;
+	enum cmd_status			 status;
 
 	ctx = NULL;
 	lst = NULL;
@@ -384,19 +385,19 @@ cmd_export_attachments(int argc, char **argv)
 	if (process_attachments(ctx, outdir, lst, mode) == -1)
 		goto error;
 
-	ret = CMD_OK;
+	status = CMD_OK;
 	goto out;
 
 error:
-	ret = CMD_ERROR;
+	status = CMD_ERROR;
 	goto out;
 
 usage:
-	ret = CMD_USAGE;
+	status = CMD_USAGE;
 
 out:
 	sbk_free_attachment_list(lst);
 	sbk_close(ctx);
 	free(signaldir);
-	return ret;
+	return status;
 }
