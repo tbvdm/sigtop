@@ -16,6 +16,7 @@
 
 #include "config.h"
 
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <errno.h>
@@ -71,9 +72,9 @@ get_home_dir(void)
 }
 
 __unused static char *
-get_xdg_config_dir(void)
+get_xdg_config_dir(const char *home)
 {
-	char *config, *dir, *home;
+	char *config, *dir;
 
 	config = getenv("XDG_CONFIG_HOME");
 	if (config != NULL && config[0] != '\0') {
@@ -81,9 +82,6 @@ get_xdg_config_dir(void)
 			warn(NULL);
 		return dir;
 	}
-
-	if ((home = get_home_dir()) == NULL)
-		return NULL;
 
 	if (asprintf(&dir, "%s/.config", home) == -1) {
 		warnx("asprintf() failed");
@@ -133,9 +131,13 @@ get_signal_dir(void)
 	free(appdata_posix);
 	return dir;
 #else
-	char *config, *dir;
+	struct stat	 st;
+	char		*config, *dir, *home, *snap;
 
-	if ((config = get_xdg_config_dir()) == NULL)
+	if ((home = get_home_dir()) == NULL)
+		return NULL;
+
+	if ((config = get_xdg_config_dir(home)) == NULL)
 		return NULL;
 
 	if (asprintf(&dir, "%s/Signal", config) == -1) {
@@ -145,6 +147,39 @@ get_signal_dir(void)
 	}
 
 	free(config);
+
+	/*
+	 * If the default Signal Desktop directory doesn't exist, try the one
+	 * from the unofficial snap
+	 */
+
+	if (lstat(dir, &st) == 0)
+		return dir;
+	else if (errno != ENOENT && errno != ENOTDIR) {
+		warn("%s", dir);
+		free(dir);
+		return NULL;
+	}
+
+	if (asprintf(&snap, "%s/snap/signal-desktop/current/.config/Signal",
+	    home) == -1) {
+		warnx("asprintf() failed");
+		free(dir);
+		return NULL;
+	}
+
+	if (lstat(snap, &st) == 0) {
+		free(dir);
+		dir = snap;
+	} else if (errno != ENOENT && errno != ENOTDIR) {
+		warn("%s", snap);
+		free(dir);
+		free(snap);
+		return NULL;
+	} else {
+		free(snap);
+	}
+
 	return dir;
 #endif
 }

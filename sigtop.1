@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd February 4, 2022
+.Dd March 21, 2022
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -47,6 +47,9 @@ or
 if
 .Ev XDG_CONFIG_HOME
 is unset or empty.
+If this directory does not exist but
+.Pa ~/snap/signal-desktop/current/.config/Signal
+does, then that is used instead.
 .El
 .Pp
 A different location for the Signal Desktop directory can be specified using
