@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.15, macos-11]
+        os: [macos-10.15, macos-11, macos-12]
         ssl: [libressl, openssl]
 
     runs-on: ${{ matrix.os }}
