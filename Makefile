@@ -6,16 +6,18 @@ CC?=		cc
 INSTALL?=	install
 PKG_CONFIG?=	pkg-config
 
-PKGS?=		libcrypto
+LIBCRYPTO_PKG?=	libcrypto
 
-PKGS_CFLAGS!=	${PKG_CONFIG} --cflags ${PKGS}
-PKGS_LDFLAGS!=	${PKG_CONFIG} --libs ${PKGS}
+PKGS?=		${LIBCRYPTO_PKG}
+
+PKG_CFLAGS!=	${PKG_CONFIG} --cflags ${PKGS}
+PKG_LDFLAGS!=	${PKG_CONFIG} --libs ${PKGS}
 
 CPPFLAGS+=	-DSQLITE_ENABLE_JSON1 -DSQLITE_HAS_CODEC \
 		-DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_TEMP_STORE=2 \
 		-DSQLITE_THREADSAFE=0
-CFLAGS+=	${PKGS_CFLAGS}
-LDFLAGS+=	${PKGS_LDFLAGS}
+CFLAGS+=	${PKG_CFLAGS}
+LDFLAGS+=	${PKG_LDFLAGS}
 
 COMPAT_OBJS=	compat/asprintf.o compat/err.o compat/explicit_bzero.o \
 		compat/fopen.o compat/getprogname.o compat/pledge.o \
