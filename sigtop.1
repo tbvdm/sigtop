@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd March 21, 2022
+.Dd May 10, 2022
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -47,9 +47,16 @@ or
 if
 .Ev XDG_CONFIG_HOME
 is unset or empty.
-If this directory does not exist but
+.Pp
+If this directory does not exist,
+.Nm
+tries the locations used by the unofficial Snap and Flatpak versions of Signal
+Desktop.
+These locations are
 .Pa ~/snap/signal-desktop/current/.config/Signal
-does, then that is used instead.
+and
+.Pa ~/.var/app/org.signal.Signal/config/Signal ,
+respectively.
 .El
 .Pp
 A different location for the Signal Desktop directory can be specified using
@@ -88,7 +95,7 @@ or in the current directory if
 .Ar directory
 is not specified.
 .Pp
-Attachments are stored in unencrypted files in the Signal Desktop directory.
+Signal Desktop stores attachments in unencrypted files.
 .Nm
 can copy these files, or create hard links or symbolic links to them.
 By default, attachments are copied.

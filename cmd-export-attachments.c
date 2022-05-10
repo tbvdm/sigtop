@@ -236,8 +236,6 @@ process_attachments(struct sbk_ctx *ctx, const char *dir,
 	ret = 0;
 
 	TAILQ_FOREACH(att, lst, entries) {
-		if (att->path == NULL)
-			continue;
 		if ((src = sbk_get_attachment_path(ctx, att)) == NULL) {
 			warnx("Cannot get attachment path: %s",
 			    sbk_error(ctx));

@@ -1158,7 +1158,7 @@ sbk_get_attachment_path(struct sbk_ctx *ctx, struct sbk_attachment *att)
 	char *path;
 
 	if (att->path == NULL) {
-		sbk_error_setx(ctx, "Cannot get attachment path");
+		sbk_error_setx(ctx, "Missing attachment path");
 		return NULL;
 	}
 

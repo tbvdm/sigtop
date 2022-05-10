@@ -1,4 +1,3 @@
-*.d
-*.o
-sigtop
-tags
+*.[do]
+/sigtop
+/tags

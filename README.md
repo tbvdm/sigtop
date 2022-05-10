@@ -114,5 +114,5 @@ GitHub][12] or send an email. You can find my email address at the top of the
 [8]: https://github.com/tbvdm/homebrew-tap
 [9]: https://cygwin.com/
 [10]: https://cygwin.com/cygwin-ug-net/setup-net.html#internet-setup
-[11]: https://www.kariliq.nl/sigbak/install-cygwin-sigtop.ps1
+[11]: https://github.com/tbvdm/cygwin-install-scripts/raw/master/install-cygwin-sigtop.ps1
 [12]: https://github.com/tbvdm/sigtop/issues
