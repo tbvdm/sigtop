@@ -70,79 +70,93 @@ get_home_dir(void)
 	return pw->pw_dir;
 }
 
-static char *
-get_xdg_config_dir(const char *home)
+static int
+try_signal_dir(const char *dir)
 {
-	char *config, *dir;
+	struct stat st;
 
-	config = getenv("XDG_CONFIG_HOME");
-	if (config != NULL && config[0] != '\0') {
-		if ((dir = strdup(config)) == NULL)
-			warn(NULL);
-		return dir;
+	if (lstat(dir, &st) == 0)
+		return 1;
+	else if (errno == ENOENT || errno == ENOTDIR)
+		return 0;
+	else {
+		warn("%s", dir);
+		return -1;
 	}
+}
 
-	if (asprintf(&dir, "%s/.config", home) == -1) {
+static int
+try_default_signal_dir(char **defdir, const char *homedir)
+{
+	char	*configdir;
+	int	 ret;
+
+	configdir = getenv("XDG_CONFIG_HOME");
+	if (configdir != NULL && configdir[0] != '\0')
+		ret = asprintf(defdir, "%s/Signal", configdir);
+	else
+		ret = asprintf(defdir, "%s/.config/Signal", homedir);
+
+	if (ret == -1) {
 		warnx("asprintf() failed");
-		return NULL;
+		*defdir = NULL;
+		return -1;
 	}
 
-	return dir;
+	if ((ret = try_signal_dir(*defdir)) == -1) {
+		free(*defdir);
+		*defdir = NULL;
+	}
+
+	return ret;
+}
+
+static int
+try_alternative_signal_dir(char **altdir, const char *homedir,
+    const char *subdir)
+{
+	int ret;
+
+	if (asprintf(altdir, "%s/%s", homedir, subdir) == -1) {
+		warnx("asprintf() failed");
+		*altdir = NULL;
+		return -1;
+	}
+
+	if ((ret = try_signal_dir(*altdir)) != 1) {
+		free(*altdir);
+		*altdir = NULL;
+	}
+
+	return ret;
 }
 
 char *
 get_signal_dir(void)
 {
-	struct stat	 st;
-	char		*config, *dir, *home, *snap;
+	char *altdir, *defdir, *homedir;
 
-	if ((home = get_home_dir()) == NULL)
+	if ((homedir = get_home_dir()) == NULL)
 		return NULL;
 
-	if ((config = get_xdg_config_dir(home)) == NULL)
-		return NULL;
+	if (try_default_signal_dir(&defdir, homedir) != 0)
+		return defdir;
 
-	if (asprintf(&dir, "%s/Signal", config) == -1) {
-		warnx("asprintf() failed");
-		free(config);
-		return NULL;
+	/* Snap */
+	if (try_alternative_signal_dir(&altdir, homedir,
+	    "snap/signal-desktop/current/.config/Signal") != 0) {
+		free(defdir);
+		return altdir;
 	}
 
-	free(config);
-
-	/*
-	 * If the default Signal Desktop directory doesn't exist, try the one
-	 * from the unofficial snap
-	 */
-
-	if (lstat(dir, &st) == 0)
-		return dir;
-	else if (errno != ENOENT && errno != ENOTDIR) {
-		warn("%s", dir);
-		free(dir);
-		return NULL;
+	/* Flatpak */
+	if (try_alternative_signal_dir(&altdir, homedir,
+	    ".var/app/org.signal.Signal/config/Signal") != 0) {
+		free(defdir);
+		return altdir;
 	}
 
-	if (asprintf(&snap, "%s/snap/signal-desktop/current/.config/Signal",
-	    home) == -1) {
-		warnx("asprintf() failed");
-		free(dir);
-		return NULL;
-	}
-
-	if (lstat(snap, &st) == 0) {
-		free(dir);
-		dir = snap;
-	} else if (errno != ENOENT && errno != ENOTDIR) {
-		warn("%s", snap);
-		free(dir);
-		free(snap);
-		return NULL;
-	} else {
-		free(snap);
-	}
-
-	return dir;
+	return defdir;
 }
 
 int
