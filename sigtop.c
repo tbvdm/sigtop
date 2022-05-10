@@ -75,12 +75,12 @@ get_home_dir(void)
 char *
 get_signal_dir(void)
 {
-	char *dir, *home;
+	char *dir, *homedir;
 
-	if ((home = get_home_dir()) == NULL)
+	if ((homedir = get_home_dir()) == NULL)
 		return NULL;
 
-	if (asprintf(&dir, "%s/Library/Application Support/Signal", home) ==
+	if (asprintf(&dir, "%s/Library/Application Support/Signal", homedir) ==
 	    -1) {
 		warnx("asprintf() failed");
 		return NULL;
