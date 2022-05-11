@@ -877,7 +877,10 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 	"profileName, "							\
 	"profileFamilyName, "						\
 	"profileFullName, "						\
-	"'+' || id "							\
+	"CASE type "							\
+		"WHEN 'private' THEN '+' || id "			\
+		"ELSE NULL "						\
+	"END "				/* e164 */			\
 	"FROM conversations"
 
 /* For database versions >= 20 */
