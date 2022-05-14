@@ -57,6 +57,20 @@ json_write_messages(FILE *fp, struct sbk_message_list *lst)
 }
 
 static void
+text_write_recipient_field(FILE *fp, const char *field,
+    struct sbk_recipient *rcp)
+{
+	fprintf(fp, "%s: %s", field, sbk_get_recipient_display_name(rcp));
+
+	if (rcp->type == SBK_GROUP)
+		fputs(" (group)", fp);
+	else if (rcp->contact->phone != NULL)
+		fprintf(fp, " (%s)", rcp->contact->phone);
+
+	fputc('\n', fp);
+}
+
+static void
 text_write_date_field(FILE *fp, const char *field, int64_t date)
 {
 	const char	*days[] = {
@@ -130,24 +144,63 @@ text_write_reaction_fields(FILE *fp, struct sbk_reaction_list *lst)
 		    sbk_get_recipient_display_name(rct->recipient));
 }
 
+static void
+text_write_quoted_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
+{
+	struct sbk_attachment *att;
+
+	TAILQ_FOREACH(att, lst, entries) {
+		fputs("> Attachment: ", fp);
+
+		if (att->filename == NULL)
+			fputs("no filename", fp);
+		else
+			fprintf(fp, "\"%s\"", att->filename);
+
+		fprintf(fp, " (%s)\n",
+		    (att->content_type != NULL) ?
+		    att->content_type : "unknown content type");
+	}
+}
+static void
+text_write_quote(FILE *fp, struct sbk_quote *qte)
+{
+	char *s, *t;
+
+	fputs("\n> ", fp);
+	text_write_recipient_field(fp, "From", qte->recipient);
+
+	fputs("> ", fp);
+	text_write_date_field(fp, "Sent", qte->id);
+
+	if (qte->attachments != NULL)
+		text_write_quoted_attachment_fields(fp, qte->attachments);
+
+	if (qte->text != NULL) {
+		fputs(">\n", fp);
+		for (s = qte->text; (t = strchr(s, '\n')) != NULL; s = t + 1)
+			fprintf(fp, "> %.*s\n", (int)(t - s), s);
+		fprintf(fp, "> %s\n", s);
+	}
+}
+
 static int
 text_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
 	struct sbk_message *msg;
 
 	SIMPLEQ_FOREACH(msg, lst, entries) {
-		fprintf(fp, "Conversation: %s\n",
-		    sbk_get_recipient_display_name(msg->conversation));
+		text_write_recipient_field(fp, "Conversation",
+		    msg->conversation);
 
 		fprintf(fp, "Type: %s\n",
 		    (msg->type != NULL) ? msg->type : "Unknown");
 
 		if (sbk_is_outgoing_message(msg))
-			fprintf(fp, "To: %s\n",
-			    sbk_get_recipient_display_name(msg->conversation));
+			text_write_recipient_field(fp, "To",
+			    msg->conversation);
 		else if (msg->source != NULL)
-			fprintf(fp, "From: %s\n",
-			    sbk_get_recipient_display_name(msg->source));
+			text_write_recipient_field(fp, "From", msg->source);
 
 		text_write_date_field(fp, "Sent", msg->time_sent);
 
@@ -159,6 +212,9 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 
 		if (msg->reactions != NULL)
 			text_write_reaction_fields(fp, msg->reactions);
+
+		if (msg->quote != NULL)
+			text_write_quote(fp, msg->quote);
 
 		if (msg->text != NULL)
 			fprintf(fp, "\n%s\n", msg->text);
