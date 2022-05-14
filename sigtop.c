@@ -188,11 +188,15 @@ unveil_dirname(const char *path, const char *perms)
 int
 unveil_signal_dir(const char *dir)
 {
-	char *dbdir;
+	char	*shm, *wal;
+	int	 ret;
+
+	shm = wal = NULL;
+	ret = -1;
 
 	if (unveil(dir, "r") == -1) {
 		warn("unveil: %s", dir);
-		return -1;
+		goto out;
 	}
 
 	/*
@@ -200,19 +204,34 @@ unveil_signal_dir(const char *dir)
 	 * don't exist already
 	 */
 
-	if (asprintf(&dbdir, "%s/sql", dir) == -1) {
+	if (asprintf(&shm, "%s/sql/db.sqlite-shm", dir) == -1) {
 		warnx("asprintf() failed");
-		return -1;
+		shm = NULL;
+		goto out;
 	}
 
-	if (unveil(dbdir, "rwc") == -1) {
-		warn("unveil: %s", dbdir);
-		free(dbdir);
-		return -1;
+	if (asprintf(&wal, "%s/sql/db.sqlite-wal", dir) == -1) {
+		warnx("asprintf() failed");
+		wal = NULL;
+		goto out;
 	}
 
-	free(dbdir);
-	return 0;
+	if (unveil(shm, "rwc") == -1) {
+		warn("unveil: %s", shm);
+		goto out;
+	}
+
+	if (unveil(wal, "rwc") == -1) {
+		warn("unveil: %s", wal);
+		goto out;
+	}
+
+	ret = 0;
+
+out:
+	free(shm);
+	free(wal);
+	return ret;
 }
 
 static int
