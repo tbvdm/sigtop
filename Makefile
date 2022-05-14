@@ -25,8 +25,7 @@ COMPAT_OBJS=	compat/asprintf.o compat/err.o compat/explicit_bzero.o \
 
 OBJS=		cmd-check-database.o cmd-export-attachments.o \
 		cmd-export-database.o cmd-export-messages.o mime.o sbk.o \
-		sigtop.o sqlite3.o utf.o \
-		${COMPAT_OBJS}
+		sigtop.o sqlite3.o utf.o ${COMPAT_OBJS}
 
 .PHONY: all clean install
 
