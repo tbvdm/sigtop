@@ -43,6 +43,7 @@ struct cmd_entry {
 struct sbk_ctx;
 
 struct sbk_contact {
+	char		*uuid;
 	char		*name;
 	char		*profile_name;
 	char		*profile_family_name;
@@ -85,6 +86,13 @@ struct sbk_reaction {
 
 SIMPLEQ_HEAD(sbk_reaction_list, sbk_reaction);
 
+struct sbk_quote {
+	uint64_t	 id;
+	struct sbk_recipient *recipient;
+	char		*text;
+	struct sbk_attachment_list *attachments;
+};
+
 struct sbk_message {
 	struct sbk_recipient *conversation;
 	struct sbk_recipient *source;
@@ -95,6 +103,7 @@ struct sbk_message {
 	char		*json;
 	struct sbk_attachment_list *attachments;
 	struct sbk_reaction_list *reactions;
+	struct sbk_quote *quote;
 	SIMPLEQ_ENTRY(sbk_message) entries;
 };
 

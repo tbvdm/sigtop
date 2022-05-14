@@ -39,6 +39,9 @@
 
 #define SBK_ATTACHMENT_DIR	"attachments.noindex"
 
+/* Content type of the long-text attachment of a long message */
+#define SBK_LONG_TEXT_TYPE	"text/x-signal-plain"
+
 /* UTF-8 encoding of FSI (U+2068) and PDI (U+2069) */
 #define SBK_FSI			"\xe2\x81\xa8"
 #define SBK_FSI_LEN		(sizeof SBK_FSI - 1)
@@ -547,6 +550,12 @@ sbk_jsmn_get_array(const char *json, const jsmntok_t *tokens, const char *key)
 }
 
 static int
+sbk_jsmn_get_object(const char *json, const jsmntok_t *tokens, const char *key)
+{
+	return sbk_jsmn_get_value(json, tokens, key, JSMN_OBJECT);
+}
+
+static int
 sbk_jsmn_get_string(const char *json, const jsmntok_t *tokens, const char *key)
 {
 	return sbk_jsmn_get_value(json, tokens, key, JSMN_STRING);
@@ -837,6 +846,7 @@ sbk_free_recipient_entry(struct sbk_recipient_entry *ent)
 	switch (ent->recipient.type) {
 	case SBK_CONTACT:
 		if (ent->recipient.contact != NULL) {
+			free(ent->recipient.contact->uuid);
 			free(ent->recipient.contact->name);
 			free(ent->recipient.contact->profile_name);
 			free(ent->recipient.contact->profile_family_name);
@@ -880,7 +890,8 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 	"CASE type "							\
 		"WHEN 'private' THEN '+' || id "			\
 		"ELSE NULL "						\
-	"END "				/* e164 */			\
+	"END, "				/* e164 */			\
+	"NULL "				/* uuid */			\
 	"FROM conversations"
 
 /* For database versions >= 20 */
@@ -892,7 +903,8 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 	"profileName, "							\
 	"profileFamilyName, "						\
 	"profileFullName, "						\
-	"e164 "								\
+	"e164, "							\
+	"uuid "								\
 	"FROM conversations"
 
 #define SBK_RECIPIENTS_COLUMN_ID		0
@@ -902,6 +914,7 @@ sbk_free_recipient_tree(struct sbk_ctx *ctx)
 #define SBK_RECIPIENTS_COLUMN_PROFILEFAMILYNAME	4
 #define SBK_RECIPIENTS_COLUMN_PROFILEFULLNAME	5
 #define SBK_RECIPIENTS_COLUMN_E164		6
+#define SBK_RECIPIENTS_COLUMN_UUID		7
 
 static struct sbk_recipient_entry *
 sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
@@ -961,6 +974,10 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->phone,
 		    stm, SBK_RECIPIENTS_COLUMN_E164) == -1)
+			goto error;
+
+		if (sbk_sqlite_column_text_copy(ctx, &con->uuid,
+		    stm, SBK_RECIPIENTS_COLUMN_UUID) == -1)
 			goto error;
 
 		break;
@@ -1036,6 +1053,27 @@ sbk_get_recipient_from_conversation_id(struct sbk_ctx *ctx,
 	return 0;
 }
 
+static int
+sbk_get_recipient_from_uuid(struct sbk_ctx *ctx, struct sbk_recipient **rcp,
+    const char *uuid)
+{
+	struct sbk_recipient_entry *ent;
+
+	if (sbk_build_recipient_tree(ctx) == -1)
+		return -1;
+
+	*rcp = NULL;
+	RB_FOREACH(ent, sbk_recipient_tree, &ctx->recipients)
+		if (ent->recipient.type == SBK_CONTACT &&
+		    ent->recipient.contact->uuid != NULL &&
+		    strcasecmp(uuid, ent->recipient.contact->uuid) == 0) {
+			*rcp = &ent->recipient;
+			break;
+		}
+
+	return 0;
+}
+
 const char *
 sbk_get_recipient_display_name(const struct sbk_recipient *rcp)
 {
@@ -1050,6 +1088,8 @@ sbk_get_recipient_display_name(const struct sbk_recipient *rcp)
 				return rcp->contact->profile_name;
 			if (rcp->contact->phone != NULL)
 				return rcp->contact->phone;
+			if (rcp->contact->uuid != NULL)
+				return rcp->contact->uuid;
 			break;
 		case SBK_GROUP:
 			if (rcp->group->name != NULL)
@@ -1200,6 +1240,16 @@ sbk_free_reaction_list(struct sbk_reaction_list *lst)
 }
 
 static void
+sbk_free_quote(struct sbk_quote *qte)
+{
+	if (qte != NULL) {
+		free(qte->text);
+		sbk_free_attachment_list(qte->attachments);
+		free(qte);
+	}
+}
+
+static void
 sbk_free_message(struct sbk_message *msg)
 {
 	if (msg != NULL) {
@@ -1208,6 +1258,7 @@ sbk_free_message(struct sbk_message *msg)
 		free(msg->json);
 		sbk_free_attachment_list(msg->attachments);
 		sbk_free_reaction_list(msg->reactions);
+		sbk_free_quote(msg->quote);
 		free(msg);
 	}
 }
@@ -1406,6 +1457,172 @@ error:
 }
 
 static int
+sbk_insert_quote_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
+    struct sbk_quote *qte, jsmntok_t *tokens)
+{
+	struct sbk_attachment	*att;
+	int			 idx;
+
+	if ((att = calloc(1, sizeof *att)) == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	if (tokens[0].type != JSMN_OBJECT) {
+		sbk_error_setx(ctx, "Unexpected quote attachment JSON type");
+		goto error;
+	}
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "fileName");
+	if (idx != -1) {
+		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
+		if (att->filename == NULL)
+			goto invalid;
+	}
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "contentType");
+	if (idx != -1) {
+		att->content_type = sbk_jsmn_parse_string(msg->json,
+		    &tokens[idx]);
+		if (att->content_type == NULL)
+			goto invalid;
+	}
+
+	/* Do not expose long-message attachments */
+	if (att->content_type != NULL &&
+	    strcmp(att->content_type, SBK_LONG_TEXT_TYPE) == 0) {
+		sbk_free_attachment(att);
+		return 0;
+	}
+
+	att->time_sent = qte->id;
+	TAILQ_INSERT_TAIL(qte->attachments, att, entries);
+	return 0;
+
+invalid:
+	sbk_error_setx(ctx, "Cannot parse quote JSON data");
+error:
+	sbk_free_attachment(att);
+	return -1;
+}
+
+static int
+sbk_parse_quote_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
+    struct sbk_quote *qte, jsmntok_t *tokens)
+{
+	int i, idx, size;
+
+	if (tokens[0].size == 0)
+		return 0;
+
+	qte->attachments = malloc(sizeof *qte->attachments);
+	if (qte->attachments == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	TAILQ_INIT(qte->attachments);
+
+	idx = 1;
+	for (i = 0; i < tokens[0].size; i++) {
+		if (sbk_insert_quote_attachment(ctx, msg, qte, &tokens[idx]) ==
+		    -1)
+			goto error;
+		/* Skip to next element in array */
+		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
+		if (size == -1) {
+			sbk_error_setx(ctx, "Cannot parse quote JSON data");
+			goto error;
+		}
+		idx += size;
+	}
+
+	return 0;
+
+error:
+	sbk_free_attachment_list(qte->attachments);
+	qte->attachments = NULL;
+	return -1;
+}
+
+static int
+sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
+    jsmntok_t *tokens)
+{
+	struct sbk_quote	*qte;
+	char			*uuid;
+	int			 idx;
+
+	if ((qte = calloc(1, sizeof *qte)) == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	if (tokens[0].type != JSMN_OBJECT) {
+		sbk_error_setx(ctx, "Unexpected quote JSON type");
+		goto error;
+	}
+
+	/*
+	 * Get id
+	 */
+
+	idx = sbk_jsmn_get_number(msg->json, tokens, "id");
+	if (idx == -1)
+		goto invalid;
+
+	if (sbk_jsmn_parse_uint64(&qte->id, msg->json, &tokens[idx]) == -1)
+		goto invalid;
+
+	/*
+	 * Get recipient
+	 */
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "authorUuid");
+	if (idx == -1)
+		goto invalid;
+
+	uuid = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
+	if (sbk_get_recipient_from_uuid(ctx, &qte->recipient, uuid) == -1) {
+		free(uuid);
+		goto error;
+	}
+
+	free(uuid);
+
+	/*
+	 * Get text
+	 */
+
+	idx = sbk_jsmn_get_string(msg->json, tokens, "text");
+	if (idx == -1)
+		goto invalid;
+
+	qte->text = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
+	if (qte->text == NULL)
+		goto invalid;
+
+	/*
+	 * Get attachments
+	 */
+
+	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
+	if (idx != -1 &&
+	    sbk_parse_quote_attachment_json(ctx, msg, qte, &tokens[idx]) == -1)
+		goto error;
+
+	msg->quote = qte;
+	return 0;
+
+invalid:
+	sbk_error_setx(ctx, "Cannot parse quote JSON data");
+
+error:
+	sbk_free_quote(qte);
+	return -1;
+}
+
+static int
 sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
     jsmntok_t *tokens)
 {
@@ -1504,6 +1721,11 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	idx = sbk_jsmn_get_array(msg->json, tokens, "reactions");
 	if (idx != -1 &&
 	    sbk_parse_reaction_json(ctx, msg, &tokens[idx]) == -1)
+		return -1;
+
+	idx = sbk_jsmn_get_object(msg->json, tokens, "quote");
+	if (idx != -1 &&
+	    sbk_parse_quote_json(ctx, msg, &tokens[idx]) == -1)
 		return -1;
 
 	return 0;

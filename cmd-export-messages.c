@@ -117,6 +117,46 @@ text_write_reaction_fields(FILE *fp, struct sbk_reaction_list *lst)
 		    sbk_get_recipient_display_name(rct->recipient));
 }
 
+static void
+text_write_quoted_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
+{
+	struct sbk_attachment *att;
+
+	TAILQ_FOREACH(att, lst, entries) {
+		fputs("> Attachment: ", fp);
+
+		if (att->filename == NULL)
+			fputs("no filename", fp);
+		else
+			fprintf(fp, "\"%s\"", att->filename);
+
+		fprintf(fp, " (%s)\n",
+		    (att->content_type != NULL) ?
+		    att->content_type : "unknown content type");
+	}
+}
+static void
+text_write_quote(FILE *fp, struct sbk_quote *qte)
+{
+	char *s, *t;
+
+	fprintf(fp, "\n> From: %s\n",
+	    sbk_get_recipient_display_name(qte->recipient));
+
+	fputs("> ", fp);
+	text_write_date_field(fp, "Sent", qte->id);
+
+	if (qte->attachments != NULL)
+		text_write_quoted_attachment_fields(fp, qte->attachments);
+
+	if (qte->text != NULL) {
+		fputs(">\n", fp);
+		for (s = qte->text; (t = strchr(s, '\n')) != NULL; s = t + 1)
+			fprintf(fp, "> %.*s\n", (int)(t - s), s);
+		fprintf(fp, "> %s\n", s);
+	}
+}
+
 static int
 text_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
@@ -146,6 +186,9 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 
 		if (msg->reactions != NULL)
 			text_write_reaction_fields(fp, msg->reactions);
+
+		if (msg->quote != NULL)
+			text_write_quote(fp, msg->quote);
 
 		if (msg->text != NULL)
 			fprintf(fp, "\n%s\n", msg->text);
