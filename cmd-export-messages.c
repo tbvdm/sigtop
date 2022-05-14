@@ -56,6 +56,20 @@ json_write_messages(FILE *fp, struct sbk_message_list *lst)
 }
 
 static void
+text_write_recipient_field(FILE *fp, const char *field,
+    struct sbk_recipient *rcp)
+{
+	fprintf(fp, "%s: %s", field, sbk_get_recipient_display_name(rcp));
+
+	if (rcp->type == SBK_GROUP)
+		fputs(" (group)", fp);
+	else if (rcp->contact->phone != NULL)
+		fprintf(fp, " (%s)", rcp->contact->phone);
+
+	fputc('\n', fp);
+}
+
+static void
 text_write_date_field(FILE *fp, const char *field, int64_t date)
 {
 	const char	*days[] = {
@@ -140,8 +154,8 @@ text_write_quote(FILE *fp, struct sbk_quote *qte)
 {
 	char *s, *t;
 
-	fprintf(fp, "\n> From: %s\n",
-	    sbk_get_recipient_display_name(qte->recipient));
+	fputs("\n> ", fp);
+	text_write_recipient_field(fp, "From", qte->recipient);
 
 	fputs("> ", fp);
 	text_write_date_field(fp, "Sent", qte->id);
@@ -163,18 +177,17 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 	struct sbk_message *msg;
 
 	SIMPLEQ_FOREACH(msg, lst, entries) {
-		fprintf(fp, "Conversation: %s\n",
-		    sbk_get_recipient_display_name(msg->conversation));
+		text_write_recipient_field(fp, "Conversation",
+		    msg->conversation);
 
 		fprintf(fp, "Type: %s\n",
 		    (msg->type != NULL) ? msg->type : "Unknown");
 
 		if (sbk_is_outgoing_message(msg))
-			fprintf(fp, "To: %s\n",
-			    sbk_get_recipient_display_name(msg->conversation));
+			text_write_recipient_field(fp, "To",
+			    msg->conversation);
 		else if (msg->source != NULL)
-			fprintf(fp, "From: %s\n",
-			    sbk_get_recipient_display_name(msg->source));
+			text_write_recipient_field(fp, "From", msg->source);
 
 		text_write_date_field(fp, "Sent", msg->time_sent);
 
