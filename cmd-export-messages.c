@@ -61,10 +61,12 @@ text_write_recipient_field(FILE *fp, const char *field,
 {
 	fprintf(fp, "%s: %s", field, sbk_get_recipient_display_name(rcp));
 
-	if (rcp->type == SBK_GROUP)
-		fputs(" (group)", fp);
-	else if (rcp->contact->phone != NULL)
-		fprintf(fp, " (%s)", rcp->contact->phone);
+	if (rcp != NULL) {
+		if (rcp->type == SBK_GROUP)
+			fputs(" (group)", fp);
+		else if (rcp->contact->phone != NULL)
+			fprintf(fp, " (%s)", rcp->contact->phone);
+	}
 
 	fputc('\n', fp);
 }
