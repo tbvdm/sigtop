@@ -68,7 +68,7 @@ text_write_recipient_field(FILE *fp, const char *field,
 			fprintf(fp, " (%s)", rcp->contact->phone);
 	}
 
-	fputc('\n', fp);
+	putc('\n', fp);
 }
 
 static void
