@@ -1052,6 +1052,26 @@ sbk_get_recipient_from_conversation_id(struct sbk_ctx *ctx,
 }
 
 static int
+sbk_get_recipient_from_phone(struct sbk_ctx *ctx, struct sbk_recipient **rcp,
+    const char *phone)
+{
+	struct sbk_recipient_entry *ent;
+
+	if (sbk_build_recipient_tree(ctx) == -1)
+		return -1;
+
+	*rcp = NULL;
+	RB_FOREACH(ent, sbk_recipient_tree, &ctx->recipients)
+		if (ent->recipient.type == SBK_CONTACT &&
+		    ent->recipient.contact->phone != NULL &&
+		    strcmp(phone, ent->recipient.contact->phone) == 0) {
+			*rcp = &ent->recipient;
+			break;
+		}
+
+	return 0;
+}
+static int
 sbk_get_recipient_from_uuid(struct sbk_ctx *ctx, struct sbk_recipient **rcp,
     const char *uuid)
 {
@@ -1352,10 +1372,17 @@ sbk_get_recipient_from_reaction_id(struct sbk_ctx *ctx,
     struct sbk_recipient **rcp, const char *id)
 {
 	/* XXX */
-	if (ctx->db_version < 20 && id[0] == '+')
-		id++;
-
-	return sbk_get_recipient_from_conversation_id(ctx, rcp, id);
+	if (ctx->db_version < 20) {
+		if (id[0] == '+')
+			id++;
+		return sbk_get_recipient_from_conversation_id(ctx, rcp, id);
+	} else {
+		if (id[0] == '+')
+			return sbk_get_recipient_from_phone(ctx, rcp, id);
+		else
+			return sbk_get_recipient_from_conversation_id(ctx, rcp,
+			    id);
+	}
 }
 
 static int
@@ -1548,7 +1575,7 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
     jsmntok_t *tokens)
 {
 	struct sbk_quote	*qte;
-	char			*uuid;
+	char			*author;
 	int			 idx;
 
 	if ((qte = calloc(1, sizeof *qte)) == NULL) {
@@ -1574,31 +1601,50 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	/*
 	 * Get recipient
+	 *
+	 * Newer quotes have an "authorUuid" attribute. Older quotes have an
+	 * "author" attribute containing a phone number.
 	 */
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "authorUuid");
-	if (idx == -1)
-		goto invalid;
+	if (idx != -1) {
+		author = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
+		if (author == NULL)
+			goto invalid;
 
-	uuid = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-	if (sbk_get_recipient_from_uuid(ctx, &qte->recipient, uuid) == -1) {
-		free(uuid);
-		goto error;
+		if (sbk_get_recipient_from_uuid(ctx, &qte->recipient, author)
+		    == -1) {
+			free(author);
+			goto error;
+		}
+	} else {
+		idx = sbk_jsmn_get_string(msg->json, tokens, "author");
+		if (idx == -1)
+			goto invalid;
+
+		author = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
+		if (author == NULL)
+			goto invalid;
+
+		if (sbk_get_recipient_from_phone(ctx, &qte->recipient, author)
+		    == -1) {
+			free(author);
+			goto error;
+		}
 	}
 
-	free(uuid);
+	free(author);
 
 	/*
 	 * Get text
 	 */
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "text");
-	if (idx == -1)
-		goto invalid;
-
-	qte->text = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-	if (qte->text == NULL)
-		goto invalid;
+	if (idx != -1) {
+		qte->text = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
+		if (qte->text == NULL)
+			goto invalid;
+	}
 
 	/*
 	 * Get attachments
