@@ -1374,10 +1374,17 @@ sbk_get_recipient_from_reaction_id(struct sbk_ctx *ctx,
     struct sbk_recipient **rcp, const char *id)
 {
 	/* XXX */
-	if (ctx->db_version < 20 && id[0] == '+')
-		id++;
-
-	return sbk_get_recipient_from_conversation_id(ctx, rcp, id);
+	if (ctx->db_version < 20) {
+		if (id[0] == '+')
+			id++;
+		return sbk_get_recipient_from_conversation_id(ctx, rcp, id);
+	} else {
+		if (id[0] == '+')
+			return sbk_get_recipient_from_phone(ctx, rcp, id);
+		else
+			return sbk_get_recipient_from_conversation_id(ctx, rcp,
+			    id);
+	}
 }
 
 static int
