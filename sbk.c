@@ -1635,12 +1635,11 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	 */
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "text");
-	if (idx == -1)
-		goto invalid;
-
-	qte->text = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-	if (qte->text == NULL)
-		goto invalid;
+	if (idx != -1) {
+		qte->text = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
+		if (qte->text == NULL)
+			goto invalid;
+	}
 
 	/*
 	 * Get attachments
