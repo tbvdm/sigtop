@@ -191,7 +191,8 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 		else if (msg->source != NULL)
 			text_write_recipient_field(fp, "From", msg->source);
 
-		text_write_date_field(fp, "Sent", msg->time_sent);
+		if (msg->time_sent != 0)
+			text_write_date_field(fp, "Sent", msg->time_sent);
 
 		if (!sbk_is_outgoing_message(msg))
 			text_write_date_field(fp, "Received", msg->time_recv);
