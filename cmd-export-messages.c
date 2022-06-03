@@ -26,9 +26,9 @@
 
 #include "sigtop.h"
 
-enum {
-	FORMAT_JSON,
-	FORMAT_TEXT
+enum format {
+	JSON,
+	TEXT
 };
 
 static enum cmd_status cmd_export_messages(int, char **);
@@ -223,13 +223,14 @@ cmd_export_messages(int argc, char **argv)
 	FILE			*fp;
 	char			*file, *signaldir;
 	time_t			 max, min;
-	int			 c, format, ret;
+	int			 c, ret;
+	enum format		 format;
 	enum cmd_status		 status;
 
 	ctx = NULL;
 	lst = NULL;
 	signaldir = NULL;
-	format = FORMAT_TEXT;
+	format = TEXT;
 	min = max = (time_t)-1;
 
 	while ((c = getopt(argc, argv, "d:f:s:")) != -1)
@@ -243,9 +244,9 @@ cmd_export_messages(int argc, char **argv)
 			break;
 		case 'f':
 			if (strcmp(optarg, "json") == 0)
-				format = FORMAT_JSON;
+				format = JSON;
 			else if (strcmp(optarg, "text") == 0)
-				format = FORMAT_TEXT;
+				format = TEXT;
 			else {
 				warnx("%s: Invalid format", optarg);
 				goto error;
@@ -324,10 +325,10 @@ cmd_export_messages(int argc, char **argv)
 	}
 
 	switch (format) {
-	case FORMAT_JSON:
+	case JSON:
 		ret = json_write_messages(fp, lst);
 		break;
-	case FORMAT_TEXT:
+	case TEXT:
 		ret = text_write_messages(fp, lst);
 		break;
 	}

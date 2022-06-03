@@ -30,9 +30,9 @@
 #include "sigtop.h"
 
 enum mode {
-	MODE_COPY,
-	MODE_LINK,
-	MODE_SYMLINK
+	COPY,
+	LINK,
+	SYMLINK
 };
 
 static enum cmd_status cmd_export_attachments(int, char **);
@@ -253,17 +253,17 @@ process_attachments(struct sbk_ctx *ctx, const char *dir,
 			continue;
 		}
 		switch (mode) {
-		case MODE_COPY:
+		case COPY:
 			if (copy_attachment(src, dfd, dst) == -1)
 				ret = -1;
 			break;
-		case MODE_LINK:
+		case LINK:
 			if (linkat(AT_FDCWD, src, dfd, dst, 0) == -1) {
 				warn("linkat: %s", dst);
 				ret = -1;
 			}
 			break;
-		case MODE_SYMLINK:
+		case SYMLINK:
 			if (symlinkat(src, dfd, dst) == -1) {
 				warn("symlinkat: %s", dst);
 				ret = -1;
@@ -293,7 +293,7 @@ cmd_export_attachments(int argc, char **argv)
 	ctx = NULL;
 	lst = NULL;
 	signaldir = NULL;
-	mode = MODE_COPY;
+	mode = COPY;
 	min = max = (time_t)-1;
 
 	while ((c = getopt(argc, argv, "d:Lls:")) != -1)
@@ -306,10 +306,10 @@ cmd_export_attachments(int argc, char **argv)
 			}
 			break;
 		case 'L':
-			mode = MODE_LINK;
+			mode = LINK;
 			break;
 		case 'l':
-			mode = MODE_SYMLINK;
+			mode = SYMLINK;
 			break;
 		case 's':
 			if (parse_time_interval(optarg, &min, &max) == -1)
