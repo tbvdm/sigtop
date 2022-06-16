@@ -16,8 +16,12 @@
 
 #include "config.h"
 
+#include <sys/stat.h>
 #include <sys/types.h>
 
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,9 +31,9 @@
 
 #include "sigtop.h"
 
-enum {
-	FORMAT_JSON,
-	FORMAT_TEXT
+enum format {
+	JSON,
+	TEXT
 };
 
 static enum cmd_status cmd_export_messages(int, char **);
@@ -37,7 +41,7 @@ static enum cmd_status cmd_export_messages(int, char **);
 const struct cmd_entry cmd_export_messages_entry = {
 	.name = "export-messages",
 	.alias = "msg",
-	.usage = "[-d signal-directory] [-f format] [-s interval] [file]",
+	.usage = "[-d signal-directory] [-f format] [-s interval] [directory]",
 	.oldname = "messages",
 	.exec = cmd_export_messages
 };
@@ -161,7 +165,7 @@ text_write_quoted_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
 
 		fprintf(fp, " (%s)\n",
 		    (att->content_type != NULL) ?
-		    att->content_type : "unknown content type");
+		    att->content_type : "unknown type");
 	}
 }
 static void
@@ -204,7 +208,8 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 		else if (msg->source != NULL)
 			text_write_recipient_field(fp, "From", msg->source);
 
-		text_write_date_field(fp, "Sent", msg->time_sent);
+		if (msg->time_sent != 0)
+			text_write_date_field(fp, "Sent", msg->time_sent);
 
 		if (!sbk_is_outgoing_message(msg))
 			text_write_date_field(fp, "Received", msg->time_recv);
@@ -227,21 +232,139 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 	return 0;
 }
 
+static FILE *
+get_conversation_file(int dfd, struct sbk_conversation *cnv,
+    enum format format)
+{
+	FILE		*fp;
+	char		*name;
+	const char	*ext;
+	int		 fd;
+
+	switch (format) {
+	case JSON:
+		ext = ".json";
+		break;
+	case TEXT:
+		ext = ".txt";
+		break;
+	default:
+		ext = NULL;
+		break;
+	}
+
+	if ((name = get_recipient_filename(cnv->recipient, ext)) == NULL)
+		return NULL;
+
+	if ((fd = openat(dfd, name, O_WRONLY | O_CREAT | O_EXCL, 0666)) ==
+	    -1) {
+		warn("%s", name);
+		free(name);
+		return NULL;
+	}
+
+	if ((fp = fdopen(fd, "w")) == NULL) {
+		warn("%s", name);
+		free(name);
+		close(fd);
+		return NULL;
+	}
+
+	free(name);
+	return fp;
+}
+
+static int
+export_conversation_messages(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
+    int dfd, enum format format, time_t min, time_t max)
+{
+	struct sbk_message_list	*lst;
+	FILE			*fp;
+	int			 ret;
+
+	ret = -1;
+
+	if (min == (time_t)-1 && max == (time_t)-1)
+		lst = sbk_get_messages(ctx, cnv);
+	else if (min == (time_t)-1)
+		lst = sbk_get_messages_sent_before(ctx, cnv, max);
+	else if (max == (time_t)-1)
+		lst = sbk_get_messages_sent_after(ctx, cnv, min);
+	else
+		lst = sbk_get_messages_sent_between(ctx, cnv, min, max);
+
+	if (lst == NULL) {
+		warnx("%s", sbk_error(ctx));
+		goto out;
+	}
+
+	if (SIMPLEQ_EMPTY(lst)) {
+		ret = 0;
+		goto out;
+	}
+
+	if ((fp = get_conversation_file(dfd, cnv, format)) == NULL)
+		goto out;
+
+	switch (format) {
+	case JSON:
+		ret = json_write_messages(fp, lst);
+		break;
+	case TEXT:
+		ret = text_write_messages(fp, lst);
+		break;
+	}
+
+	fclose(fp);
+
+out:
+	sbk_free_message_list(lst);
+	return ret;
+}
+
+static int
+export_messages(struct sbk_ctx *ctx, const char *dir, enum format format,
+    time_t min, time_t max)
+{
+	struct sbk_conversation_list	*lst;
+	struct sbk_conversation		*cnv;
+	int				 dfd, ret;
+
+	if ((dfd = open(dir, O_RDONLY | O_DIRECTORY)) == -1) {
+		warn("%s", dir);
+		return -1;
+	}
+
+	if ((lst = sbk_get_conversations(ctx)) == NULL) {
+		warnx("%s", sbk_error(ctx));
+		return -1;
+	}
+
+	ret = 0;
+	SIMPLEQ_FOREACH(cnv, lst, entries)
+		if (export_conversation_messages(ctx, cnv, dfd, format, min,
+		    max) == -1)
+			ret = -1;
+
+	sbk_free_conversation_list(lst);
+	close(dfd);
+	return ret;
+}
+
 static enum cmd_status
 cmd_export_messages(int argc, char **argv)
 {
-	struct sbk_ctx		*ctx;
-	struct sbk_message_list	*lst;
-	FILE			*fp;
-	char			*file, *signaldir;
-	time_t			 max, min;
-	int			 c, format, ret;
-	enum cmd_status		 status;
+	struct sbk_ctx	*ctx;
+	char		*signaldir;
+	const char	*outdir;
+	time_t		 max, min;
+	int		 c;
+	enum format	 format;
+	enum cmd_status	 status;
 
 	ctx = NULL;
-	lst = NULL;
 	signaldir = NULL;
-	format = FORMAT_TEXT;
+	format = TEXT;
 	min = max = (time_t)-1;
 
 	while ((c = getopt(argc, argv, "d:f:s:")) != -1)
@@ -255,9 +378,9 @@ cmd_export_messages(int argc, char **argv)
 			break;
 		case 'f':
 			if (strcmp(optarg, "json") == 0)
-				format = FORMAT_JSON;
+				format = JSON;
 			else if (strcmp(optarg, "text") == 0)
-				format = FORMAT_TEXT;
+				format = TEXT;
 			else {
 				warnx("%s: Invalid format", optarg);
 				goto error;
@@ -276,10 +399,14 @@ cmd_export_messages(int argc, char **argv)
 
 	switch (argc) {
 	case 0:
-		file = NULL;
+		outdir = ".";
 		break;
 	case 1:
-		file = argv[0];
+		outdir = argv[0];
+		if (mkdir(outdir, 0777) == -1 && errno != EEXIST) {
+			warn("mkdir: %s", outdir);
+			goto error;
+		}
 		break;
 	default:
 		goto usage;
@@ -292,11 +419,10 @@ cmd_export_messages(int argc, char **argv)
 	if (unveil_signal_dir(signaldir) == -1)
 		goto error;
 
-	if (file != NULL)
-		if (unveil(file, "wc") == -1) {
-			warn("unveil: %s", file);
-			goto error;
-		}
+	if (unveil(outdir, "rwc") == -1) {
+		warn("unveil: %s", outdir);
+		goto error;
+	}
 
 	/* For SQLite/SQLCipher */
 	if (unveil("/dev/urandom", "r") == -1) {
@@ -314,40 +440,7 @@ cmd_export_messages(int argc, char **argv)
 		goto error;
 	}
 
-	if (min == (time_t)-1 && max == (time_t)-1)
-		lst = sbk_get_all_messages(ctx);
-	else if (min == (time_t)-1)
-		lst = sbk_get_messages_sent_before(ctx, max);
-	else if (max == (time_t)-1)
-		lst = sbk_get_messages_sent_after(ctx, min);
-	else
-		lst = sbk_get_messages_sent_between(ctx, min, max);
-
-	if (lst == NULL) {
-		warnx("%s", sbk_error(ctx));
-		goto error;
-	}
-
-	if (file == NULL)
-		fp = stdout;
-	else if ((fp = fopen(file, "wx")) == NULL) {
-		warn("fopen: %s", file);
-		goto error;
-	}
-
-	switch (format) {
-	case FORMAT_JSON:
-		ret = json_write_messages(fp, lst);
-		break;
-	case FORMAT_TEXT:
-		ret = text_write_messages(fp, lst);
-		break;
-	}
-
-	if (fp != stdout)
-		fclose(fp);
-
-	if (ret == -1)
+	if (export_messages(ctx, outdir, format, min, max) == -1)
 		goto error;
 
 	status = CMD_OK;
@@ -361,7 +454,6 @@ usage:
 	status = CMD_USAGE;
 
 out:
-	sbk_free_message_list(lst);
 	sbk_close(ctx);
 	free(signaldir);
 	return status;

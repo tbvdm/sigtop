@@ -65,6 +65,14 @@ struct sbk_recipient {
 	struct sbk_group	*group;
 };
 
+struct sbk_conversation {
+	char		*id;
+	struct sbk_recipient *recipient;
+	SIMPLEQ_ENTRY(sbk_conversation) entries;
+};
+
+SIMPLEQ_HEAD(sbk_conversation_list, sbk_conversation);
+
 struct sbk_attachment {
 	char		*path;
 	char		*filename;
@@ -116,23 +124,29 @@ const char	*sbk_error(struct sbk_ctx *);
 
 int		 sbk_check(struct sbk_ctx *, char ***);
 
-struct sbk_attachment_list *sbk_get_all_attachments(struct sbk_ctx *);
+struct sbk_conversation_list *sbk_get_conversations(struct sbk_ctx *);
+void		 sbk_free_conversation_list(struct sbk_conversation_list *);
+
+struct sbk_attachment_list *sbk_get_attachments(struct sbk_ctx *,
+		    struct sbk_conversation *);
 struct sbk_attachment_list *sbk_get_attachments_sent_after(struct sbk_ctx *,
-		    time_t);
+		    struct sbk_conversation *, time_t);
 struct sbk_attachment_list *sbk_get_attachments_sent_before(struct sbk_ctx *,
-		    time_t);
+		    struct sbk_conversation *, time_t);
 struct sbk_attachment_list *sbk_get_attachments_sent_between(struct sbk_ctx *,
-		    time_t, time_t);
+		    struct sbk_conversation *, time_t, time_t);
 void		 sbk_free_attachment_list(struct sbk_attachment_list *);
 char		*sbk_get_attachment_path(struct sbk_ctx *,
 		    struct sbk_attachment *);
 
-struct sbk_message_list *sbk_get_all_messages(struct sbk_ctx *);
-struct sbk_message_list *sbk_get_messages_sent_after(struct sbk_ctx *, time_t);
+struct sbk_message_list *sbk_get_messages(struct sbk_ctx *,
+		    struct sbk_conversation *);
+struct sbk_message_list *sbk_get_messages_sent_after(struct sbk_ctx *,
+		    struct sbk_conversation *, time_t);
 struct sbk_message_list *sbk_get_messages_sent_before(struct sbk_ctx *,
-		    time_t);
+		    struct sbk_conversation *, time_t);
 struct sbk_message_list *sbk_get_messages_sent_between(struct sbk_ctx *,
-		    time_t, time_t);
+		    struct sbk_conversation *, time_t, time_t);
 void		 sbk_free_message_list(struct sbk_message_list *);
 int		 sbk_is_outgoing_message(const struct sbk_message *);
 
@@ -151,5 +165,7 @@ char		*get_signal_dir(void);
 int		 unveil_dirname(const char *, const char *);
 int		 unveil_signal_dir(const char *);
 int		 parse_time_interval(char *, time_t *, time_t *);
+void		 sanitise_filename(char *);
+char		*get_recipient_filename(struct sbk_recipient *, const char *);
 
 #endif

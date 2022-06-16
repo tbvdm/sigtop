@@ -31,9 +31,9 @@
 #include "sigtop.h"
 
 enum mode {
-	MODE_COPY,
-	MODE_LINK,
-	MODE_SYMLINK
+	COPY,
+	LINK,
+	SYMLINK
 };
 
 static enum cmd_status cmd_export_attachments(int, char **);
@@ -113,28 +113,18 @@ get_unique_filename(int dfd, char **name)
 static char *
 get_filename(int dfd, struct sbk_attachment *att)
 {
-	char		*c, *name;
+	char		*name;
 	const char	*ext;
 	struct tm	*tm;
 	time_t		 tt;
 	char		 base[32];
 
 	if (att->filename != NULL && *att->filename != '\0') {
-		if (strcmp(att->filename, ".") == 0)
-			name = strdup("_");
-		else if (strcmp(att->filename, "..") == 0)
-			name = strdup("__");
-		else {
-			if ((name = strdup(att->filename)) != NULL) {
-				c = name;
-				while ((c = strchr(c, '/')) != NULL)
-					*c++ = '_';
-			}
-		}
-		if (name == NULL) {
+		if ((name = strdup(att->filename)) == NULL) {
 			warn(NULL);
 			return NULL;
 		}
+		sanitise_filename(name);
 	} else {
 		tt = att->time_sent / 1000;
 		if ((tm = localtime(&tt)) == NULL) {
@@ -221,17 +211,12 @@ out:
 }
 
 static int
-process_attachments(struct sbk_ctx *ctx, const char *dir,
-    struct sbk_attachment_list *lst, enum mode mode)
+export_attachment_list(struct sbk_ctx *ctx, struct sbk_attachment_list *lst,
+    int dfd, enum mode mode)
 {
 	struct sbk_attachment	*att;
 	char			*dst, *src;
-	int			 dfd, ret;
-
-	if ((dfd = open(dir, O_RDONLY | O_DIRECTORY)) == -1) {
-		warn("open: %s", dir);
-		return -1;
-	}
+	int			 ret;
 
 	ret = 0;
 
@@ -254,17 +239,17 @@ process_attachments(struct sbk_ctx *ctx, const char *dir,
 			continue;
 		}
 		switch (mode) {
-		case MODE_COPY:
+		case COPY:
 			if (copy_attachment(src, dfd, dst) == -1)
 				ret = -1;
 			break;
-		case MODE_LINK:
+		case LINK:
 			if (linkat(AT_FDCWD, src, dfd, dst, 0) == -1) {
 				warn("linkat: %s", dst);
 				ret = -1;
 			}
 			break;
-		case MODE_SYMLINK:
+		case SYMLINK:
 			if (symlinkat(src, dfd, dst) == -1) {
 				warn("symlinkat: %s", dst);
 				ret = -1;
@@ -275,6 +260,99 @@ process_attachments(struct sbk_ctx *ctx, const char *dir,
 		free(dst);
 	}
 
+	return ret;
+}
+
+static int
+get_conversation_directory(int dfd, struct sbk_conversation *cnv)
+{
+	char	*name;
+	int	 cnv_dfd;
+
+	if ((name = get_recipient_filename(cnv->recipient, NULL)) == NULL)
+		return -1;
+
+	if (mkdirat(dfd, name, 0777) == -1 && errno != EEXIST) {
+		warn("%s", name);
+		free(name);
+		return -1;
+	}
+
+	if ((cnv_dfd = openat(dfd, name, O_RDONLY | O_DIRECTORY)) == -1) {
+		warn("%s", name);
+		free(name);
+		return -1;
+	}
+
+	free(name);
+	return cnv_dfd;
+}
+
+static int
+export_conversation_attachments(struct sbk_ctx *ctx,
+    struct sbk_conversation *cnv, int dfd, enum mode mode, time_t min,
+    time_t max)
+{
+	struct sbk_attachment_list	*lst;
+	int				 cnv_dfd, ret;
+
+	ret = -1;
+
+	if (min == (time_t)-1 && max == (time_t)-1)
+		lst = sbk_get_attachments(ctx, cnv);
+	else if (min == (time_t)-1)
+		lst = sbk_get_attachments_sent_before(ctx, cnv, max);
+	else if (max == (time_t)-1)
+		lst = sbk_get_attachments_sent_after(ctx, cnv, min);
+	else
+		lst = sbk_get_attachments_sent_between(ctx, cnv, min, max);
+
+	if (lst == NULL) {
+		warnx("%s", sbk_error(ctx));
+		goto out;
+	}
+
+	if (TAILQ_EMPTY(lst)) {
+		ret = 0;
+		goto out;
+	}
+
+	if ((cnv_dfd = get_conversation_directory(dfd, cnv)) == -1)
+		goto out;
+
+	ret = export_attachment_list(ctx, lst, cnv_dfd, mode);
+	close(cnv_dfd);
+
+out:
+	sbk_free_attachment_list(lst);
+	return ret;
+}
+
+static int
+export_attachments(struct sbk_ctx *ctx, const char *dir, enum mode mode,
+    time_t min, time_t max)
+{
+	struct sbk_conversation_list	*lst;
+	struct sbk_conversation		*cnv;
+	int				 dfd, ret;
+
+	if ((dfd = open(dir, O_RDONLY | O_DIRECTORY)) == -1) {
+		warn("%s", dir);
+		return -1;
+	}
+
+	if ((lst = sbk_get_conversations(ctx)) == NULL) {
+		warnx("%s", sbk_error(ctx));
+		return -1;
+	}
+
+	ret = 0;
+	SIMPLEQ_FOREACH(cnv, lst, entries)
+		if (export_conversation_attachments(ctx, cnv, dfd, mode, min,
+		    max) == -1)
+			ret = -1;
+
+	sbk_free_conversation_list(lst);
 	close(dfd);
 	return ret;
 }
@@ -282,19 +360,17 @@ process_attachments(struct sbk_ctx *ctx, const char *dir,
 static enum cmd_status
 cmd_export_attachments(int argc, char **argv)
 {
-	struct sbk_ctx			*ctx;
-	struct sbk_attachment_list	*lst;
-	char				*signaldir;
-	const char			*outdir;
-	time_t				 max, min;
-	int				 c;
-	enum mode			 mode;
-	enum cmd_status			 status;
+	struct sbk_ctx	*ctx;
+	char		*signaldir;
+	const char	*outdir;
+	time_t		 max, min;
+	int		 c;
+	enum mode	 mode;
+	enum cmd_status	 status;
 
 	ctx = NULL;
-	lst = NULL;
 	signaldir = NULL;
-	mode = MODE_COPY;
+	mode = COPY;
 	min = max = (time_t)-1;
 
 	while ((c = getopt(argc, argv, "d:Lls:")) != -1)
@@ -307,10 +383,10 @@ cmd_export_attachments(int argc, char **argv)
 			}
 			break;
 		case 'L':
-			mode = MODE_LINK;
+			mode = LINK;
 			break;
 		case 'l':
-			mode = MODE_SYMLINK;
+			mode = SYMLINK;
 			break;
 		case 's':
 			if (parse_time_interval(optarg, &min, &max) == -1)
@@ -366,21 +442,7 @@ cmd_export_attachments(int argc, char **argv)
 		goto error;
 	}
 
-	if (min == (time_t)-1 && max == (time_t)-1)
-		lst = sbk_get_all_attachments(ctx);
-	else if (min == (time_t)-1)
-		lst = sbk_get_attachments_sent_before(ctx, max);
-	else if (max == (time_t)-1)
-		lst = sbk_get_attachments_sent_after(ctx, min);
-	else
-		lst = sbk_get_attachments_sent_between(ctx, min, max);
-
-	if (lst == NULL) {
-		warnx("%s", sbk_error(ctx));
-		goto error;
-	}
-
-	if (process_attachments(ctx, outdir, lst, mode) == -1)
+	if (export_attachments(ctx, outdir, mode, min, max) == -1)
 		goto error;
 
 	status = CMD_OK;
@@ -394,7 +456,6 @@ usage:
 	status = CMD_USAGE;
 
 out:
-	sbk_free_attachment_list(lst);
 	sbk_close(ctx);
 	free(signaldir);
 	return status;

@@ -4,10 +4,10 @@ sigtop
 [sigtop][1] is a utility to export messages, attachments and other data from
 [Signal Desktop][2].
 
-For example, the following two commands export all messages to `messages.txt`
-and all attachments to the `attachments` directory:
+For example, the following two commands export all messages to the `messages`
+directory and all attachments to the `attachments` directory:
 
-	sigtop export-messages messages.txt
+	sigtop export-messages messages
 	sigtop export-attachments attachments
 
 Documentation is available in the `sigtop.1` manual page. You can also [read it

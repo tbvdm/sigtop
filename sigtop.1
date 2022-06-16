@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 10, 2022
+.Dd June 16, 2022
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -31,14 +31,15 @@ Desktop.
 needs access to the directory where Signal Desktop stores its data.
 By default,
 .Nm
-tries the following locations.
+tries the following locations:
 .Bl -tag -width Ds
 .It macOS
 .Pa "~/Library/Application Support/Signal" .
 .It Cygwin (Windows)
 .Pa $APPDATA\eSignal .
+The
 .Ev APPDATA
-is usually set by Cygwin, and usually to
+environment variable is usually set by Cygwin, and usually to
 .Pa C:\eUsers\e Ns Em <username> Ns Pa \eAppData\eRoaming .
 .It Other systems
 .Pa $XDG_CONFIG_HOME/Signal ,
@@ -64,12 +65,11 @@ the
 .Fl d
 option (see below).
 .Pp
-The commands are as follows.
+The commands are as follows:
 .Bl -tag -width Ds
 .Tg check
 .It Ic check-database Op Fl d Ar signal-directory
-Alias:
-.Ic check
+.D1 Pq Alias: Ic check
 .Pp
 Check the integrity of the encrypted Signal Desktop database.
 The check is performed using the SQLite/SQLCipher
@@ -85,11 +85,12 @@ pragmas.
 .Op Fl s Ar interval
 .Op Ar directory
 .Xc
-Alias:
-.Ic att
+.D1 Pq Alias: Ic att
 .Pp
 Export attachments.
-The attachment files are created in
+The attachment files are created in separate directories, one for each
+conversation.
+These directories are created in
 .Ar directory ,
 or in the current directory if
 .Ar directory
@@ -116,8 +117,7 @@ See the
 section below for details.
 .Tg db
 .It Ic export-database Oo Fl d Ar signal-directory Oc Ar file
-Alias:
-.Ic db
+.D1 Pq Alias: Ic db
 .Pp
 Decrypt and export the Signal Desktop database to
 .Ar file .
@@ -128,16 +128,16 @@ The exported database is a regular SQLite database.
 .Op Fl d Ar signal-directory
 .Op Fl f Ar format
 .Op Fl s Ar interval
-.Op Ar file
+.Op Ar directory
 .Xc
-Alias:
-.Ic msg
+.D1 Pq Alias: Ic msg
 .Pp
 Export messages.
-The messages are written to
-.Ar file ,
-or to standard output if
-.Ar file
+The messages are written to separate files, one for each conversation.
+These files are created in
+.Ar directory ,
+or to the current directory if
+.Ar directory
 is not specified.
 .Pp
 The
@@ -188,33 +188,28 @@ Examples of time intervals are:
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
-Export all messages to the file
-.Pa messages.txt :
+Export all messages to the directory
+.Pa messages :
 .Bd -literal -offset indent
-$ sigtop export-messages messages.txt
+$ sigtop export-messages messages
 .Ed
 .Pp
 Use the shorter command alias:
 .Bd -literal -offset indent
-$ sigtop msg messages.txt
+$ sigtop msg messages
 .Ed
 .Pp
-Export all messages in JSON format to the file
-.Pa messages.json :
+Export all messages in JSON format to the directory
+.Pa json :
 .Bd -literal -offset indent
-$ sigtop msg -f json messages.json
-.Ed
-.Pp
-Export all messages, fold long lines for readability and view the result:
-.Bd -literal -offset indent
-$ sigtop msg | fold -s | less
+$ sigtop msg -f json json
 .Ed
 .Pp
 Export all attachments sent at or after 12:34:56 on 23 January 2021 to the
 directory
-.Pa media :
+.Pa attachments :
 .Bd -literal -offset indent
-$ sigtop att -s 2021-01-23T12:34:56, media
+$ sigtop att -s 2021-01-23T12:34:56, attachments
 .Ed
 .Pp
 Export the database from a Signal Desktop directory on a Windows disk mounted
