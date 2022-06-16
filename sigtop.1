@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 10, 2022
+.Dd June 16, 2022
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -31,14 +31,15 @@ Desktop.
 needs access to the directory where Signal Desktop stores its data.
 By default,
 .Nm
-tries the following locations.
+tries the following locations:
 .Bl -tag -width Ds
 .It macOS
 .Pa "~/Library/Application Support/Signal" .
 .It Cygwin (Windows)
 .Pa $APPDATA\eSignal .
+The
 .Ev APPDATA
-is usually set by Cygwin, and usually to
+environment variable is usually set by Cygwin, and usually to
 .Pa C:\eUsers\e Ns Em <username> Ns Pa \eAppData\eRoaming .
 .It Other systems
 .Pa $XDG_CONFIG_HOME/Signal ,
@@ -64,12 +65,11 @@ the
 .Fl d
 option (see below).
 .Pp
-The commands are as follows.
+The commands are as follows:
 .Bl -tag -width Ds
 .Tg check
 .It Ic check-database Op Fl d Ar signal-directory
-Alias:
-.Ic check
+.D1 Pq Alias: Ic check
 .Pp
 Check the integrity of the encrypted Signal Desktop database.
 The check is performed using the SQLite/SQLCipher
@@ -85,8 +85,7 @@ pragmas.
 .Op Fl s Ar interval
 .Op Ar directory
 .Xc
-Alias:
-.Ic att
+.D1 Pq Alias: Ic att
 .Pp
 Export attachments.
 The attachment files are created in
@@ -116,8 +115,7 @@ See the
 section below for details.
 .Tg db
 .It Ic export-database Oo Fl d Ar signal-directory Oc Ar file
-Alias:
-.Ic db
+.D1 Pq Alias: Ic db
 .Pp
 Decrypt and export the Signal Desktop database to
 .Ar file .
@@ -130,8 +128,7 @@ The exported database is a regular SQLite database.
 .Op Fl s Ar interval
 .Op Ar file
 .Xc
-Alias:
-.Ic msg
+.D1 Pq Alias: Ic msg
 .Pp
 Export messages.
 The messages are written to
