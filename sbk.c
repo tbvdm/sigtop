@@ -1120,6 +1120,54 @@ sbk_get_recipient_display_name(const struct sbk_recipient *rcp)
 	return "Unknown";
 }
 
+void
+sbk_free_conversation_list(struct sbk_conversation_list *lst)
+{
+	struct sbk_conversation *cnv;
+
+	if (lst != NULL) {
+		while ((cnv = SIMPLEQ_FIRST(lst)) != NULL) {
+			SIMPLEQ_REMOVE_HEAD(lst, entries);
+			free(cnv);
+		}
+		free(lst);
+	}
+}
+
+struct sbk_conversation_list *
+sbk_get_conversations(struct sbk_ctx *ctx)
+{
+	struct sbk_conversation_list	*lst;
+	struct sbk_conversation		*cnv;
+	struct sbk_recipient_entry	*ent;
+
+	if (sbk_build_recipient_tree(ctx) == -1)
+		return NULL;
+
+	if ((lst = malloc(sizeof *lst)) == NULL) {
+		sbk_error_set(ctx, NULL);
+		goto error;
+	}
+
+	SIMPLEQ_INIT(lst);
+
+	RB_FOREACH(ent, sbk_recipient_tree, &ctx->recipients) {
+		if ((cnv = malloc(sizeof *cnv)) == NULL) {
+			sbk_error_set(ctx, NULL);
+			goto error;
+		}
+		cnv->id = ent->id;
+		cnv->recipient = &ent->recipient;
+		SIMPLEQ_INSERT_TAIL(lst, cnv, entries);
+	}
+
+	return lst;
+
+error:
+	sbk_free_conversation_list(lst);
+	return NULL;
+}
+
 int
 sbk_is_outgoing_message(const struct sbk_message *msg)
 {
@@ -1152,7 +1200,7 @@ sbk_free_attachment_list(struct sbk_attachment_list *lst)
 }
 
 static struct sbk_attachment_list *
-sbk_get_attachments(struct sbk_ctx *ctx, struct sbk_message_list *msg_lst)
+sbk_get_attachment_list(struct sbk_ctx *ctx, struct sbk_message_list *msg_lst)
 {
 	struct sbk_attachment_list	*att_lst;
 	struct sbk_message		*msg;
@@ -1174,47 +1222,50 @@ sbk_get_attachments(struct sbk_ctx *ctx, struct sbk_message_list *msg_lst)
 }
 
 struct sbk_attachment_list *
-sbk_get_all_attachments(struct sbk_ctx *ctx)
+sbk_get_attachments(struct sbk_ctx *ctx, struct sbk_conversation *cnv)
 {
 	struct sbk_message_list *lst;
 
-	if ((lst = sbk_get_all_messages(ctx)) == NULL)
+	if ((lst = sbk_get_messages(ctx, cnv)) == NULL)
 		return NULL;
 
-	return sbk_get_attachments(ctx, lst);
+	return sbk_get_attachment_list(ctx, lst);
 }
 
 struct sbk_attachment_list *
-sbk_get_attachments_sent_after(struct sbk_ctx *ctx, time_t min)
+sbk_get_attachments_sent_after(struct sbk_ctx *ctx,
+    struct sbk_conversation *cnv, time_t min)
 {
 	struct sbk_message_list *lst;
 
-	if ((lst = sbk_get_messages_sent_after(ctx, min)) == NULL)
+	if ((lst = sbk_get_messages_sent_after(ctx, cnv, min)) == NULL)
 		return NULL;
 
-	return sbk_get_attachments(ctx, lst);
+	return sbk_get_attachment_list(ctx, lst);
 }
 
 struct sbk_attachment_list *
-sbk_get_attachments_sent_before(struct sbk_ctx *ctx, time_t max)
+sbk_get_attachments_sent_before(struct sbk_ctx *ctx,
+    struct sbk_conversation *cnv, time_t max)
 {
 	struct sbk_message_list *lst;
 
-	if ((lst = sbk_get_messages_sent_before(ctx, max)) == NULL)
+	if ((lst = sbk_get_messages_sent_before(ctx, cnv, max)) == NULL)
 		return NULL;
 
-	return sbk_get_attachments(ctx, lst);
+	return sbk_get_attachment_list(ctx, lst);
 }
 
 struct sbk_attachment_list *
-sbk_get_attachments_sent_between(struct sbk_ctx *ctx, time_t min, time_t max)
+sbk_get_attachments_sent_between(struct sbk_ctx *ctx,
+    struct sbk_conversation *cnv, time_t min, time_t max)
 {
 	struct sbk_message_list *lst;
 
-	if ((lst = sbk_get_messages_sent_between(ctx, min, max)) == NULL)
+	if ((lst = sbk_get_messages_sent_between(ctx, cnv, min, max)) == NULL)
 		return NULL;
 
-	return sbk_get_attachments(ctx, lst);
+	return sbk_get_attachment_list(ctx, lst);
 }
 
 char *
@@ -1803,54 +1854,62 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	"LEFT JOIN conversations AS c "					\
 	"ON m.sourceUuid = c.uuid "
 
-#define SBK_MESSAGES_WHERE_SENT_AFTER					\
-	"WHERE m.sent_at >= ? "
+#define SBK_MESSAGES_WHERE_CONVERSATIONID				\
+	"WHERE m.conversationId = ? "
 
-#define SBK_MESSAGES_WHERE_SENT_BEFORE					\
-	"WHERE m.sent_at <= ? "
+#define SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_AFTER			\
+	SBK_MESSAGES_WHERE_CONVERSATIONID				\
+	"AND m.sent_at >= ? "
 
-#define SBK_MESSAGES_WHERE_SENT_BETWEEN					\
-	"WHERE m.sent_at BETWEEN ? AND ? "
+#define SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BEFORE			\
+	SBK_MESSAGES_WHERE_CONVERSATIONID				\
+	"AND m.sent_at <= ? "
+
+#define SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BETWEEN			\
+	SBK_MESSAGES_WHERE_CONVERSATIONID				\
+	"AND m.sent_at BETWEEN ? AND ? "
 
 #define SBK_MESSAGES_ORDER						\
 	"ORDER BY m.received_at"
 
-#define SBK_MESSAGES_QUERY_ALL_8					\
+#define SBK_MESSAGES_QUERY_8						\
 	SBK_MESSAGES_SELECT_8						\
+	SBK_MESSAGES_WHERE_CONVERSATIONID				\
 	SBK_MESSAGES_ORDER
 
-#define SBK_MESSAGES_QUERY_ALL_20					\
+#define SBK_MESSAGES_QUERY_20						\
 	SBK_MESSAGES_SELECT_20						\
+	SBK_MESSAGES_WHERE_CONVERSATIONID				\
 	SBK_MESSAGES_ORDER
 
 #define SBK_MESSAGES_QUERY_SENT_AFTER_8					\
 	SBK_MESSAGES_SELECT_8						\
-	SBK_MESSAGES_WHERE_SENT_AFTER					\
+	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_AFTER			\
 	SBK_MESSAGES_ORDER
 
 #define SBK_MESSAGES_QUERY_SENT_AFTER_20				\
 	SBK_MESSAGES_SELECT_20						\
-	SBK_MESSAGES_WHERE_SENT_AFTER					\
+	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_AFTER			\
 	SBK_MESSAGES_ORDER
 
 #define SBK_MESSAGES_QUERY_SENT_BEFORE_8				\
 	SBK_MESSAGES_SELECT_8						\
-	SBK_MESSAGES_WHERE_SENT_BEFORE					\
+	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BEFORE			\
 	SBK_MESSAGES_ORDER
 
 #define SBK_MESSAGES_QUERY_SENT_BEFORE_20				\
 	SBK_MESSAGES_SELECT_20						\
-	SBK_MESSAGES_WHERE_SENT_BEFORE					\
+	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BEFORE			\
 	SBK_MESSAGES_ORDER
 
 #define SBK_MESSAGES_QUERY_SENT_BETWEEN_8				\
 	SBK_MESSAGES_SELECT_8						\
-	SBK_MESSAGES_WHERE_SENT_BETWEEN					\
+	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BETWEEN			\
 	SBK_MESSAGES_ORDER
 
 #define SBK_MESSAGES_QUERY_SENT_BETWEEN_20				\
 	SBK_MESSAGES_SELECT_20						\
-	SBK_MESSAGES_WHERE_SENT_BETWEEN					\
+	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BETWEEN			\
 	SBK_MESSAGES_ORDER
 
 #define SBK_MESSAGES_COLUMN_CONVERSATIONID	0
@@ -1926,7 +1985,7 @@ error:
 }
 
 static struct sbk_message_list *
-sbk_get_messages(struct sbk_ctx *ctx, sqlite3_stmt *stm)
+sbk_get_message_list(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 {
 	struct sbk_message_list	*lst;
 	struct sbk_message	*msg;
@@ -1958,24 +2017,30 @@ error:
 }
 
 struct sbk_message_list *
-sbk_get_all_messages(struct sbk_ctx *ctx)
+sbk_get_messages(struct sbk_ctx *ctx, struct sbk_conversation *cnv)
 {
 	sqlite3_stmt	*stm;
 	const char	*query;
 
 	if (ctx->db_version < 20)
-		query = SBK_MESSAGES_QUERY_ALL_8;
+		query = SBK_MESSAGES_QUERY_8;
 	else
-		query = SBK_MESSAGES_QUERY_ALL_20;
+		query = SBK_MESSAGES_QUERY_20;
 
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return NULL;
 
-	return sbk_get_messages(ctx, stm);
+	if (sbk_sqlite_bind_text(ctx, ctx->db, stm, 1, cnv->id) == -1) {
+		sqlite3_finalize(stm);
+		return NULL;
+	}
+
+	return sbk_get_message_list(ctx, stm);
 }
 
 struct sbk_message_list *
-sbk_get_messages_sent_after(struct sbk_ctx *ctx, time_t min)
+sbk_get_messages_sent_after(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
+    time_t min)
 {
 	sqlite3_stmt	*stm;
 	const char	*query;
@@ -1988,16 +2053,22 @@ sbk_get_messages_sent_after(struct sbk_ctx *ctx, time_t min)
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return NULL;
 
-	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 1, min) == -1) {
+	if (sbk_sqlite_bind_text(ctx, ctx->db, stm, 1, cnv->id) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
 
-	return sbk_get_messages(ctx, stm);
+	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 2, min) == -1) {
+		sqlite3_finalize(stm);
+		return NULL;
+	}
+
+	return sbk_get_message_list(ctx, stm);
 }
 
 struct sbk_message_list *
-sbk_get_messages_sent_before(struct sbk_ctx *ctx, time_t max)
+sbk_get_messages_sent_before(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
+    time_t max)
 {
 	sqlite3_stmt	*stm;
 	const char	*query;
@@ -2010,16 +2081,22 @@ sbk_get_messages_sent_before(struct sbk_ctx *ctx, time_t max)
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return NULL;
 
-	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 1, max) == -1) {
+	if (sbk_sqlite_bind_text(ctx, ctx->db, stm, 1, cnv->id) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
 
-	return sbk_get_messages(ctx, stm);
+	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 2, max) == -1) {
+		sqlite3_finalize(stm);
+		return NULL;
+	}
+
+	return sbk_get_message_list(ctx, stm);
 }
 
 struct sbk_message_list *
-sbk_get_messages_sent_between(struct sbk_ctx *ctx, time_t min, time_t max)
+sbk_get_messages_sent_between(struct sbk_ctx *ctx,
+    struct sbk_conversation *cnv, time_t min, time_t max)
 {
 	sqlite3_stmt	*stm;
 	const char	*query;
@@ -2032,17 +2109,22 @@ sbk_get_messages_sent_between(struct sbk_ctx *ctx, time_t min, time_t max)
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return NULL;
 
-	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 1, min) == -1) {
+	if (sbk_sqlite_bind_text(ctx, ctx->db, stm, 1, cnv->id) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
 
-	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 2, max) == -1) {
+	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 2, min) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
 
-	return sbk_get_messages(ctx, stm);
+	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 3, max) == -1) {
+		sqlite3_finalize(stm);
+		return NULL;
+	}
+
+	return sbk_get_message_list(ctx, stm);
 }
 
 static int

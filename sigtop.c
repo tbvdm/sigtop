@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <libgen.h>
@@ -286,6 +287,57 @@ parse_time_interval(char *str, time_t *min, time_t *max)
 	}
 
 	return 0;
+}
+
+void
+sanitise_filename(char *name)
+{
+	char *c;
+
+	if (strcmp(name, ".") == 0) {
+		name[0] = '_';
+		return;
+	}
+
+	if (strcmp(name, "..") == 0) {
+		name[0] = name[1] = '_';
+		return;
+	}
+
+	for (c = name; *c != '\0'; c++)
+		if (*c == '/' || iscntrl((unsigned char)*c))
+			*c = '_';
+}
+
+char *
+get_recipient_filename(struct sbk_recipient *rcp, const char *ext)
+{
+	char		*detail, *fname;
+	const char	*name;
+	int		 ret;
+
+	name = sbk_get_recipient_display_name(rcp);
+
+	if (rcp->type == SBK_GROUP)
+		detail = "group";
+	else
+		detail = rcp->contact->phone;
+
+	if (ext == NULL)
+		ext = "";
+
+	if (detail != NULL)
+		ret = asprintf(&fname, "%s (%s)%s", name, detail, ext);
+	else
+		ret = asprintf(&fname, "%s%s", name, ext);
+
+	if (ret == -1) {
+		warnx("asprintf() failed");
+		return NULL;
+	}
+
+	sanitise_filename(fname);
+	return fname;
 }
 
 int
