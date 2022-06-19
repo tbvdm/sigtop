@@ -312,8 +312,8 @@ sanitise_filename(char *name)
 char *
 get_recipient_filename(struct sbk_recipient *rcp, const char *ext)
 {
-	char		*detail, *fname;
-	const char	*name;
+	char		*fname;
+	const char	*detail, *name;
 	int		 ret;
 
 	name = sbk_get_recipient_display_name(rcp);
