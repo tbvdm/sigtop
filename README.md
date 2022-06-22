@@ -94,7 +94,7 @@ file and then click "Run with PowerShell".
 You can access your Windows drives through the `/cygdrive` directory. For
 example:
 
-	sigtop export-messages /cygdrive/c/Users/Alice/Documents/messages.txt
+	sigtop export-messages /cygdrive/c/Users/Alice/Documents/messages
 
 Reporting problems
 ------------------
