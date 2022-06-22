@@ -529,6 +529,16 @@ sbk_jsmn_find_key(const char *json, const jsmntok_t *tokens, const char *key)
 	return -1;
 }
 
+/* Check that a JSMN_PRIMITIVE token is a number (and not a boolean or null) */
+static int
+sbk_jsmn_primitive_is_number(const char *json, const jsmntok_t *token)
+{
+	char c;
+
+	c = json[token->start];
+	return c == '-' || (c >= '0' && c <= '9');
+}
+
 static int
 sbk_jsmn_get_value(const char *json, const jsmntok_t *tokens, const char *key,
     jsmntype_t type)
@@ -564,19 +574,38 @@ sbk_jsmn_get_string(const char *json, const jsmntok_t *tokens, const char *key)
 static int
 sbk_jsmn_get_number(const char *json, const jsmntok_t *tokens, const char *key)
 {
-	int	idx;
-	char	c;
+	int idx;
 
 	idx = sbk_jsmn_get_value(json, tokens, key, JSMN_PRIMITIVE);
 	if (idx == -1)
 		return -1;
 
-	/* Check that the primitive is a number (and not a boolean or null) */
-	c = json[tokens[idx].start];
-	if (!(c == '-' || (c >= '0' && c <= '9')))
+	if (!sbk_jsmn_primitive_is_number(json, &tokens[idx]))
 		return -1;
 
 	return idx;
+}
+
+static int
+sbk_jsmn_get_number_or_string(const char *json, const jsmntok_t *tokens,
+    const char *key)
+{
+	int idx;
+
+	idx = sbk_jsmn_find_key(json, tokens, key);
+	if (idx == -1)
+		return -1;
+
+	idx++;
+
+	if (tokens[idx].type == JSMN_STRING)
+		return idx;
+
+	if (tokens[idx].type == JSMN_PRIMITIVE &&
+	    sbk_jsmn_primitive_is_number(json, &tokens[idx]))
+		return idx;
+
+	return -1;
 }
 
 static char *
@@ -1643,9 +1672,12 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	/*
 	 * Get id
+	 *
+	 * The id usually is a JSON number, but in at least one case it was a
+	 * JSON string.
 	 */
 
-	idx = sbk_jsmn_get_number(msg->json, tokens, "id");
+	idx = sbk_jsmn_get_number_or_string(msg->json, tokens, "id");
 	if (idx == -1)
 		goto invalid;
 
