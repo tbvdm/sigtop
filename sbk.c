@@ -1861,7 +1861,7 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 
 	if (sbk_jsmn_parse(msg->json, strlen(msg->json), tokens,
 	    nitems(tokens)) == -1) {
-		sbk_error_setx(ctx, "Cannot parse JSON data for message");
+		sbk_error_setx(ctx, "Cannot parse message JSON data");
 		return -1;
 	}
 
