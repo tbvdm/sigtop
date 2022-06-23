@@ -1397,7 +1397,7 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		att->path = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (att->path == NULL) {
-			sbk_error_setx(ctx, "Cannot parse JSON string");
+			sbk_error_setx(ctx, "Cannot parse attachment path");
 			goto error;
 		}
 	}
@@ -1413,7 +1413,8 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (att->filename == NULL) {
-			sbk_error_setx(ctx, "Cannot parse JSON string");
+			sbk_error_setx(ctx, "Cannot parse attachment "
+			    "fileName");
 			goto error;
 		}
 	}
@@ -1423,7 +1424,8 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 		att->content_type = sbk_jsmn_parse_string(msg->json,
 		    &tokens[idx]);
 		if (att->content_type == NULL) {
-			sbk_error_setx(ctx, "Cannot parse JSON string");
+			sbk_error_setx(ctx, "Cannot parse attachment "
+			    "contentType");
 			goto error;
 		}
 	}
@@ -1432,7 +1434,7 @@ sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		if (sbk_jsmn_parse_uint64(&att->size, msg->json, &tokens[idx])
 		    == -1) {
-			sbk_error_setx(ctx, "Cannot parse JSON number");
+			sbk_error_setx(ctx, "Cannot parse attachment size");
 			goto error;
 		}
 	}
@@ -1488,8 +1490,10 @@ sbk_insert_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 	 */
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "fromId");
-	if (idx == -1)
-		goto invalid;
+	if (idx == -1) {
+		sbk_error_setx(ctx, "Missing reaction fromId");
+		goto error;
+	}
 
 	id = sbk_jsmn_strdup(msg->json, &tokens[idx]);
 	if (id == NULL) {
@@ -1513,8 +1517,10 @@ sbk_insert_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 	 */
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "emoji");
-	if (idx == -1)
-		goto invalid;
+	if (idx == -1) {
+		sbk_error_setx(ctx, "Missing reaction emoji");
+		goto error;
+	}
 
 	rct->emoji = sbk_jsmn_strdup(msg->json, &tokens[idx]);
 	if (rct->emoji == NULL) {
@@ -1527,12 +1533,14 @@ sbk_insert_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 	 */
 
 	idx = sbk_jsmn_get_number(msg->json, tokens, "targetTimestamp");
-	if (idx == -1)
-		goto invalid;
+	if (idx == -1) {
+		sbk_error_setx(ctx, "Missing reaction targetTimestamp");
+		goto error;
+	}
 
 	if (sbk_jsmn_parse_uint64(&rct->time_sent, msg->json, &tokens[idx]) ==
 	    -1) {
-		sbk_error_setx(ctx, "Cannot parse JSON number");
+		sbk_error_setx(ctx, "Cannot parse reaction targetTimestamp");
 		goto error;
 	}
 
@@ -1541,20 +1549,19 @@ sbk_insert_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 	 */
 
 	idx = sbk_jsmn_get_number(msg->json, tokens, "timestamp");
-	if (idx == -1)
-		goto invalid;
+	if (idx == -1) {
+		sbk_error_setx(ctx, "Missing reaction timestamp");
+		goto error;
+	}
 
 	if (sbk_jsmn_parse_uint64(&rct->time_recv, msg->json, &tokens[idx]) ==
 	    -1) {
-		sbk_error_setx(ctx, "Cannot parse JSON number");
+		sbk_error_setx(ctx, "Cannot parse reaction timestamp");
 		goto error;
 	}
 
 	SIMPLEQ_INSERT_TAIL(msg->reactions, rct, entries);
 	return 0;
-
-invalid:
-	sbk_error_setx(ctx, "Cannot parse reaction JSON data");
 
 error:
 	sbk_free_reaction(rct);
@@ -1581,16 +1588,22 @@ sbk_insert_quote_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = sbk_jsmn_get_string(msg->json, tokens, "fileName");
 	if (idx != -1) {
 		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (att->filename == NULL)
-			goto invalid;
+		if (att->filename == NULL) {
+			sbk_error_setx(ctx, "Cannot parse quote attachment "
+			    "fileName");
+			goto error;
+		}
 	}
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "contentType");
 	if (idx != -1) {
 		att->content_type = sbk_jsmn_parse_string(msg->json,
 		    &tokens[idx]);
-		if (att->content_type == NULL)
-			goto invalid;
+		if (att->content_type == NULL) {
+			sbk_error_setx(ctx, "Cannot parse quote attachment "
+			    "contentType");
+			goto error;
+		}
 	}
 
 	/* Do not expose long-message attachments */
@@ -1604,8 +1617,6 @@ sbk_insert_quote_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 	TAILQ_INSERT_TAIL(qte->attachments, att, entries);
 	return 0;
 
-invalid:
-	sbk_error_setx(ctx, "Cannot parse quote JSON data");
 error:
 	sbk_free_attachment(att);
 	return -1;
@@ -1636,7 +1647,8 @@ sbk_parse_quote_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
 		if (size == -1) {
-			sbk_error_setx(ctx, "Cannot parse quote JSON data");
+			sbk_error_setx(ctx, "Cannot parse quote attachment "
+			    "JSON data");
 			goto error;
 		}
 		idx += size;
@@ -1676,11 +1688,15 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	 */
 
 	idx = sbk_jsmn_get_number_or_string(msg->json, tokens, "id");
-	if (idx == -1)
-		goto invalid;
+	if (idx == -1) {
+		sbk_error_setx(ctx, "Missing quote id");
+		goto error;
+	}
 
-	if (sbk_jsmn_parse_uint64(&qte->id, msg->json, &tokens[idx]) == -1)
-		goto invalid;
+	if (sbk_jsmn_parse_uint64(&qte->id, msg->json, &tokens[idx]) == -1) {
+		sbk_error_setx(ctx, "Cannot parse quote id");
+		goto error;
+	}
 
 	/*
 	 * Get recipient
@@ -1692,8 +1708,10 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = sbk_jsmn_get_string(msg->json, tokens, "authorUuid");
 	if (idx != -1) {
 		author = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (author == NULL)
-			goto invalid;
+		if (author == NULL) {
+			sbk_error_setx(ctx, "Cannot parse quote authorUuid");
+			goto error;
+		}
 
 		if (sbk_get_recipient_from_uuid(ctx, &qte->recipient, author)
 		    == -1) {
@@ -1702,12 +1720,17 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 		}
 	} else {
 		idx = sbk_jsmn_get_string(msg->json, tokens, "author");
-		if (idx == -1)
-			goto invalid;
+		if (idx == -1) {
+			sbk_error_setx(ctx, "Missing author and authorUuid in "
+			    "quote");
+			goto error;
+		}
 
 		author = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (author == NULL)
-			goto invalid;
+		if (author == NULL) {
+			sbk_error_setx(ctx, "Cannot parse quote author");
+			goto error;
+		}
 
 		if (sbk_get_recipient_from_phone(ctx, &qte->recipient, author)
 		    == -1) {
@@ -1725,8 +1748,10 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = sbk_jsmn_get_string(msg->json, tokens, "text");
 	if (idx != -1) {
 		qte->text = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (qte->text == NULL)
-			goto invalid;
+		if (qte->text == NULL) {
+			sbk_error_setx(ctx, "Cannot parse quote text");
+			goto error;
+		}
 	}
 
 	/*
@@ -1740,9 +1765,6 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	msg->quote = qte;
 	return 0;
-
-invalid:
-	sbk_error_setx(ctx, "Cannot parse quote JSON data");
 
 error:
 	sbk_free_quote(qte);
@@ -1773,7 +1795,7 @@ sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
 		if (size == -1) {
-			sbk_error_setx(ctx, "Cannot parse message JSON data");
+			sbk_error_setx(ctx, "Cannot parse reaction JSON data");
 			goto error;
 		}
 		idx += size;
@@ -1811,7 +1833,8 @@ sbk_parse_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
 		if (size == -1) {
-			sbk_error_setx(ctx, "Cannot parse message JSON data");
+			sbk_error_setx(ctx, "Cannot parse attachment JSON "
+			    "data");
 			goto error;
 		}
 		idx += size;
@@ -1836,7 +1859,7 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 
 	if (sbk_jsmn_parse(msg->json, strlen(msg->json), tokens,
 	    nitems(tokens)) == -1) {
-		sbk_error_setx(ctx, "Cannot parse message JSON data");
+		sbk_error_setx(ctx, "Cannot parse JSON data for message");
 		return -1;
 	}
 
