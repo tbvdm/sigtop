@@ -37,7 +37,7 @@
 #include <sqlite3.h>
 
 #include "jsmn.h"
-#include "sigtop.h"
+#include "sbk.h"
 #include "utf.h"
 
 #define SBK_ATTACHMENT_DIR	"attachments.noindex"
