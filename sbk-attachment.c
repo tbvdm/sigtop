@@ -50,7 +50,7 @@ sbk_free_attachment_list(struct sbk_attachment_list *lst)
 }
 
 static int
-sbk_insert_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
+sbk_add_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
     jsmntok_t *tokens)
 {
 	struct sbk_attachment	*att;
@@ -142,7 +142,7 @@ sbk_parse_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
-		if (sbk_insert_attachment(ctx, msg, &tokens[idx]) == -1)
+		if (sbk_add_attachment(ctx, msg, &tokens[idx]) == -1)
 			goto error;
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);

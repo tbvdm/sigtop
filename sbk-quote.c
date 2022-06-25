@@ -33,7 +33,7 @@ sbk_free_quote(struct sbk_quote *qte)
 }
 
 static int
-sbk_insert_quote_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
+sbk_add_quote_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
     struct sbk_quote *qte, jsmntok_t *tokens)
 {
 	struct sbk_attachment	*att;
@@ -105,7 +105,7 @@ sbk_parse_quote_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
-		if (sbk_insert_quote_attachment(ctx, msg, qte, &tokens[idx]) ==
+		if (sbk_add_quote_attachment(ctx, msg, qte, &tokens[idx]) ==
 		    -1)
 			goto error;
 		/* Skip to next element in array */

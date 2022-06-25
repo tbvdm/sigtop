@@ -60,7 +60,7 @@ sbk_get_recipient_from_reaction_id(struct sbk_ctx *ctx,
 }
 
 static int
-sbk_insert_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
+sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
     jsmntok_t *tokens)
 {
 	struct sbk_reaction	*rct;
@@ -179,7 +179,7 @@ sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
-		if (sbk_insert_reaction(ctx, msg, &tokens[idx]) == -1)
+		if (sbk_add_reaction(ctx, msg, &tokens[idx]) == -1)
 			goto error;
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
