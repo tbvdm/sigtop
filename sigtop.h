@@ -155,11 +155,6 @@ int		 sbk_write_database(struct sbk_ctx *, const char *);
 
 const char	*mime_get_extension(const char *);
 
-size_t		 utf8_encode(uint8_t [4], uint32_t);
-int		 utf16_is_high_surrogate(uint16_t);
-int		 utf16_is_low_surrogate(uint16_t);
-uint32_t	 utf16_decode_surrogate_pair(uint16_t, uint16_t);
-
 char		*get_signal_dir(void);
 int		 unveil_dirname(const char *, const char *);
 int		 unveil_signal_dir(const char *);
