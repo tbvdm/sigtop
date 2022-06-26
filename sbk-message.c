@@ -121,6 +121,7 @@ sbk_free_message(struct sbk_message *msg)
 		free(msg->text);
 		free(msg->json);
 		sbk_free_attachment_list(msg->attachments);
+		sbk_free_mention_list(msg->mentions);
 		sbk_free_reaction_list(msg->reactions);
 		sbk_free_quote(msg->quote);
 		free(msg);
@@ -164,6 +165,12 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
 	if (idx != -1 &&
 	    sbk_parse_attachment_json(ctx, msg, &tokens[idx]) == -1)
+		return -1;
+
+	idx = sbk_jsmn_get_array(msg->json, tokens, "bodyRanges");
+	if (idx != -1 &&
+	    sbk_parse_mention_json(ctx, msg, &msg->mentions, &tokens[idx]) ==
+	    -1)
 		return -1;
 
 	idx = sbk_jsmn_get_array(msg->json, tokens, "reactions");
@@ -232,6 +239,9 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	msg->time_recv = sqlite3_column_int64(stm, SBK_COLUMN_RECEIVED_AT);
 
 	if (sbk_parse_message_json(ctx, msg) == -1)
+		goto error;
+
+	if (sbk_insert_mentions(ctx, &msg->text, msg->mentions) == -1)
 		goto error;
 
 	return msg;

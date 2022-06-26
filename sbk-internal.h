@@ -105,6 +105,12 @@ int	 sbk_parse_attachment_json(struct sbk_ctx *, struct sbk_message *,
 	    jsmntok_t *tokens);
 void	 sbk_free_attachment(struct sbk_attachment *);
 
+int	 sbk_parse_mention_json(struct sbk_ctx *, struct sbk_message *,
+	    struct sbk_mention_list **, jsmntok_t *);
+void	 sbk_free_mention_list(struct sbk_mention_list *);
+int	 sbk_insert_mentions(struct sbk_ctx *, char **,
+	    struct sbk_mention_list *);
+
 int	 sbk_parse_reaction_json(struct sbk_ctx *, struct sbk_message *,
 	    jsmntok_t *);
 void	 sbk_free_reaction_list(struct sbk_reaction_list *);

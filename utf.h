@@ -17,7 +17,18 @@
 #ifndef UTF_H
 #define UTF_H
 
+#include <stddef.h>
+#include <stdint.h>
+
+#define utf8_is_single(b)	(((uint8_t)(b) & 0x80) == 0)
+#define utf8_is_start2(b)	(((uint8_t)(b) & 0xe0) == 0xc0)
+#define utf8_is_start3(b)	(((uint8_t)(b) & 0xf0) == 0xe0)
+#define utf8_is_start4(b)	(((uint8_t)(b) & 0xf8) == 0xf0)
+#define utf8_is_cont(b)		(((uint8_t)(b) & 0xc0) == 0x80)
+
 size_t		utf8_encode(uint8_t [4], uint32_t);
+size_t		utf8_get_sequence_length(const uint8_t *);
+size_t		utf8_get_substring_length(const uint8_t *, size_t);
 int		utf16_is_high_surrogate(uint16_t);
 int		utf16_is_low_surrogate(uint16_t);
 uint32_t	utf16_decode_surrogate_pair(uint16_t, uint16_t);

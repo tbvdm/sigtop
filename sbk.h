@@ -70,6 +70,15 @@ struct sbk_attachment {
 
 TAILQ_HEAD(sbk_attachment_list, sbk_attachment);
 
+struct sbk_mention {
+	struct sbk_recipient *recipient;
+	uint64_t	 start;
+	uint64_t	 length;
+	SIMPLEQ_ENTRY(sbk_mention) entries;
+};
+
+SIMPLEQ_HEAD(sbk_mention_list, sbk_mention);
+
 struct sbk_reaction {
 	struct sbk_recipient *recipient;
 	uint64_t	 time_sent;
@@ -85,6 +94,7 @@ struct sbk_quote {
 	struct sbk_recipient *recipient;
 	char		*text;
 	struct sbk_attachment_list *attachments;
+	struct sbk_mention_list *mentions;
 };
 
 struct sbk_message {
@@ -96,6 +106,7 @@ struct sbk_message {
 	char		*text;
 	char		*json;
 	struct sbk_attachment_list *attachments;
+	struct sbk_mention_list *mentions;
 	struct sbk_reaction_list *reactions;
 	struct sbk_quote *quote;
 	SIMPLEQ_ENTRY(sbk_message) entries;

@@ -28,6 +28,7 @@ sbk_free_quote(struct sbk_quote *qte)
 	if (qte != NULL) {
 		free(qte->text);
 		sbk_free_attachment_list(qte->attachments);
+		sbk_free_mention_list(qte->mentions);
 		free(qte);
 	}
 }
@@ -220,6 +221,19 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
 	if (idx != -1 &&
 	    sbk_parse_quote_attachment_json(ctx, msg, qte, &tokens[idx]) == -1)
+		goto error;
+
+	/*
+	 * Get mentions
+	 */
+
+	idx = sbk_jsmn_get_array(msg->json, tokens, "bodyRanges");
+	if (idx != -1 &&
+	    sbk_parse_mention_json(ctx, msg, &qte->mentions, &tokens[idx]) ==
+	    -1)
+		return -1;
+
+	if (sbk_insert_mentions(ctx, &qte->text, qte->mentions) == -1)
 		goto error;
 
 	msg->quote = qte;
