@@ -156,6 +156,11 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 		return -1;
 	}
 
+	if (tokens[0].type != JSMN_OBJECT) {
+		sbk_error_setx(ctx, "Unexpected message JSON type");
+		return -1;
+	}
+
 	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
 	if (idx != -1 &&
 	    sbk_parse_attachment_json(ctx, msg, &tokens[idx]) == -1)

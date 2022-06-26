@@ -62,11 +62,6 @@ sbk_add_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	if (tokens[0].type != JSMN_OBJECT) {
-		sbk_error_setx(ctx, "Unexpected attachment JSON type");
-		goto error;
-	}
-
 	idx = sbk_jsmn_get_string(msg->json, tokens, "path");
 	if (idx != -1) {
 		att->path = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
@@ -142,6 +137,10 @@ sbk_parse_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
+		if (tokens[idx].type != JSMN_OBJECT) {
+			sbk_error_setx(ctx, "Unexpected attachment JSON type");
+			goto error;
+		}
 		if (sbk_add_attachment(ctx, msg, &tokens[idx]) == -1)
 			goto error;
 		/* Skip to next element in array */

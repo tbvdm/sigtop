@@ -34,9 +34,7 @@ sbk_jsmn_parse(const char *json, size_t jsonlen, jsmntok_t *tokens,
 
 	jsmn_init(&parser);
 	len = jsmn_parse(&parser, json, jsonlen, tokens, ntokens);
-	if (len <= 0 || tokens[0].type != JSMN_OBJECT)
-		len = -1;
-	return len;
+	return (len <= 0) ? -1 : len;
 }
 
 static int

@@ -44,11 +44,6 @@ sbk_add_quote_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	if (tokens[0].type != JSMN_OBJECT) {
-		sbk_error_setx(ctx, "Unexpected quote attachment JSON type");
-		goto error;
-	}
-
 	idx = sbk_jsmn_get_string(msg->json, tokens, "fileName");
 	if (idx != -1) {
 		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
@@ -105,6 +100,11 @@ sbk_parse_quote_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
+		if (tokens[idx].type != JSMN_OBJECT) {
+			sbk_error_setx(ctx, "Unexpected quote attachment JSON "
+			    "type");
+			goto error;
+		}
 		if (sbk_add_quote_attachment(ctx, msg, qte, &tokens[idx]) ==
 		    -1)
 			goto error;
@@ -136,11 +136,6 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	if ((qte = calloc(1, sizeof *qte)) == NULL) {
 		sbk_error_set(ctx, NULL);
-		goto error;
-	}
-
-	if (tokens[0].type != JSMN_OBJECT) {
-		sbk_error_setx(ctx, "Unexpected quote JSON type");
 		goto error;
 	}
 

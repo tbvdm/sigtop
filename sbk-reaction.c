@@ -72,11 +72,6 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	if (tokens[0].type != JSMN_OBJECT) {
-		sbk_error_setx(ctx, "Unexpected reaction JSON type");
-		goto error;
-	}
-
 	/*
 	 * Get recipient
 	 */
@@ -179,6 +174,10 @@ sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
+		if (tokens[idx].type != JSMN_OBJECT) {
+			sbk_error_setx(ctx, "Unexpected reaction JSON type");
+			goto error;
+		}
 		if (sbk_add_reaction(ctx, msg, &tokens[idx]) == -1)
 			goto error;
 		/* Skip to next element in array */
