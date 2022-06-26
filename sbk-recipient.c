@@ -21,7 +21,7 @@
 #include "sbk-internal.h"
 
 /* For database version 19 */
-#define SBK_RECIPIENTS_QUERY_19						\
+#define SBK_QUERY_19							\
 	"SELECT "							\
 	"id, "								\
 	"type, "							\
@@ -37,7 +37,7 @@
 	"FROM conversations"
 
 /* For database versions >= 20 */
-#define SBK_RECIPIENTS_QUERY_20						\
+#define SBK_QUERY_20							\
 	"SELECT "							\
 	"id, "								\
 	"type, "							\
@@ -49,14 +49,14 @@
 	"uuid "								\
 	"FROM conversations"
 
-#define SBK_RECIPIENTS_COLUMN_ID		0
-#define SBK_RECIPIENTS_COLUMN_TYPE		1
-#define SBK_RECIPIENTS_COLUMN_NAME		2
-#define SBK_RECIPIENTS_COLUMN_PROFILENAME	3
-#define SBK_RECIPIENTS_COLUMN_PROFILEFAMILYNAME	4
-#define SBK_RECIPIENTS_COLUMN_PROFILEFULLNAME	5
-#define SBK_RECIPIENTS_COLUMN_E164		6
-#define SBK_RECIPIENTS_COLUMN_UUID		7
+#define SBK_COLUMN_ID			0
+#define SBK_COLUMN_TYPE			1
+#define SBK_COLUMN_NAME			2
+#define SBK_COLUMN_PROFILENAME		3
+#define SBK_COLUMN_PROFILEFAMILYNAME	4
+#define SBK_COLUMN_PROFILEFULLNAME	5
+#define SBK_COLUMN_E164			6
+#define SBK_COLUMN_UUID			7
 
 static int sbk_cmp_recipient_entries(struct sbk_recipient_entry *,
     struct sbk_recipient_entry *);
@@ -125,12 +125,11 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		return NULL;
 	}
 
-	if (sbk_sqlite_column_text_copy(ctx, &ent->id, stm,
-	    SBK_RECIPIENTS_COLUMN_ID) == -1)
+	if (sbk_sqlite_column_text_copy(ctx, &ent->id, stm, SBK_COLUMN_ID) ==
+	    -1)
 		goto error;
 
-	if ((type = sqlite3_column_text(stm, SBK_RECIPIENTS_COLUMN_TYPE)) ==
-	    NULL) {
+	if ((type = sqlite3_column_text(stm, SBK_COLUMN_TYPE)) == NULL) {
 		sbk_error_sqlite_set(ctx, "Cannot get column text");
 		goto error;
 	}
@@ -153,27 +152,27 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		}
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->name,
-		    stm, SBK_RECIPIENTS_COLUMN_NAME) == -1)
+		    stm, SBK_COLUMN_NAME) == -1)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->profile_name,
-		    stm, SBK_RECIPIENTS_COLUMN_PROFILENAME) == -1)
+		    stm, SBK_COLUMN_PROFILENAME) == -1)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->profile_family_name,
-		    stm, SBK_RECIPIENTS_COLUMN_PROFILEFAMILYNAME) == -1)
+		    stm, SBK_COLUMN_PROFILEFAMILYNAME) == -1)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->profile_joined_name,
-		    stm, SBK_RECIPIENTS_COLUMN_PROFILEFULLNAME) == -1)
+		    stm, SBK_COLUMN_PROFILEFULLNAME) == -1)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->phone,
-		    stm, SBK_RECIPIENTS_COLUMN_E164) == -1)
+		    stm, SBK_COLUMN_E164) == -1)
 			goto error;
 
 		if (sbk_sqlite_column_text_copy(ctx, &con->uuid,
-		    stm, SBK_RECIPIENTS_COLUMN_UUID) == -1)
+		    stm, SBK_COLUMN_UUID) == -1)
 			goto error;
 
 		break;
@@ -186,7 +185,7 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		}
 
 		if (sbk_sqlite_column_text_copy(ctx, &grp->name,
-		    stm, SBK_RECIPIENTS_COLUMN_NAME) == -1)
+		    stm, SBK_COLUMN_NAME) == -1)
 			goto error;
 	}
 
@@ -209,9 +208,9 @@ sbk_build_recipient_tree(struct sbk_ctx *ctx)
 		return 0;
 
 	if (ctx->db_version < 20)
-		query = SBK_RECIPIENTS_QUERY_19;
+		query = SBK_QUERY_19;
 	else
-		query = SBK_RECIPIENTS_QUERY_20;
+		query = SBK_QUERY_20;
 
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return -1;

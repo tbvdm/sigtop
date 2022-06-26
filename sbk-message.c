@@ -22,7 +22,7 @@
 #include "sbk-internal.h"
 
 /* For database versions 8 to 19 */
-#define SBK_MESSAGES_SELECT_8						\
+#define SBK_SELECT_8							\
 	"SELECT "							\
 	"m.conversationId, "						\
 	"m.source, "							\
@@ -34,7 +34,7 @@
 	"FROM messages AS m "
 
 /* For database versions >= 20 */
-#define SBK_MESSAGES_SELECT_20						\
+#define SBK_SELECT_20							\
 	"SELECT "							\
 	"m.conversationId, "						\
 	"c.id, "							\
@@ -47,71 +47,71 @@
 	"LEFT JOIN conversations AS c "					\
 	"ON m.sourceUuid = c.uuid "
 
-#define SBK_MESSAGES_WHERE_CONVERSATIONID				\
+#define SBK_WHERE_CONVERSATIONID					\
 	"WHERE m.conversationId = ? "
 
-#define SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_AFTER			\
-	SBK_MESSAGES_WHERE_CONVERSATIONID				\
+#define SBK_WHERE_CONVERSATIONID_SENT_AFTER				\
+	SBK_WHERE_CONVERSATIONID					\
 	"AND m.sent_at >= ? "
 
-#define SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BEFORE			\
-	SBK_MESSAGES_WHERE_CONVERSATIONID				\
+#define SBK_WHERE_CONVERSATIONID_SENT_BEFORE				\
+	SBK_WHERE_CONVERSATIONID					\
 	"AND m.sent_at <= ? "
 
-#define SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BETWEEN			\
-	SBK_MESSAGES_WHERE_CONVERSATIONID				\
+#define SBK_WHERE_CONVERSATIONID_SENT_BETWEEN				\
+	SBK_WHERE_CONVERSATIONID					\
 	"AND m.sent_at BETWEEN ? AND ? "
 
-#define SBK_MESSAGES_ORDER						\
+#define SBK_ORDER							\
 	"ORDER BY m.received_at"
 
-#define SBK_MESSAGES_QUERY_8						\
-	SBK_MESSAGES_SELECT_8						\
-	SBK_MESSAGES_WHERE_CONVERSATIONID				\
-	SBK_MESSAGES_ORDER
+#define SBK_QUERY_8							\
+	SBK_SELECT_8							\
+	SBK_WHERE_CONVERSATIONID					\
+	SBK_ORDER
 
-#define SBK_MESSAGES_QUERY_20						\
-	SBK_MESSAGES_SELECT_20						\
-	SBK_MESSAGES_WHERE_CONVERSATIONID				\
-	SBK_MESSAGES_ORDER
+#define SBK_QUERY_20							\
+	SBK_SELECT_20							\
+	SBK_WHERE_CONVERSATIONID					\
+	SBK_ORDER
 
-#define SBK_MESSAGES_QUERY_SENT_AFTER_8					\
-	SBK_MESSAGES_SELECT_8						\
-	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_AFTER			\
-	SBK_MESSAGES_ORDER
+#define SBK_QUERY_SENT_AFTER_8						\
+	SBK_SELECT_8							\
+	SBK_WHERE_CONVERSATIONID_SENT_AFTER				\
+	SBK_ORDER
 
-#define SBK_MESSAGES_QUERY_SENT_AFTER_20				\
-	SBK_MESSAGES_SELECT_20						\
-	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_AFTER			\
-	SBK_MESSAGES_ORDER
+#define SBK_QUERY_SENT_AFTER_20						\
+	SBK_SELECT_20							\
+	SBK_WHERE_CONVERSATIONID_SENT_AFTER				\
+	SBK_ORDER
 
-#define SBK_MESSAGES_QUERY_SENT_BEFORE_8				\
-	SBK_MESSAGES_SELECT_8						\
-	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BEFORE			\
-	SBK_MESSAGES_ORDER
+#define SBK_QUERY_SENT_BEFORE_8						\
+	SBK_SELECT_8							\
+	SBK_WHERE_CONVERSATIONID_SENT_BEFORE				\
+	SBK_ORDER
 
-#define SBK_MESSAGES_QUERY_SENT_BEFORE_20				\
-	SBK_MESSAGES_SELECT_20						\
-	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BEFORE			\
-	SBK_MESSAGES_ORDER
+#define SBK_QUERY_SENT_BEFORE_20					\
+	SBK_SELECT_20							\
+	SBK_WHERE_CONVERSATIONID_SENT_BEFORE				\
+	SBK_ORDER
 
-#define SBK_MESSAGES_QUERY_SENT_BETWEEN_8				\
-	SBK_MESSAGES_SELECT_8						\
-	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BETWEEN			\
-	SBK_MESSAGES_ORDER
+#define SBK_QUERY_SENT_BETWEEN_8					\
+	SBK_SELECT_8							\
+	SBK_WHERE_CONVERSATIONID_SENT_BETWEEN				\
+	SBK_ORDER
 
-#define SBK_MESSAGES_QUERY_SENT_BETWEEN_20				\
-	SBK_MESSAGES_SELECT_20						\
-	SBK_MESSAGES_WHERE_CONVERSATIONID_SENT_BETWEEN			\
-	SBK_MESSAGES_ORDER
+#define SBK_QUERY_SENT_BETWEEN_20					\
+	SBK_SELECT_20							\
+	SBK_WHERE_CONVERSATIONID_SENT_BETWEEN				\
+	SBK_ORDER
 
-#define SBK_MESSAGES_COLUMN_CONVERSATIONID	0
-#define SBK_MESSAGES_COLUMN_ID			1
-#define SBK_MESSAGES_COLUMN_TYPE		2
-#define SBK_MESSAGES_COLUMN_BODY		3
-#define SBK_MESSAGES_COLUMN_JSON		4
-#define SBK_MESSAGES_COLUMN_SENT_AT		5
-#define SBK_MESSAGES_COLUMN_RECEIVED_AT		6
+#define SBK_COLUMN_CONVERSATIONID	0
+#define SBK_COLUMN_ID			1
+#define SBK_COLUMN_TYPE			2
+#define SBK_COLUMN_BODY			3
+#define SBK_COLUMN_JSON			4
+#define SBK_COLUMN_SENT_AT		5
+#define SBK_COLUMN_RECEIVED_AT		6
 
 static void
 sbk_free_message(struct sbk_message *msg)
@@ -190,8 +190,8 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		return NULL;
 	}
 
-	if ((id = sqlite3_column_text(stm, SBK_MESSAGES_COLUMN_CONVERSATIONID))
-	    == NULL) {
+	if ((id = sqlite3_column_text(stm, SBK_COLUMN_CONVERSATIONID)) ==
+	    NULL) {
 		/* Likely message with error */
 		sbk_warnx(ctx, "Conversation recipient has null id");
 		msg->conversation = NULL;
@@ -205,7 +205,7 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 			    id);
 	}
 
-	if ((id = sqlite3_column_text(stm, SBK_MESSAGES_COLUMN_ID)) == NULL) {
+	if ((id = sqlite3_column_text(stm, SBK_COLUMN_ID)) == NULL) {
 		msg->source = NULL;
 	} else {
 		if (sbk_get_recipient_from_conversation_id(ctx, &msg->source,
@@ -216,22 +216,20 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 			    "Cannot find source recipient for id %s", id);
 	}
 
-	if (sbk_sqlite_column_text_copy(ctx, &msg->type, stm,
-	    SBK_MESSAGES_COLUMN_TYPE) == -1)
+	if (sbk_sqlite_column_text_copy(ctx, &msg->type, stm, SBK_COLUMN_TYPE)
+	    == -1)
 		goto error;
 
-	if (sbk_sqlite_column_text_copy(ctx, &msg->text, stm,
-	    SBK_MESSAGES_COLUMN_BODY) == -1)
+	if (sbk_sqlite_column_text_copy(ctx, &msg->text, stm, SBK_COLUMN_BODY)
+	    == -1)
 		goto error;
 
-	if (sbk_sqlite_column_text_copy(ctx, &msg->json, stm,
-	    SBK_MESSAGES_COLUMN_JSON) == -1)
+	if (sbk_sqlite_column_text_copy(ctx, &msg->json, stm, SBK_COLUMN_JSON)
+	    == -1)
 		goto error;
 
-	msg->time_sent = sqlite3_column_int64(stm,
-	    SBK_MESSAGES_COLUMN_SENT_AT);
-	msg->time_recv = sqlite3_column_int64(stm,
-	    SBK_MESSAGES_COLUMN_RECEIVED_AT);
+	msg->time_sent = sqlite3_column_int64(stm, SBK_COLUMN_SENT_AT);
+	msg->time_recv = sqlite3_column_int64(stm, SBK_COLUMN_RECEIVED_AT);
 
 	if (sbk_parse_message_json(ctx, msg) == -1)
 		goto error;
@@ -282,9 +280,9 @@ sbk_get_messages(struct sbk_ctx *ctx, struct sbk_conversation *cnv)
 	const char	*query;
 
 	if (ctx->db_version < 20)
-		query = SBK_MESSAGES_QUERY_8;
+		query = SBK_QUERY_8;
 	else
-		query = SBK_MESSAGES_QUERY_20;
+		query = SBK_QUERY_20;
 
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return NULL;
@@ -305,9 +303,9 @@ sbk_get_messages_sent_after(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
 	const char	*query;
 
 	if (ctx->db_version < 20)
-		query = SBK_MESSAGES_QUERY_SENT_AFTER_8;
+		query = SBK_QUERY_SENT_AFTER_8;
 	else
-		query = SBK_MESSAGES_QUERY_SENT_AFTER_20;
+		query = SBK_QUERY_SENT_AFTER_20;
 
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return NULL;
@@ -333,9 +331,9 @@ sbk_get_messages_sent_before(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
 	const char	*query;
 
 	if (ctx->db_version < 20)
-		query = SBK_MESSAGES_QUERY_SENT_BEFORE_8;
+		query = SBK_QUERY_SENT_BEFORE_8;
 	else
-		query = SBK_MESSAGES_QUERY_SENT_BEFORE_20;
+		query = SBK_QUERY_SENT_BEFORE_20;
 
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return NULL;
@@ -361,9 +359,9 @@ sbk_get_messages_sent_between(struct sbk_ctx *ctx,
 	const char	*query;
 
 	if (ctx->db_version < 20)
-		query = SBK_MESSAGES_QUERY_SENT_BETWEEN_8;
+		query = SBK_QUERY_SENT_BETWEEN_8;
 	else
-		query = SBK_MESSAGES_QUERY_SENT_BETWEEN_20;
+		query = SBK_QUERY_SENT_BETWEEN_20;
 
 	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
 		return NULL;
