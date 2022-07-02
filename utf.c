@@ -17,6 +17,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "utf.h"
+
 size_t
 utf8_encode(uint8_t buf[4], uint32_t cp)
 {
@@ -43,6 +45,40 @@ utf8_encode(uint8_t buf[4], uint32_t cp)
 		return 4;
 	}
 	return 0;
+}
+
+size_t
+utf8_get_sequence_length(const uint8_t *s)
+{
+	size_t len, maxlen;
+
+	if (utf8_is_single(*s))
+		return 1;
+	else if (utf8_is_start2(*s))
+		maxlen = 2;
+	else if (utf8_is_start3(*s))
+		maxlen = 3;
+	else if (utf8_is_start4(*s))
+		maxlen = 4;
+	else
+		return 1; /* Invalid */
+
+	for (len = 1; len < maxlen && utf8_is_cont(*++s); len++)
+		;
+
+	return len;
+}
+
+size_t
+utf8_get_substring_length(const uint8_t *s, size_t n)
+{
+	size_t i, len;
+
+	len = 0;
+	for (i = 0; i < n && s[len] != '\0'; i++)
+		len += utf8_get_sequence_length(s + len);
+
+	return len;
 }
 
 int

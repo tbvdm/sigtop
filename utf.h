@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Tim van der Molen <tim@kariliq.nl>
+ * Copyright (c) 2021 Tim van der Molen <tim@kariliq.nl>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,35 +14,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef SIGTOP_H
-#define SIGTOP_H
+#ifndef UTF_H
+#define UTF_H
 
-#include <sys/types.h>
+#include <stddef.h>
+#include <stdint.h>
 
-#include "compat.h"
-#include "sbk.h"
+#define utf8_is_single(b)	(((uint8_t)(b) & 0x80) == 0)
+#define utf8_is_start2(b)	(((uint8_t)(b) & 0xe0) == 0xc0)
+#define utf8_is_start3(b)	(((uint8_t)(b) & 0xf0) == 0xe0)
+#define utf8_is_start4(b)	(((uint8_t)(b) & 0xf8) == 0xf0)
+#define utf8_is_cont(b)		(((uint8_t)(b) & 0xc0) == 0x80)
 
-enum cmd_status {
-	CMD_OK,
-	CMD_ERROR,
-	CMD_USAGE
-};
-
-struct cmd_entry {
-	const char	*name;
-	const char	*alias;
-	const char	*usage;
-	const char	*oldname;
-	enum cmd_status	 (*exec)(int, char **);
-};
-
-const char	*mime_get_extension(const char *);
-
-char		*get_signal_dir(void);
-int		 unveil_dirname(const char *, const char *);
-int		 unveil_signal_dir(const char *);
-int		 parse_time_interval(char *, time_t *, time_t *);
-void		 sanitise_filename(char *);
-char		*get_recipient_filename(struct sbk_recipient *, const char *);
+size_t		utf8_encode(uint8_t [4], uint32_t);
+size_t		utf8_get_sequence_length(const uint8_t *);
+size_t		utf8_get_substring_length(const uint8_t *, size_t);
+int		utf16_is_high_surrogate(uint16_t);
+int		utf16_is_low_surrogate(uint16_t);
+uint32_t	utf16_decode_surrogate_pair(uint16_t, uint16_t);
 
 #endif
