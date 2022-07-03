@@ -143,8 +143,9 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	/*
 	 * Get id
 	 *
-	 * The id usually is a JSON number, but in at least one case it was a
-	 * JSON string.
+	 * The id is a JSON number now, but apparently it used to be a JSON
+	 * string. See GitHub issue 9 and Signal-Desktop commit
+	 * ddbbe3a6b1b725007597536a39651ae845366920.
 	 */
 
 	idx = sbk_jsmn_get_number_or_string(msg->json, tokens, "id");
