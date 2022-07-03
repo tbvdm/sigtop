@@ -53,22 +53,20 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 	 */
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "mentionUuid");
-	if (idx == -1) {
-		sbk_error_setx(ctx, "Missing mention uuid");
-		goto error;
+	if (idx != -1) {
+		uuid = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		if (uuid == NULL) {
+			sbk_error_set(ctx, NULL);
+			goto error;
+		}
+
+		if (sbk_get_recipient_from_uuid(ctx, &mnt->recipient, uuid) ==
+		    -1)
+			sbk_warnx(ctx, "Cannot find mention recipient for "
+			    "uuid %s", uuid);
+
+		free(uuid);
 	}
-
-	uuid = sbk_jsmn_strdup(msg->json, &tokens[idx]);
-	if (uuid == NULL) {
-		sbk_error_set(ctx, NULL);
-		goto error;
-	}
-
-	if (sbk_get_recipient_from_uuid(ctx, &mnt->recipient, uuid) == -1)
-		sbk_warnx(ctx, "Cannot find mention recipient for uuid %s",
-		    uuid);
-
-	free(uuid);
 
 	/*
 	 * Get start
