@@ -60,6 +60,10 @@ command:
 
 This will build and install sigtop from [my Homebrew tap][8].
 
+To update sigtop with Homebrew, run:
+
+	brew upgrade --fetch-HEAD sigtop
+
 If you prefer to build sigtop manually, run the following commands instead:
 
 	brew install libressl make pkg-config
