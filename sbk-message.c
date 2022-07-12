@@ -29,8 +29,7 @@
 	"m.type, "							\
 	"m.body, "							\
 	"m.json, "							\
-	"m.sent_at, "							\
-	"m.received_at "						\
+	"m.sent_at "							\
 	"FROM messages AS m "
 
 /* For database versions >= 20 */
@@ -41,8 +40,7 @@
 	"m.type, "							\
 	"m.body, "							\
 	"m.json, "							\
-	"m.sent_at, "							\
-	"m.received_at "						\
+	"m.sent_at "							\
 	"FROM messages AS m "						\
 	"LEFT JOIN conversations AS c "					\
 	"ON m.sourceUuid = c.uuid "
@@ -111,7 +109,6 @@
 #define SBK_COLUMN_BODY			3
 #define SBK_COLUMN_JSON			4
 #define SBK_COLUMN_SENT_AT		5
-#define SBK_COLUMN_RECEIVED_AT		6
 
 static void
 sbk_free_message(struct sbk_message *msg)
@@ -162,10 +159,40 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 		return -1;
 	}
 
+	/*
+	 * Get received time
+	 *
+	 * For older messages, the received time is stored in the "received_at"
+	 * attribute. For newer messages, it is in the "received_at_ms"
+	 * attribute (and the "received_at" attribute was changed to store a
+	 * counter). See Signal-Desktop commit
+	 * d82ce079421c3fa08a0920a90b7abc19b1bb0e59.
+	 */
+
+	idx = sbk_jsmn_get_number(msg->json, tokens, "received_at_ms");
+	if (idx == -1)
+		idx = sbk_jsmn_get_number(msg->json, tokens, "received_at");
+	if (idx != -1) {
+		if (sbk_jsmn_parse_uint64(&msg->time_recv, msg->json,
+		    &tokens[idx]) == -1) {
+			sbk_error_setx(ctx, "Cannot parse message received "
+			    "time");
+			return -1;
+		}
+	}
+
+	/*
+	 * Get attachments
+	 */
+
 	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
 	if (idx != -1 &&
 	    sbk_parse_attachment_json(ctx, msg, &tokens[idx]) == -1)
 		return -1;
+
+	/*
+	 * Get mentions
+	 */
 
 	idx = sbk_jsmn_get_array(msg->json, tokens, "bodyRanges");
 	if (idx != -1 &&
@@ -173,10 +200,18 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	    -1)
 		return -1;
 
+	/*
+	 * Get reactions
+	 */
+
 	idx = sbk_jsmn_get_array(msg->json, tokens, "reactions");
 	if (idx != -1 &&
 	    sbk_parse_reaction_json(ctx, msg, &tokens[idx]) == -1)
 		return -1;
+
+	/*
+	 * Get quote
+	 */
 
 	idx = sbk_jsmn_get_object(msg->json, tokens, "quote");
 	if (idx != -1 &&
@@ -236,7 +271,6 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		goto error;
 
 	msg->time_sent = sqlite3_column_int64(stm, SBK_COLUMN_SENT_AT);
-	msg->time_recv = sqlite3_column_int64(stm, SBK_COLUMN_RECEIVED_AT);
 
 	if (sbk_parse_message_json(ctx, msg) == -1)
 		goto error;
