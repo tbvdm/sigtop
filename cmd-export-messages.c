@@ -280,10 +280,8 @@ export_conversation_messages(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
 	else
 		lst = sbk_get_messages_sent_between(ctx, cnv, min, max);
 
-	if (lst == NULL) {
-		warnx("%s", sbk_error(ctx));
+	if (lst == NULL)
 		goto out;
-	}
 
 	if (SIMPLEQ_EMPTY(lst)) {
 		ret = 0;
@@ -322,10 +320,8 @@ export_messages(struct sbk_ctx *ctx, const char *dir, enum format format,
 		return -1;
 	}
 
-	if ((lst = sbk_get_conversations(ctx)) == NULL) {
-		warnx("%s", sbk_error(ctx));
+	if ((lst = sbk_get_conversations(ctx)) == NULL)
 		return -1;
-	}
 
 	ret = 0;
 	SIMPLEQ_FOREACH(cnv, lst, entries)
@@ -422,10 +418,8 @@ cmd_export_messages(int argc, char **argv)
 		goto error;
 	}
 
-	if (sbk_open(&ctx, signaldir) == -1) {
-		warnx("%s", sbk_error(ctx));
+	if (sbk_open(&ctx, signaldir) == -1)
 		goto error;
-	}
 
 	if (export_messages(ctx, outdir, format, min, max) == -1)
 		goto error;

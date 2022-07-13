@@ -93,15 +93,11 @@ cmd_export_database(int argc, char **argv)
 	}
 	close(fd);
 
-	if (sbk_open(&ctx, signaldir) == -1) {
-		warnx("%s", sbk_error(ctx));
+	if (sbk_open(&ctx, signaldir) == -1)
 		goto error;
-	}
 
-	if (sbk_write_database(ctx, db) == -1) {
-		warnx("%s", sbk_error(ctx));
+	if (sbk_write_database(ctx, db) == -1)
 		goto error;
-	}
 
 	status = CMD_OK;
 	goto out;

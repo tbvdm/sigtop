@@ -44,7 +44,7 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 	int			 idx;
 
 	if ((mnt = calloc(1, sizeof *mnt)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -56,14 +56,14 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		uuid = sbk_jsmn_strdup(msg->json, &tokens[idx]);
 		if (uuid == NULL) {
-			sbk_error_set(ctx, NULL);
+			warn(NULL);
 			goto error;
 		}
 
 		if (sbk_get_recipient_from_uuid(ctx, &mnt->recipient, uuid) ==
 		    -1)
-			sbk_warnx(ctx, "Cannot find mention recipient for "
-			    "uuid %s", uuid);
+			warnx("Cannot find mention recipient for uuid %s",
+			    uuid);
 
 		free(uuid);
 	}
@@ -74,13 +74,13 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_number(msg->json, tokens, "start");
 	if (idx == -1) {
-		sbk_error_setx(ctx, "Missing mention start");
+		warnx("Missing mention start");
 		goto error;
 	}
 
 	if (sbk_jsmn_parse_uint64(&mnt->start, msg->json, &tokens[idx]) ==
 	    -1) {
-		sbk_error_setx(ctx, "Cannot parse mention start");
+		warnx("Cannot parse mention start");
 		goto error;
 	}
 
@@ -90,13 +90,13 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_number(msg->json, tokens, "length");
 	if (idx == -1) {
-		sbk_error_setx(ctx, "Missing mention length");
+		warnx("Missing mention length");
 		goto error;
 	}
 
 	if (sbk_jsmn_parse_uint64(&mnt->length, msg->json, &tokens[idx]) ==
 	    -1) {
-		sbk_error_setx(ctx, "Cannot parse mention length");
+		warnx("Cannot parse mention length");
 		goto error;
 	}
 
@@ -119,7 +119,7 @@ sbk_parse_mention_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	*lst = malloc(sizeof **lst);
 	if (*lst == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -128,7 +128,7 @@ sbk_parse_mention_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
 		if (tokens[idx].type != JSMN_OBJECT) {
-			sbk_error_setx(ctx, "Unexpected mention JSON type");
+			warnx("Unexpected mention JSON type");
 			goto error;
 		}
 		if (sbk_add_mention(ctx, msg, *lst, &tokens[idx]) == -1)
@@ -136,7 +136,7 @@ sbk_parse_mention_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
 		if (size == -1) {
-			sbk_error_setx(ctx, "Cannot parse mention JSON data");
+			warnx("Cannot parse mention JSON data");
 			goto error;
 		}
 		idx += size;
@@ -151,8 +151,7 @@ error:
 }
 
 int
-sbk_insert_mentions(struct sbk_ctx *ctx, char **text,
-    struct sbk_mention_list *lst)
+sbk_insert_mentions(char **text, struct sbk_mention_list *lst)
 {
 	struct sbk_mention *mnt, *next_mnt;
 	char		*new_text, *old_text;
@@ -210,7 +209,7 @@ sbk_insert_mentions(struct sbk_ctx *ctx, char **text,
 		goto invalid;
 
 	if ((new_text = malloc(new_text_len + 1)) == NULL) {
-		sbk_error_setx(ctx, NULL);
+		warn(NULL);
 		return -1;
 	}
 
@@ -253,7 +252,7 @@ sbk_insert_mentions(struct sbk_ctx *ctx, char **text,
 	return 0;
 
 invalid:
-	sbk_error_setx(ctx, "Invalid mention");
+	warnx("Invalid mention");
 	free(new_text);
 	return -1;
 }

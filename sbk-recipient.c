@@ -121,7 +121,7 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	const unsigned char		*type;
 
 	if ((ent = calloc(1, sizeof *ent)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		return NULL;
 	}
 
@@ -130,7 +130,7 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		goto error;
 
 	if ((type = sqlite3_column_text(stm, SBK_COLUMN_TYPE)) == NULL) {
-		sbk_error_sqlite_set(ctx, "Cannot get column text");
+		warnx("Cannot get column text");
 		goto error;
 	}
 
@@ -139,7 +139,7 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	else if (strcmp((const char *)type, "group") == 0)
 		ent->recipient.type = SBK_GROUP;
 	else {
-		sbk_error_setx(ctx, "Unknown recipient type");
+		warnx("Unknown recipient type");
 		goto error;
 	}
 
@@ -147,7 +147,7 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	case SBK_CONTACT:
 		con = ent->recipient.contact = calloc(1, sizeof *con);
 		if (con == NULL) {
-			sbk_error_set(ctx, NULL);
+			warn(NULL);
 			goto error;
 		}
 
@@ -180,7 +180,7 @@ sbk_get_recipient_entry(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	case SBK_GROUP:
 		grp = ent->recipient.group = calloc(1, sizeof *grp);
 		if (grp == NULL) {
-			sbk_error_set(ctx, NULL);
+			warn(NULL);
 			goto error;
 		}
 
@@ -212,10 +212,10 @@ sbk_build_recipient_tree(struct sbk_ctx *ctx)
 	else
 		query = SBK_QUERY_20;
 
-	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
+	if (sbk_sqlite_prepare(ctx->db, &stm, query) == -1)
 		return -1;
 
-	while ((ret = sbk_sqlite_step(ctx, ctx->db, stm)) == SQLITE_ROW) {
+	while ((ret = sbk_sqlite_step(ctx->db, stm)) == SQLITE_ROW) {
 		if ((ent = sbk_get_recipient_entry(ctx, stm)) == NULL)
 			goto error;
 		RB_INSERT(sbk_recipient_tree, &ctx->recipients, ent);

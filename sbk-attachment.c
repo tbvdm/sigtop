@@ -50,15 +50,14 @@ sbk_free_attachment_list(struct sbk_attachment_list *lst)
 }
 
 static int
-sbk_add_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
-    jsmntok_t *tokens)
+sbk_add_attachment(struct sbk_message *msg, jsmntok_t *tokens)
 {
 	struct sbk_attachment	*att;
 	char			*c;
 	int			 idx;
 
 	if ((att = calloc(1, sizeof *att)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -66,7 +65,7 @@ sbk_add_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		att->path = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (att->path == NULL) {
-			sbk_error_setx(ctx, "Cannot parse attachment path");
+			warnx("Cannot parse attachment path");
 			goto error;
 		}
 	}
@@ -82,8 +81,7 @@ sbk_add_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (att->filename == NULL) {
-			sbk_error_setx(ctx, "Cannot parse attachment "
-			    "fileName");
+			warnx("Cannot parse attachment fileName");
 			goto error;
 		}
 	}
@@ -93,8 +91,7 @@ sbk_add_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 		att->content_type = sbk_jsmn_parse_string(msg->json,
 		    &tokens[idx]);
 		if (att->content_type == NULL) {
-			sbk_error_setx(ctx, "Cannot parse attachment "
-			    "contentType");
+			warnx("Cannot parse attachment contentType");
 			goto error;
 		}
 	}
@@ -103,7 +100,7 @@ sbk_add_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		if (sbk_jsmn_parse_uint64(&att->size, msg->json, &tokens[idx])
 		    == -1) {
-			sbk_error_setx(ctx, "Cannot parse attachment size");
+			warnx("Cannot parse attachment size");
 			goto error;
 		}
 	}
@@ -119,8 +116,7 @@ error:
 }
 
 int
-sbk_parse_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
-    jsmntok_t *tokens)
+sbk_parse_attachment_json(struct sbk_message *msg, jsmntok_t *tokens)
 {
 	int i, idx, size;
 
@@ -129,7 +125,7 @@ sbk_parse_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	msg->attachments = malloc(sizeof *msg->attachments);
 	if (msg->attachments == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -138,16 +134,15 @@ sbk_parse_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
 		if (tokens[idx].type != JSMN_OBJECT) {
-			sbk_error_setx(ctx, "Unexpected attachment JSON type");
+			warnx("Unexpected attachment JSON type");
 			goto error;
 		}
-		if (sbk_add_attachment(ctx, msg, &tokens[idx]) == -1)
+		if (sbk_add_attachment(msg, &tokens[idx]) == -1)
 			goto error;
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
 		if (size == -1) {
-			sbk_error_setx(ctx, "Cannot parse attachment JSON "
-			    "data");
+			warnx("Cannot parse attachment JSON data");
 			goto error;
 		}
 		idx += size;
@@ -162,13 +157,13 @@ error:
 }
 
 static struct sbk_attachment_list *
-sbk_get_attachment_list(struct sbk_ctx *ctx, struct sbk_message_list *msg_lst)
+sbk_get_attachment_list(struct sbk_message_list *msg_lst)
 {
 	struct sbk_attachment_list	*att_lst;
 	struct sbk_message		*msg;
 
 	if ((att_lst = malloc(sizeof *att_lst)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		sbk_free_message_list(msg_lst);
 		return NULL;
 	}
@@ -191,7 +186,7 @@ sbk_get_attachments(struct sbk_ctx *ctx, struct sbk_conversation *cnv)
 	if ((lst = sbk_get_messages(ctx, cnv)) == NULL)
 		return NULL;
 
-	return sbk_get_attachment_list(ctx, lst);
+	return sbk_get_attachment_list(lst);
 }
 
 struct sbk_attachment_list *
@@ -203,7 +198,7 @@ sbk_get_attachments_sent_after(struct sbk_ctx *ctx,
 	if ((lst = sbk_get_messages_sent_after(ctx, cnv, min)) == NULL)
 		return NULL;
 
-	return sbk_get_attachment_list(ctx, lst);
+	return sbk_get_attachment_list(lst);
 }
 
 struct sbk_attachment_list *
@@ -215,7 +210,7 @@ sbk_get_attachments_sent_before(struct sbk_ctx *ctx,
 	if ((lst = sbk_get_messages_sent_before(ctx, cnv, max)) == NULL)
 		return NULL;
 
-	return sbk_get_attachment_list(ctx, lst);
+	return sbk_get_attachment_list(lst);
 }
 
 struct sbk_attachment_list *
@@ -227,7 +222,7 @@ sbk_get_attachments_sent_between(struct sbk_ctx *ctx,
 	if ((lst = sbk_get_messages_sent_between(ctx, cnv, min, max)) == NULL)
 		return NULL;
 
-	return sbk_get_attachment_list(ctx, lst);
+	return sbk_get_attachment_list(lst);
 }
 
 char *
@@ -236,13 +231,13 @@ sbk_get_attachment_path(struct sbk_ctx *ctx, struct sbk_attachment *att)
 	char *path;
 
 	if (att->path == NULL) {
-		sbk_error_setx(ctx, "Missing attachment path");
+		warnx("Missing attachment path");
 		return NULL;
 	}
 
 	if (asprintf(&path, "%s/%s/%s", ctx->dir, SBK_ATTACHMENT_DIR,
 	    att->path) == -1) {
-		sbk_error_setx(ctx, "asprintf() failed");
+		warnx("asprintf() failed");
 		return NULL;
 	}
 

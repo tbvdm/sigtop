@@ -76,15 +76,11 @@ cmd_check_database(int argc, char **argv)
 		goto error;
 	}
 
-	if (sbk_open(&ctx, signaldir) == -1) {
-		warnx("%s", sbk_error(ctx));
+	if (sbk_open(&ctx, signaldir) == -1)
 		goto error;
-	}
 
-	if ((n = sbk_check(ctx, &errors)) == -1) {
-		warnx("%s", sbk_error(ctx));
+	if ((n = sbk_check(ctx, &errors)) == -1)
 		goto error;
-	}
 
 	if (n > 0) {
 		for (i = 0; i < n; i++) {

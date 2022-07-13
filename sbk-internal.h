@@ -31,8 +31,6 @@
 #include "jsmn.h"
 #include "sbk.h"
 
-#define sbk_warnx(ctx, ...) warnx(__VA_ARGS__)
-
 struct sbk_recipient_entry {
 	char		*id;
 	struct sbk_recipient recipient;
@@ -49,32 +47,18 @@ struct sbk_ctx {
 	struct sbk_recipient_tree recipients;
 };
 
-void	 sbk_error_clear(struct sbk_ctx *);
-void	 sbk_error_set(struct sbk_ctx *, const char *, ...);
-void	 sbk_error_setx(struct sbk_ctx *, const char *, ...);
-void	 sbk_error_sqlite_vsetd(struct sbk_ctx *, sqlite3 *, const char *,
-	    va_list);
-void	 sbk_error_sqlite_setd(struct sbk_ctx *, sqlite3 *, const char *,
-	    ...);
-void	 sbk_error_sqlite_set(struct sbk_ctx *, const char *, ...);
-
-int	 sbk_sqlite_open(struct sbk_ctx *, sqlite3 **, const char *, int);
-int	 sbk_sqlite_prepare(struct sbk_ctx *, sqlite3 *, sqlite3_stmt **,
-	    const char *);
-int	 sbk_sqlite_bind_int64(struct sbk_ctx *, sqlite3 *, sqlite3_stmt *,
-	    int, int64_t);
-int	 sbk_sqlite_bind_text(struct sbk_ctx *, sqlite3 *, sqlite3_stmt *, int,
-	    const char *);
-int	 sbk_sqlite_bind_time(struct sbk_ctx *, sqlite3 *, sqlite3_stmt *,
-	    int, time_t);
-int	 sbk_sqlite_step(struct sbk_ctx *, sqlite3 *, sqlite3_stmt *);
+int	 sbk_sqlite_open(sqlite3 **, const char *, int);
+int	 sbk_sqlite_prepare(sqlite3 *, sqlite3_stmt **, const char *);
+int	 sbk_sqlite_bind_int64(sqlite3 *, sqlite3_stmt *, int, int64_t);
+int	 sbk_sqlite_bind_text(sqlite3 *, sqlite3_stmt *, int, const char *);
+int	 sbk_sqlite_bind_time(sqlite3 *, sqlite3_stmt *, int, time_t);
+int	 sbk_sqlite_step(sqlite3 *, sqlite3_stmt *);
 int	 sbk_sqlite_column_text_copy(struct sbk_ctx *, char **, sqlite3_stmt *,
 	    int);
-int	 sbk_sqlite_exec(struct sbk_ctx *, sqlite3 *, const char *);
-int	 sbk_sqlite_key(struct sbk_ctx *, sqlite3 *, const char *);
+int	 sbk_sqlite_exec(sqlite3 *, const char *);
+int	 sbk_sqlite_key(sqlite3 *, const char *);
 int	 sbk_get_database_version(struct sbk_ctx *);
-int	 sbk_set_database_version(struct sbk_ctx *, sqlite3 *, const char *,
-	    int);
+int	 sbk_set_database_version(sqlite3 *, const char *, int);
 
 int	 sbk_jsmn_parse(const char *, size_t, jsmntok_t *, size_t);
 int	 sbk_jsmn_get_total_token_size(const jsmntok_t *);
@@ -101,15 +85,13 @@ int	 sbk_get_recipient_from_uuid(struct sbk_ctx *, struct sbk_recipient **,
 	    const char *);
 const char *sbk_get_recipient_display_name(const struct sbk_recipient *);
 
-int	 sbk_parse_attachment_json(struct sbk_ctx *, struct sbk_message *,
-	    jsmntok_t *tokens);
+int	 sbk_parse_attachment_json(struct sbk_message *, jsmntok_t *tokens);
 void	 sbk_free_attachment(struct sbk_attachment *);
 
 int	 sbk_parse_mention_json(struct sbk_ctx *, struct sbk_message *,
 	    struct sbk_mention_list **, jsmntok_t *);
 void	 sbk_free_mention_list(struct sbk_mention_list *);
-int	 sbk_insert_mentions(struct sbk_ctx *, char **,
-	    struct sbk_mention_list *);
+int	 sbk_insert_mentions(char **, struct sbk_mention_list *);
 
 int	 sbk_parse_reaction_json(struct sbk_ctx *, struct sbk_message *,
 	    jsmntok_t *);

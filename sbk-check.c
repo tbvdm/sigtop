@@ -30,20 +30,20 @@ sbk_run_pragma(struct sbk_ctx *ctx, char ***errorsp, const char *pragma)
 	errors = NULL;
 	max = n = 0;
 
-	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, pragma) == -1)
+	if (sbk_sqlite_prepare(ctx->db, &stm, pragma) == -1)
 		goto error;
 
-	while ((ret = sbk_sqlite_step(ctx, ctx->db, stm)) == SQLITE_ROW) {
+	while ((ret = sbk_sqlite_step(ctx->db, stm)) == SQLITE_ROW) {
 		if (n == max) {
 			if (max > INT_MAX - 100) {
-				sbk_error_setx(ctx, "Too many errors");
+				warnx("Too many errors");
 				goto error;
 			}
 			newmax = max + 100;
 			newerrors = reallocarray(errors, newmax,
 			    sizeof *newerrors);
 			if (newerrors == NULL) {
-				sbk_error_set(ctx, NULL);
+				warn(NULL);
 				goto error;
 			}
 			max = newmax;

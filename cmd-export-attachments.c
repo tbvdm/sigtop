@@ -222,8 +222,6 @@ export_attachment_list(struct sbk_ctx *ctx, struct sbk_attachment_list *lst,
 
 	TAILQ_FOREACH(att, lst, entries) {
 		if ((src = sbk_get_attachment_path(ctx, att)) == NULL) {
-			warnx("Cannot get attachment path: %s",
-			    sbk_error(ctx));
 			ret = -1;
 			continue;
 		}
@@ -307,10 +305,8 @@ export_conversation_attachments(struct sbk_ctx *ctx,
 	else
 		lst = sbk_get_attachments_sent_between(ctx, cnv, min, max);
 
-	if (lst == NULL) {
-		warnx("%s", sbk_error(ctx));
+	if (lst == NULL)
 		goto out;
-	}
 
 	if (TAILQ_EMPTY(lst)) {
 		ret = 0;
@@ -341,10 +337,8 @@ export_attachments(struct sbk_ctx *ctx, const char *dir, enum mode mode,
 		return -1;
 	}
 
-	if ((lst = sbk_get_conversations(ctx)) == NULL) {
-		warnx("%s", sbk_error(ctx));
+	if ((lst = sbk_get_conversations(ctx)) == NULL)
 		return -1;
-	}
 
 	ret = 0;
 	SIMPLEQ_FOREACH(cnv, lst, entries)
@@ -437,10 +431,8 @@ cmd_export_attachments(int argc, char **argv)
 		goto error;
 	}
 
-	if (sbk_open(&ctx, signaldir) == -1) {
-		warnx("%s", sbk_error(ctx));
+	if (sbk_open(&ctx, signaldir) == -1)
 		goto error;
-	}
 
 	if (export_attachments(ctx, outdir, mode, min, max) == -1)
 		goto error;

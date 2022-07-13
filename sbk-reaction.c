@@ -68,7 +68,7 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 	int			 idx, ret;
 
 	if ((rct = calloc(1, sizeof *rct)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -78,13 +78,13 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "fromId");
 	if (idx == -1) {
-		sbk_error_setx(ctx, "Missing reaction fromId");
+		warnx("Missing reaction fromId");
 		goto error;
 	}
 
 	id = sbk_jsmn_strdup(msg->json, &tokens[idx]);
 	if (id == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -95,7 +95,7 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 	}
 
 	if (rct->recipient == NULL)
-		sbk_warnx(ctx, "Cannot find reaction recipient for id %s", id);
+		warnx("Cannot find reaction recipient for id %s", id);
 
 	free(id);
 
@@ -105,13 +105,13 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "emoji");
 	if (idx == -1) {
-		sbk_error_setx(ctx, "Missing reaction emoji");
+		warnx("Missing reaction emoji");
 		goto error;
 	}
 
 	rct->emoji = sbk_jsmn_strdup(msg->json, &tokens[idx]);
 	if (rct->emoji == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -121,13 +121,13 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_number(msg->json, tokens, "targetTimestamp");
 	if (idx == -1) {
-		sbk_error_setx(ctx, "Missing reaction targetTimestamp");
+		warnx("Missing reaction targetTimestamp");
 		goto error;
 	}
 
 	if (sbk_jsmn_parse_uint64(&rct->time_sent, msg->json, &tokens[idx]) ==
 	    -1) {
-		sbk_error_setx(ctx, "Cannot parse reaction targetTimestamp");
+		warnx("Cannot parse reaction targetTimestamp");
 		goto error;
 	}
 
@@ -137,13 +137,13 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_number(msg->json, tokens, "timestamp");
 	if (idx == -1) {
-		sbk_error_setx(ctx, "Missing reaction timestamp");
+		warnx("Missing reaction timestamp");
 		goto error;
 	}
 
 	if (sbk_jsmn_parse_uint64(&rct->time_recv, msg->json, &tokens[idx]) ==
 	    -1) {
-		sbk_error_setx(ctx, "Cannot parse reaction timestamp");
+		warnx("Cannot parse reaction timestamp");
 		goto error;
 	}
 
@@ -166,7 +166,7 @@ sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	msg->reactions = malloc(sizeof *msg->reactions);
 	if (msg->reactions == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -175,7 +175,7 @@ sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
 		if (tokens[idx].type != JSMN_OBJECT) {
-			sbk_error_setx(ctx, "Unexpected reaction JSON type");
+			warnx("Unexpected reaction JSON type");
 			goto error;
 		}
 		if (sbk_add_reaction(ctx, msg, &tokens[idx]) == -1)
@@ -183,7 +183,7 @@ sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
 		if (size == -1) {
-			sbk_error_setx(ctx, "Cannot parse reaction JSON data");
+			warnx("Cannot parse reaction JSON data");
 			goto error;
 		}
 		idx += size;
