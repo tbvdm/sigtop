@@ -39,12 +39,12 @@ sbk_sqlite_warn(sqlite3 *db, const char *fmt, ...)
 	if (fmt == NULL)
 		warnx("%s", sqlite3_errmsg(db));
 	else {
-		if (vasprintf(&msg, fmt, ap) == -1) {
+		if (vasprintf(&msg, fmt, ap) == -1)
 			warnx("vasprintf() failed");
-			return;
+		else {
+			warnx("%s: %s", msg, sqlite3_errmsg(db));
+			free(msg);
 		}
-		warnx("%s: %s", msg, sqlite3_errmsg(db));
-		free(msg);
 	}
 	va_end(ap);
 }
