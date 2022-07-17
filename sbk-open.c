@@ -45,10 +45,8 @@ sbk_get_key(char *buf, size_t bufsize, const char *path)
 	json[jsonlen] = '\0';
 	close(fd);
 
-	if (sbk_jsmn_parse(json, jsonlen, tokens, nitems(tokens)) == -1) {
-		warnx("%s: Cannot parse JSON data", path);
+	if (sbk_jsmn_parse(json, jsonlen, tokens, nitems(tokens)) == -1)
 		goto error;
-	}
 
 	idx = sbk_jsmn_get_string(json, tokens, "key");
 	if (idx == -1) {

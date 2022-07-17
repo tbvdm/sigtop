@@ -55,10 +55,8 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = sbk_jsmn_get_string(msg->json, tokens, "mentionUuid");
 	if (idx != -1) {
 		uuid = sbk_jsmn_strdup(msg->json, &tokens[idx]);
-		if (uuid == NULL) {
-			warn(NULL);
+		if (uuid == NULL)
 			goto error;
-		}
 
 		if (sbk_get_recipient_from_uuid(ctx, &mnt->recipient, uuid) ==
 		    -1)
@@ -78,11 +76,8 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	if (sbk_jsmn_parse_uint64(&mnt->start, msg->json, &tokens[idx]) ==
-	    -1) {
-		warnx("Cannot parse mention start");
+	if (sbk_jsmn_parse_uint64(&mnt->start, msg->json, &tokens[idx]) == -1)
 		goto error;
-	}
 
 	/*
 	 * Get length
@@ -94,11 +89,8 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	if (sbk_jsmn_parse_uint64(&mnt->length, msg->json, &tokens[idx]) ==
-	    -1) {
-		warnx("Cannot parse mention length");
+	if (sbk_jsmn_parse_uint64(&mnt->length, msg->json, &tokens[idx]) == -1)
 		goto error;
-	}
 
 	SIMPLEQ_INSERT_TAIL(lst, mnt, entries);
 	return 0;
@@ -135,10 +127,8 @@ sbk_parse_mention_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 			goto error;
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
-		if (size == -1) {
-			warnx("Cannot parse mention JSON data");
+		if (size == -1)
 			goto error;
-		}
 		idx += size;
 	}
 

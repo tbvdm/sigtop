@@ -48,20 +48,16 @@ sbk_add_quote_attachment(struct sbk_message *msg, struct sbk_quote *qte,
 	idx = sbk_jsmn_get_string(msg->json, tokens, "fileName");
 	if (idx != -1) {
 		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (att->filename == NULL) {
-			warnx("Cannot parse quote attachment fileName");
+		if (att->filename == NULL)
 			goto error;
-		}
 	}
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "contentType");
 	if (idx != -1) {
 		att->content_type = sbk_jsmn_parse_string(msg->json,
 		    &tokens[idx]);
-		if (att->content_type == NULL) {
-			warnx("Cannot parse quote attachment contentType");
+		if (att->content_type == NULL)
 			goto error;
-		}
 	}
 
 	/* Do not expose long-message attachments */
@@ -107,10 +103,8 @@ sbk_parse_quote_attachment_json(struct sbk_message *msg, struct sbk_quote *qte,
 			goto error;
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
-		if (size == -1) {
-			warnx("Cannot parse quote attachment JSON data");
+		if (size == -1)
 			goto error;
-		}
 		idx += size;
 	}
 
@@ -149,10 +143,8 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	if (sbk_jsmn_parse_uint64(&qte->id, msg->json, &tokens[idx]) == -1) {
-		warnx("Cannot parse quote id");
+	if (sbk_jsmn_parse_uint64(&qte->id, msg->json, &tokens[idx]) == -1)
 		goto error;
-	}
 
 	/*
 	 * Get recipient
@@ -164,10 +156,8 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = sbk_jsmn_get_string(msg->json, tokens, "authorUuid");
 	if (idx != -1) {
 		author = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (author == NULL) {
-			warnx("Cannot parse quote authorUuid");
+		if (author == NULL)
 			goto error;
-		}
 
 		if (sbk_get_recipient_from_uuid(ctx, &qte->recipient, author)
 		    == -1) {
@@ -182,10 +172,8 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 		}
 
 		author = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (author == NULL) {
-			warnx("Cannot parse quote author");
+		if (author == NULL)
 			goto error;
-		}
 
 		if (sbk_get_recipient_from_phone(ctx, &qte->recipient, author)
 		    == -1) {
@@ -203,10 +191,8 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = sbk_jsmn_get_string(msg->json, tokens, "text");
 	if (idx != -1) {
 		qte->text = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (qte->text == NULL) {
-			warnx("Cannot parse quote text");
+		if (qte->text == NULL)
 			goto error;
-		}
 	}
 
 	/*

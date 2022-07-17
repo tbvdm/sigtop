@@ -64,10 +64,8 @@ sbk_add_attachment(struct sbk_message *msg, jsmntok_t *tokens)
 	idx = sbk_jsmn_get_string(msg->json, tokens, "path");
 	if (idx != -1) {
 		att->path = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (att->path == NULL) {
-			warnx("Cannot parse attachment path");
+		if (att->path == NULL)
 			goto error;
-		}
 	}
 
 	/* Replace Windows directory separators, if any */
@@ -80,29 +78,23 @@ sbk_add_attachment(struct sbk_message *msg, jsmntok_t *tokens)
 	idx = sbk_jsmn_get_string(msg->json, tokens, "fileName");
 	if (idx != -1) {
 		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
-		if (att->filename == NULL) {
-			warnx("Cannot parse attachment fileName");
+		if (att->filename == NULL)
 			goto error;
-		}
 	}
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "contentType");
 	if (idx != -1) {
 		att->content_type = sbk_jsmn_parse_string(msg->json,
 		    &tokens[idx]);
-		if (att->content_type == NULL) {
-			warnx("Cannot parse attachment contentType");
+		if (att->content_type == NULL)
 			goto error;
-		}
 	}
 
 	idx = sbk_jsmn_get_number(msg->json, tokens, "size");
 	if (idx != -1) {
 		if (sbk_jsmn_parse_uint64(&att->size, msg->json, &tokens[idx])
-		    == -1) {
-			warnx("Cannot parse attachment size");
+		    == -1)
 			goto error;
-		}
 	}
 
 	att->time_sent = msg->time_sent;
@@ -141,10 +133,8 @@ sbk_parse_attachment_json(struct sbk_message *msg, jsmntok_t *tokens)
 			goto error;
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
-		if (size == -1) {
-			warnx("Cannot parse attachment JSON data");
+		if (size == -1)
 			goto error;
-		}
 		idx += size;
 	}
 
