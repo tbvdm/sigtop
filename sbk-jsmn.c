@@ -218,18 +218,6 @@ sbk_jsmn_get_number_or_string(const char *json, const jsmntok_t *tokens,
 	return -1;
 }
 
-char *
-sbk_jsmn_strdup(const char *json, const jsmntok_t *token)
-{
-	char *str;
-
-	str = strndup(json + token->start, token->end - token->start);
-	if (str == NULL)
-		warn(NULL);
-
-	return str;
-}
-
 /* Auxiliary function for sbk_jsmn_parse_unicode_escape() */
 static int
 sbk_jsmn_parse_hex(uint16_t *u, const char *s)
@@ -396,12 +384,17 @@ sbk_jsmn_parse_string(const char *json, const jsmntok_t *token)
 {
 	char *s;
 
-	if ((s = sbk_jsmn_strdup(json, token)) == NULL)
+	s = strndup(json + token->start, token->end - token->start);
+	if (s == NULL) {
+		warn(NULL);
 		return NULL;
+	}
+
 	if (sbk_jsmn_unescape(s) == NULL) {
 		free(s);
 		return NULL;
 	}
+
 	return s;
 }
 

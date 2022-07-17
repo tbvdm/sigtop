@@ -54,7 +54,7 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_string(msg->json, tokens, "mentionUuid");
 	if (idx != -1) {
-		uuid = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+		uuid = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (uuid == NULL)
 			goto error;
 

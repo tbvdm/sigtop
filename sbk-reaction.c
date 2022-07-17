@@ -82,7 +82,7 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	id = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+	id = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 	if (id == NULL)
 		goto error;
 
@@ -107,7 +107,7 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	rct->emoji = sbk_jsmn_strdup(msg->json, &tokens[idx]);
+	rct->emoji = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 	if (rct->emoji == NULL)
 		goto error;
 
