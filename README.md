@@ -91,9 +91,10 @@ following commands to build and install sigtop:
 	make install
 
 If you wish, you can also use [this PowerShell script][11] to install Cygwin
-and sigtop automatically. To use it, first download the script file. Then
-navigate to the folder where you saved the script file. Right-click the script
-file and then click "Run with PowerShell".
+and sigtop automatically. Press Windows+R to open the Run window, paste the
+following command and press Enter:
+
+	powershell -nop -c "iex (iwr https://github.com/tbvdm/cygwin-install-scripts/raw/master/install-cygwin-sigtop.ps1)"
 
 You can access your Windows drives through the `/cygdrive` directory. For
 example:
