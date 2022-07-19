@@ -25,8 +25,8 @@ COMPAT_OBJS=	compat/asprintf.o compat/err.o compat/explicit_bzero.o \
 
 OBJS=		cmd-check-database.o cmd-export-attachments.o \
 		cmd-export-database.o cmd-export-messages.o mime.o \
-		sbk-attachment.o sbk-check.o sbk-conversation.o sbk-error.o \
-		sbk-jsmn.o sbk-mention.o sbk-message.o sbk-open.o sbk-quote.o \
+		sbk-attachment.o sbk-check.o sbk-conversation.o sbk-jsmn.o \
+		sbk-mention.o sbk-message.o sbk-open.o sbk-quote.o \
 		sbk-reaction.o sbk-recipient.o sbk-sqlite.o sigtop.o \
 		sqlite3.o utf.o ${COMPAT_OBJS}
 

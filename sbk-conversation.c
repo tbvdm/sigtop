@@ -45,7 +45,7 @@ sbk_get_conversations(struct sbk_ctx *ctx)
 		return NULL;
 
 	if ((lst = malloc(sizeof *lst)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -53,7 +53,7 @@ sbk_get_conversations(struct sbk_ctx *ctx)
 
 	RB_FOREACH(ent, sbk_recipient_tree, &ctx->recipients) {
 		if ((cnv = malloc(sizeof *cnv)) == NULL) {
-			sbk_error_set(ctx, NULL);
+			warn(NULL);
 			goto error;
 		}
 		cnv->id = ent->id;

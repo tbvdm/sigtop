@@ -31,8 +31,7 @@
 	"m.type, "							\
 	"m.body, "							\
 	"m.json, "							\
-	"m.sent_at, "							\
-	"m.received_at "						\
+	"m.sent_at "							\
 	"FROM messages AS m "
 
 /* For database versions >= 20 */
@@ -43,8 +42,7 @@
 	"m.type, "							\
 	"m.body, "							\
 	"m.json, "							\
-	"m.sent_at, "							\
-	"m.received_at "						\
+	"m.sent_at "							\
 	"FROM messages AS m "						\
 	"LEFT JOIN conversations AS c "					\
 	"ON m.sourceUuid = c.uuid "
@@ -113,7 +111,6 @@
 #define SBK_COLUMN_BODY			3
 #define SBK_COLUMN_JSON			4
 #define SBK_COLUMN_SENT_AT		5
-#define SBK_COLUMN_RECEIVED_AT		6
 
 static void
 sbk_free_message(struct sbk_message *msg)
@@ -155,19 +152,48 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 
 	if (sbk_jsmn_parse(msg->json, strlen(msg->json), tokens,
 	    nitems(tokens)) == -1) {
-		sbk_error_setx(ctx, "Cannot parse message JSON data");
+		warnx("Cannot parse message JSON data");
 		return -1;
 	}
 
 	if (tokens[0].type != JSMN_OBJECT) {
-		sbk_error_setx(ctx, "Unexpected message JSON type");
+		warnx("Unexpected message JSON type");
 		return -1;
 	}
 
+	/*
+	 * Get received time
+	 *
+	 * For older messages, the received time is stored in the "received_at"
+	 * attribute. For newer messages, it is in the "received_at_ms"
+	 * attribute (and the "received_at" attribute was changed to store a
+	 * counter). See Signal-Desktop commit
+	 * d82ce079421c3fa08a0920a90b7abc19b1bb0e59.
+	 */
+
+	idx = sbk_jsmn_get_number(msg->json, tokens, "received_at_ms");
+	if (idx == -1)
+		idx = sbk_jsmn_get_number(msg->json, tokens, "received_at");
+	if (idx != -1) {
+		if (sbk_jsmn_parse_uint64(&msg->time_recv, msg->json,
+		    &tokens[idx]) == -1) {
+			warnx("Cannot parse message received time");
+			return -1;
+		}
+	}
+
+	/*
+	 * Get attachments
+	 */
+
 	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
 	if (idx != -1 &&
-	    sbk_parse_attachment_json(ctx, msg, &tokens[idx]) == -1)
+	    sbk_parse_attachment_json(msg, &tokens[idx]) == -1)
 		return -1;
+
+	/*
+	 * Get mentions
+	 */
 
 	idx = sbk_jsmn_get_array(msg->json, tokens, "bodyRanges");
 	if (idx != -1 &&
@@ -175,10 +201,18 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	    -1)
 		return -1;
 
+	/*
+	 * Get reactions
+	 */
+
 	idx = sbk_jsmn_get_array(msg->json, tokens, "reactions");
 	if (idx != -1 &&
 	    sbk_parse_reaction_json(ctx, msg, &tokens[idx]) == -1)
 		return -1;
+
+	/*
+	 * Get quote
+	 */
 
 	idx = sbk_jsmn_get_object(msg->json, tokens, "quote");
 	if (idx != -1 &&
@@ -195,22 +229,21 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	const unsigned char	*id;
 
 	if ((msg = calloc(1, sizeof *msg)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		return NULL;
 	}
 
 	if ((id = sqlite3_column_text(stm, SBK_COLUMN_CONVERSATIONID)) ==
 	    NULL) {
 		/* Likely message with error */
-		sbk_warnx(ctx, "Conversation recipient has null id");
+		warnx("Conversation recipient has null id");
 		msg->conversation = NULL;
 	} else {
 		if (sbk_get_recipient_from_conversation_id(ctx,
 		    &msg->conversation, (const char *)id) == -1)
 			goto error;
 		if (msg->conversation == NULL)
-			sbk_warnx(ctx,
-			    "Cannot find conversation recipient for id %s",
+			warnx("Cannot find conversation recipient for id %s",
 			    id);
 	}
 
@@ -221,8 +254,7 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		    (const char *)id) == -1)
 			goto error;
 		if (msg->source == NULL)
-			sbk_warnx(ctx,
-			    "Cannot find source recipient for id %s", id);
+			warnx("Cannot find source recipient for id %s", id);
 	}
 
 	if (sbk_sqlite_column_text_copy(ctx, &msg->type, stm, SBK_COLUMN_TYPE)
@@ -238,12 +270,11 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 		goto error;
 
 	msg->time_sent = sqlite3_column_int64(stm, SBK_COLUMN_SENT_AT);
-	msg->time_recv = sqlite3_column_int64(stm, SBK_COLUMN_RECEIVED_AT);
 
 	if (sbk_parse_message_json(ctx, msg) == -1)
 		goto error;
 
-	if (sbk_insert_mentions(ctx, &msg->text, msg->mentions) == -1)
+	if (sbk_insert_mentions(&msg->text, msg->mentions) == -1)
 		goto error;
 
 	return msg;
@@ -261,13 +292,13 @@ sbk_get_message_list(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	int			 ret;
 
 	if ((lst = malloc(sizeof *lst)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
 	SIMPLEQ_INIT(lst);
 
-	while ((ret = sbk_sqlite_step(ctx, ctx->db, stm)) == SQLITE_ROW) {
+	while ((ret = sbk_sqlite_step(ctx->db, stm)) == SQLITE_ROW) {
 		if ((msg = sbk_get_message(ctx, stm)) == NULL)
 			goto error;
 		SIMPLEQ_INSERT_TAIL(lst, msg, entries);
@@ -296,10 +327,10 @@ sbk_get_messages(struct sbk_ctx *ctx, struct sbk_conversation *cnv)
 	else
 		query = SBK_QUERY_20;
 
-	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
+	if (sbk_sqlite_prepare(ctx->db, &stm, query) == -1)
 		return NULL;
 
-	if (sbk_sqlite_bind_text(ctx, ctx->db, stm, 1, cnv->id) == -1) {
+	if (sbk_sqlite_bind_text(ctx->db, stm, 1, cnv->id) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
@@ -319,15 +350,15 @@ sbk_get_messages_sent_after(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
 	else
 		query = SBK_QUERY_SENT_AFTER_20;
 
-	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
+	if (sbk_sqlite_prepare(ctx->db, &stm, query) == -1)
 		return NULL;
 
-	if (sbk_sqlite_bind_text(ctx, ctx->db, stm, 1, cnv->id) == -1) {
+	if (sbk_sqlite_bind_text(ctx->db, stm, 1, cnv->id) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
 
-	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 2, min) == -1) {
+	if (sbk_sqlite_bind_time(ctx->db, stm, 2, min) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
@@ -347,15 +378,15 @@ sbk_get_messages_sent_before(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
 	else
 		query = SBK_QUERY_SENT_BEFORE_20;
 
-	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
+	if (sbk_sqlite_prepare(ctx->db, &stm, query) == -1)
 		return NULL;
 
-	if (sbk_sqlite_bind_text(ctx, ctx->db, stm, 1, cnv->id) == -1) {
+	if (sbk_sqlite_bind_text(ctx->db, stm, 1, cnv->id) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
 
-	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 2, max) == -1) {
+	if (sbk_sqlite_bind_time(ctx->db, stm, 2, max) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
@@ -375,20 +406,20 @@ sbk_get_messages_sent_between(struct sbk_ctx *ctx,
 	else
 		query = SBK_QUERY_SENT_BETWEEN_20;
 
-	if (sbk_sqlite_prepare(ctx, ctx->db, &stm, query) == -1)
+	if (sbk_sqlite_prepare(ctx->db, &stm, query) == -1)
 		return NULL;
 
-	if (sbk_sqlite_bind_text(ctx, ctx->db, stm, 1, cnv->id) == -1) {
+	if (sbk_sqlite_bind_text(ctx->db, stm, 1, cnv->id) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
 
-	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 2, min) == -1) {
+	if (sbk_sqlite_bind_time(ctx->db, stm, 2, min) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
 
-	if (sbk_sqlite_bind_time(ctx, ctx->db, stm, 3, max) == -1) {
+	if (sbk_sqlite_bind_time(ctx->db, stm, 3, max) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}

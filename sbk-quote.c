@@ -36,14 +36,14 @@ sbk_free_quote(struct sbk_quote *qte)
 }
 
 static int
-sbk_add_quote_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
-    struct sbk_quote *qte, jsmntok_t *tokens)
+sbk_add_quote_attachment(struct sbk_message *msg, struct sbk_quote *qte,
+    jsmntok_t *tokens)
 {
 	struct sbk_attachment	*att;
 	int			 idx;
 
 	if ((att = calloc(1, sizeof *att)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -51,8 +51,7 @@ sbk_add_quote_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		att->filename = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (att->filename == NULL) {
-			sbk_error_setx(ctx, "Cannot parse quote attachment "
-			    "fileName");
+			warnx("Cannot parse quote attachment fileName");
 			goto error;
 		}
 	}
@@ -62,8 +61,7 @@ sbk_add_quote_attachment(struct sbk_ctx *ctx, struct sbk_message *msg,
 		att->content_type = sbk_jsmn_parse_string(msg->json,
 		    &tokens[idx]);
 		if (att->content_type == NULL) {
-			sbk_error_setx(ctx, "Cannot parse quote attachment "
-			    "contentType");
+			warnx("Cannot parse quote attachment contentType");
 			goto error;
 		}
 	}
@@ -85,8 +83,8 @@ error:
 }
 
 static int
-sbk_parse_quote_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
-    struct sbk_quote *qte, jsmntok_t *tokens)
+sbk_parse_quote_attachment_json(struct sbk_message *msg, struct sbk_quote *qte,
+    jsmntok_t *tokens)
 {
 	int i, idx, size;
 
@@ -95,7 +93,7 @@ sbk_parse_quote_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	qte->attachments = malloc(sizeof *qte->attachments);
 	if (qte->attachments == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
@@ -104,18 +102,15 @@ sbk_parse_quote_attachment_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
 		if (tokens[idx].type != JSMN_OBJECT) {
-			sbk_error_setx(ctx, "Unexpected quote attachment JSON "
-			    "type");
+			warnx("Unexpected quote attachment JSON type");
 			goto error;
 		}
-		if (sbk_add_quote_attachment(ctx, msg, qte, &tokens[idx]) ==
-		    -1)
+		if (sbk_add_quote_attachment(msg, qte, &tokens[idx]) == -1)
 			goto error;
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
 		if (size == -1) {
-			sbk_error_setx(ctx, "Cannot parse quote attachment "
-			    "JSON data");
+			warnx("Cannot parse quote attachment JSON data");
 			goto error;
 		}
 		idx += size;
@@ -138,25 +133,26 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	int			 idx;
 
 	if ((qte = calloc(1, sizeof *qte)) == NULL) {
-		sbk_error_set(ctx, NULL);
+		warn(NULL);
 		goto error;
 	}
 
 	/*
 	 * Get id
 	 *
-	 * The id usually is a JSON number, but in at least one case it was a
-	 * JSON string.
+	 * The id is a JSON number now, but apparently it used to be a JSON
+	 * string. See GitHub issue 9 and Signal-Desktop commit
+	 * ddbbe3a6b1b725007597536a39651ae845366920.
 	 */
 
 	idx = sbk_jsmn_get_number_or_string(msg->json, tokens, "id");
 	if (idx == -1) {
-		sbk_error_setx(ctx, "Missing quote id");
+		warnx("Missing quote id");
 		goto error;
 	}
 
 	if (sbk_jsmn_parse_uint64(&qte->id, msg->json, &tokens[idx]) == -1) {
-		sbk_error_setx(ctx, "Cannot parse quote id");
+		warnx("Cannot parse quote id");
 		goto error;
 	}
 
@@ -171,7 +167,7 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		author = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (author == NULL) {
-			sbk_error_setx(ctx, "Cannot parse quote authorUuid");
+			warnx("Cannot parse quote authorUuid");
 			goto error;
 		}
 
@@ -183,14 +179,13 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	} else {
 		idx = sbk_jsmn_get_string(msg->json, tokens, "author");
 		if (idx == -1) {
-			sbk_error_setx(ctx, "Missing author and authorUuid in "
-			    "quote");
+			warnx("Missing author and authorUuid in quote");
 			goto error;
 		}
 
 		author = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (author == NULL) {
-			sbk_error_setx(ctx, "Cannot parse quote author");
+			warnx("Cannot parse quote author");
 			goto error;
 		}
 
@@ -211,7 +206,7 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (idx != -1) {
 		qte->text = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
 		if (qte->text == NULL) {
-			sbk_error_setx(ctx, "Cannot parse quote text");
+			warnx("Cannot parse quote text");
 			goto error;
 		}
 	}
@@ -222,7 +217,7 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 
 	idx = sbk_jsmn_get_array(msg->json, tokens, "attachments");
 	if (idx != -1 &&
-	    sbk_parse_quote_attachment_json(ctx, msg, qte, &tokens[idx]) == -1)
+	    sbk_parse_quote_attachment_json(msg, qte, &tokens[idx]) == -1)
 		goto error;
 
 	/*
@@ -235,7 +230,7 @@ sbk_parse_quote_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 	    -1)
 		return -1;
 
-	if (sbk_insert_mentions(ctx, &qte->text, qte->mentions) == -1)
+	if (sbk_insert_mentions(&qte->text, qte->mentions) == -1)
 		goto error;
 
 	msg->quote = qte;
