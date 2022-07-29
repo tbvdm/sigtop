@@ -75,7 +75,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: run vm
-      uses: vmactions/freebsd-vm@v0.1.5
+      uses: vmactions/freebsd-vm@v0
       with:
         usesh: true
         prepare: pkg install -y pkgconf ${{ matrix.ssl }}
@@ -95,7 +95,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: run vm
-      uses: vmactions/solaris-vm@v0.0.3
+      uses: vmactions/solaris-vm@v0
       with:
         prepare: pkgutil -iy gcc5core gmake libssl_dev pkgconfig
         run: |
