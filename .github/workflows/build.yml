@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.15, macos-11, macos-12]
+        os: [macos-11, macos-12]
         ssl: [libressl, openssl@1.1, openssl@3]
 
     runs-on: ${{ matrix.os }}
@@ -68,7 +68,7 @@ jobs:
       matrix:
         ssl: [libressl, openssl]
 
-    runs-on: macos-10.15
+    runs-on: macos-12
 
     steps:
     - name: checkout
@@ -88,7 +88,7 @@ jobs:
 
   # https://github.com/vmactions/solaris-vm
   solaris:
-    runs-on: macos-10.15
+    runs-on: macos-12
 
     steps:
     - name: checkout
