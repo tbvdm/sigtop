@@ -78,7 +78,9 @@ jobs:
       uses: vmactions/dragonflybsd-vm@v0
       with:
         usesh: true
-        prepare: pkg install -y pkgconf ${{ matrix.ssl }}
+        prepare: |
+          pkg upgrade -y
+          pkg install -y pkgconf ${{ matrix.ssl }}
         run: |
           uname -a
           make
@@ -103,7 +105,9 @@ jobs:
       uses: vmactions/freebsd-vm@v0
       with:
         usesh: true
-        prepare: pkg install -y pkgconf ${{ matrix.ssl }}
+        prepare: |
+          pkg upgrade -y
+          pkg install -y pkgconf ${{ matrix.ssl }}
         run: |
           uname -a
           make
