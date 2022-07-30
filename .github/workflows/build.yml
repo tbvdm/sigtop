@@ -63,11 +63,6 @@ jobs:
 
   # https://github.com/vmactions/dragonflybsd-vm
   dragonfly:
-    strategy:
-      fail-fast: false
-      matrix:
-        ssl: [libressl, openssl]
-
     runs-on: macos-12
 
     steps:
@@ -78,9 +73,7 @@ jobs:
       uses: vmactions/dragonflybsd-vm@v0
       with:
         usesh: true
-        prepare: |
-          pkg upgrade -y
-          pkg install -y pkgconf ${{ matrix.ssl }}
+        prepare: pkg install -y openssl pkgconf
         run: |
           uname -a
           make
@@ -105,9 +98,7 @@ jobs:
       uses: vmactions/freebsd-vm@v0
       with:
         usesh: true
-        prepare: |
-          pkg upgrade -y
-          pkg install -y pkgconf ${{ matrix.ssl }}
+        prepare: pkg install -y pkgconf ${{ matrix.ssl }}
         run: |
           uname -a
           make
