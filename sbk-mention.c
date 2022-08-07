@@ -27,8 +27,8 @@ sbk_free_mention_list(struct sbk_mention_list *lst)
 	struct sbk_mention *mnt;
 
 	if (lst != NULL) {
-		while ((mnt = SIMPLEQ_FIRST(lst)) != NULL) {
-			SIMPLEQ_REMOVE_HEAD(lst, entries);
+		while ((mnt = TAILQ_FIRST(lst)) != NULL) {
+			TAILQ_REMOVE(lst, mnt, entries);
 			free(mnt);
 		}
 		free(lst);
@@ -39,7 +39,7 @@ static int
 sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
     struct sbk_mention_list *lst, jsmntok_t *tokens)
 {
-	struct sbk_mention	*mnt;
+	struct sbk_mention	*lst_mnt, *mnt;
 	char			*uuid;
 	int			 idx;
 
@@ -92,7 +92,20 @@ sbk_add_mention(struct sbk_ctx *ctx, struct sbk_message *msg,
 	if (sbk_jsmn_parse_uint64(&mnt->length, msg->json, &tokens[idx]) == -1)
 		goto error;
 
-	SIMPLEQ_INSERT_TAIL(lst, mnt, entries);
+	/*
+	 * Insert the mention in order. It seems the mentions usually are
+	 * already properly ordered, so, as an optimisation, traverse the list
+	 * in reverse direction.
+	 */
+
+	TAILQ_FOREACH_REVERSE(lst_mnt, lst, sbk_mention_list, entries)
+		if (lst_mnt->start < mnt->start) {
+			TAILQ_INSERT_AFTER(lst, lst_mnt, mnt, entries);
+			break;
+		}
+	if (lst_mnt == NULL)
+		TAILQ_INSERT_HEAD(lst, mnt, entries);
+
 	return 0;
 
 error:
@@ -115,7 +128,7 @@ sbk_parse_mention_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	SIMPLEQ_INIT(*lst);
+	TAILQ_INIT(*lst);
 
 	idx = 1;
 	for (i = 0; i < tokens[0].size; i++) {
@@ -151,15 +164,15 @@ sbk_insert_mentions(char **text, struct sbk_mention_list *lst)
 
 	new_text = NULL;
 
-	if (*text == NULL || lst == NULL || SIMPLEQ_EMPTY(lst))
+	if (*text == NULL || lst == NULL || TAILQ_EMPTY(lst))
 		return 0;
 
 	/*
 	 * Ensure the mentions are properly ordered and don't overlap. We
 	 * depend on this when we write the new text.
 	 */
-	mnt = SIMPLEQ_FIRST(lst);
-	while ((next_mnt = SIMPLEQ_NEXT(mnt, entries)) != NULL) {
+	mnt = TAILQ_FIRST(lst);
+	while ((next_mnt = TAILQ_NEXT(mnt, entries)) != NULL) {
 		if (next_mnt->start < mnt->start + mnt->length)
 			goto invalid;
 		mnt = next_mnt;
@@ -173,7 +186,7 @@ sbk_insert_mentions(char **text, struct sbk_mention_list *lst)
 	old_text_len = strlen(old_text);
 	new_text_len = old_text_len;
 
-	SIMPLEQ_FOREACH(mnt, lst, entries) {
+	TAILQ_FOREACH(mnt, lst, entries) {
 		/* Convert character counts to byte counts */
 		mnt->start = utf8_get_substring_length(
 		    (unsigned char *)old_text, mnt->start);
@@ -208,7 +221,7 @@ sbk_insert_mentions(char **text, struct sbk_mention_list *lst)
 	 */
 
 	old_off = new_off = 0;
-	SIMPLEQ_FOREACH(mnt, lst, entries) {
+	TAILQ_FOREACH(mnt, lst, entries) {
 		/* Copy text preceding mention */
 		copy_len = mnt->start - old_off;
 		memcpy(new_text + new_off, old_text + old_off, copy_len);

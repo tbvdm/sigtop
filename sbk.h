@@ -74,10 +74,10 @@ struct sbk_mention {
 	struct sbk_recipient *recipient;
 	uint64_t	 start;
 	uint64_t	 length;
-	SIMPLEQ_ENTRY(sbk_mention) entries;
+	TAILQ_ENTRY(sbk_mention) entries;
 };
 
-SIMPLEQ_HEAD(sbk_mention_list, sbk_mention);
+TAILQ_HEAD(sbk_mention_list, sbk_mention);
 
 struct sbk_reaction {
 	struct sbk_recipient *recipient;
