@@ -84,11 +84,9 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	id = sbk_jsmn_strdup(msg->json, &tokens[idx]);
-	if (id == NULL) {
-		warn(NULL);
+	id = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
+	if (id == NULL)
 		goto error;
-	}
 
 	ret = sbk_get_recipient_from_reaction_id(ctx, &rct->recipient, id);
 	if (ret == -1) {
@@ -111,11 +109,9 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 		goto error;
 	}
 
-	rct->emoji = sbk_jsmn_strdup(msg->json, &tokens[idx]);
-	if (rct->emoji == NULL) {
-		warn(NULL);
+	rct->emoji = sbk_jsmn_parse_string(msg->json, &tokens[idx]);
+	if (rct->emoji == NULL)
 		goto error;
-	}
 
 	/*
 	 * Get sent time
@@ -128,10 +124,8 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 	}
 
 	if (sbk_jsmn_parse_uint64(&rct->time_sent, msg->json, &tokens[idx]) ==
-	    -1) {
-		warnx("Cannot parse reaction targetTimestamp");
+	    -1)
 		goto error;
-	}
 
 	/*
 	 * Get received time
@@ -144,10 +138,8 @@ sbk_add_reaction(struct sbk_ctx *ctx, struct sbk_message *msg,
 	}
 
 	if (sbk_jsmn_parse_uint64(&rct->time_recv, msg->json, &tokens[idx]) ==
-	    -1) {
-		warnx("Cannot parse reaction timestamp");
+	    -1)
 		goto error;
-	}
 
 	SIMPLEQ_INSERT_TAIL(msg->reactions, rct, entries);
 	return 0;
@@ -184,10 +176,8 @@ sbk_parse_reaction_json(struct sbk_ctx *ctx, struct sbk_message *msg,
 			goto error;
 		/* Skip to next element in array */
 		size = sbk_jsmn_get_total_token_size(&tokens[idx]);
-		if (size == -1) {
-			warnx("Cannot parse reaction JSON data");
+		if (size == -1)
 			goto error;
-		}
 		idx += size;
 	}
 

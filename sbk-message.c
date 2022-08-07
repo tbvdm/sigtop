@@ -151,10 +151,8 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 		return 0;
 
 	if (sbk_jsmn_parse(msg->json, strlen(msg->json), tokens,
-	    nitems(tokens)) == -1) {
-		warnx("Cannot parse message JSON data");
+	    nitems(tokens)) == -1)
 		return -1;
-	}
 
 	if (tokens[0].type != JSMN_OBJECT) {
 		warnx("Unexpected message JSON type");
@@ -176,10 +174,8 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 		idx = sbk_jsmn_get_number(msg->json, tokens, "received_at");
 	if (idx != -1) {
 		if (sbk_jsmn_parse_uint64(&msg->time_recv, msg->json,
-		    &tokens[idx]) == -1) {
-			warnx("Cannot parse message received time");
+		    &tokens[idx]) == -1)
 			return -1;
-		}
 	}
 
 	/*

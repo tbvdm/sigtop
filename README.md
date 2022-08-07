@@ -75,12 +75,13 @@ If you prefer to build sigtop manually, run the following commands instead:
 Building on Windows
 -------------------
 
-To build sigtop on Windows, first install [Cygwin][9]. See the [Cygwin User's
-Guide][10] if you need help.
-
-You will be able to select additional packages for installation. Ensure the
+To build sigtop on Windows, first install [Cygwin][9]. During the installation,
+you will be given the opportunity to install additional packages. Ensure the
 `gcc-core`, `git`, `libssl-devel`, `make` and `pkg-config` packages are
 installed.
+
+The [Cygwin User's Guide][10] might be useful if you need help with the
+installation.
 
 After the installation has completed, start the Cygwin terminal. Then run the
 following commands to build and install sigtop:
@@ -90,13 +91,14 @@ following commands to build and install sigtop:
 	git checkout portable
 	make install
 
-If you wish, you can also use [this PowerShell script][11] to install Cygwin
-and sigtop automatically. To use it, first download the script file. Then
-navigate to the folder where you saved the script file. Right-click the script
-file and then click "Run with PowerShell".
+If you prefer, you can use [this PowerShell script][11] to install Cygwin and
+sigtop automatically. Press Windows+R to open the Run window, paste the
+following command and press Enter:
 
-You can access your Windows drives through the `/cygdrive` directory. For
-example:
+	powershell -nop -c "iex (iwr https://github.com/tbvdm/cygwin-install-scripts/raw/master/install-cygwin-sigtop.ps1)"
+
+In the Cygwin terminal, you can access your Windows drives through the
+`/cygdrive` directory. For example:
 
 	sigtop export-messages /cygdrive/c/Users/Alice/Documents/messages
 

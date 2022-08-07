@@ -32,11 +32,27 @@ sbk_jsmn_parse(const char *json, size_t jsonlen, jsmntok_t *tokens,
     size_t ntokens)
 {
 	jsmn_parser	parser;
-	int		len;
+	int		ret;
 
 	jsmn_init(&parser);
-	len = jsmn_parse(&parser, json, jsonlen, tokens, ntokens);
-	return (len <= 0) ? -1 : len;
+	ret = jsmn_parse(&parser, json, jsonlen, tokens, ntokens);
+	if (ret < 0) {
+		switch (ret) {
+		case JSMN_ERROR_NOMEM:
+			warnx("Not enough tokens to parse JSON");
+			break;
+		case JSMN_ERROR_INVAL:
+		case JSMN_ERROR_PART:
+			warnx("Invalid JSON data");
+			break;
+		default:
+			warnx("Unexpected JSON parse error");
+			break;
+		}
+		return -1;
+	}
+
+	return 0;
 }
 
 static int
@@ -67,8 +83,10 @@ sbk_jsmn_get_total_token_size(const jsmntok_t *tokens)
 	switch (tokens[0].type) {
 	case JSMN_OBJECT:
 		for (i = 0; i < tokens[0].size; i++) {
-			if (!sbk_jsmn_is_valid_key(&tokens[idx]))
+			if (!sbk_jsmn_is_valid_key(&tokens[idx])) {
+				warnx("Invalid JSON key");
 				return -1;
+			}
 			size = sbk_jsmn_get_total_token_size(&tokens[++idx]);
 			if (size == -1)
 				return -1;
@@ -85,10 +103,13 @@ sbk_jsmn_get_total_token_size(const jsmntok_t *tokens)
 		break;
 	case JSMN_STRING:
 	case JSMN_PRIMITIVE:
-		if (tokens[0].size != 0)
+		if (tokens[0].size != 0) {
+			warnx("Invalid JSON data");
 			return -1;
+		}
 		break;
 	case JSMN_UNDEFINED:
+		warnx("Invalid JSON data");
 		return -1;
 	}
 
@@ -199,12 +220,6 @@ sbk_jsmn_get_number_or_string(const char *json, const jsmntok_t *tokens,
 	return -1;
 }
 
-char *
-sbk_jsmn_strdup(const char *json, const jsmntok_t *token)
-{
-	return strndup(json + token->start, token->end - token->start);
-}
-
 /* Auxiliary function for sbk_jsmn_parse_unicode_escape() */
 static int
 sbk_jsmn_parse_hex(uint16_t *u, const char *s)
@@ -241,7 +256,7 @@ sbk_jsmn_parse_unicode_escape(char **r, char **w)
 
 	/* Parse the four hexadecimal digits that should follow. */
 	if (sbk_jsmn_parse_hex(&utf16[0], *r) == -1)
-		return -1;
+		goto error;
 	*r += 4;
 
 	if (!utf16_is_high_surrogate(utf16[0])) {
@@ -269,7 +284,7 @@ sbk_jsmn_parse_unicode_escape(char **r, char **w)
 
 	/* Parse the four hexadecimal digits of the second \u escape. */
 	if (sbk_jsmn_parse_hex(&utf16[1], *r + 2) == -1)
-		return -1;
+		goto error;
 
 	if (!utf16_is_low_surrogate(utf16[1])) {
 		/*
@@ -294,10 +309,14 @@ sbk_jsmn_parse_unicode_escape(char **r, char **w)
 finish:
 	/* Write the UTF-8 encoding of the code point. */
 	if ((len = utf8_encode((uint8_t *)*w, cp)) == 0)
-		return -1;
+		goto error;
 	*w += len;
 
 	return 0;
+
+error:
+	warnx("Invalid \\u escape in JSON string");
+	return -1;
 }
 
 static int
@@ -367,12 +386,17 @@ sbk_jsmn_parse_string(const char *json, const jsmntok_t *token)
 {
 	char *s;
 
-	if ((s = sbk_jsmn_strdup(json, token)) == NULL)
+	s = strndup(json + token->start, token->end - token->start);
+	if (s == NULL) {
+		warn(NULL);
 		return NULL;
+	}
+
 	if (sbk_jsmn_unescape(s) == NULL) {
 		free(s);
 		return NULL;
 	}
+
 	return s;
 }
 
@@ -386,13 +410,17 @@ sbk_jsmn_parse_uint64(uint64_t *val, const char *json, const jsmntok_t *token)
 	num = strtoull(json + token->start, &end, 10);
 
 	if (errno != 0 || end != json + token->end)
-		return -1;
+		goto invalid;
 
 #if ULLONG_MAX > UINT64_MAX
 	if (num > UINT64_MAX)
-		return -1;
+		goto invalid;
 #endif
 
 	*val = num;
 	return 0;
+
+invalid:
+	warnx("Invalid JSON number");
+	return -1;
 }

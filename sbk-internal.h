@@ -63,7 +63,6 @@ int	 sbk_jsmn_get_string(const char *, const jsmntok_t *, const char *);
 int	 sbk_jsmn_get_number(const char *, const jsmntok_t *, const char *);
 int	 sbk_jsmn_get_number_or_string(const char *, const jsmntok_t *,
 	    const char *);
-char	*sbk_jsmn_strdup(const char *, const jsmntok_t *);
 char	*sbk_jsmn_parse_string(const char *, const jsmntok_t *);
 int	 sbk_jsmn_parse_uint64(uint64_t *, const char *, const jsmntok_t *);
 
