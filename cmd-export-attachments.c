@@ -194,7 +194,7 @@ copy_attachment(const char *src, int dfd, const char *dst)
 				warn("write: %s", dst);
 				goto out;
 			}
-	if (nr < 0) {
+	if (nr == -1) {
 		warn("read: %s", src);
 		goto out;
 	}
