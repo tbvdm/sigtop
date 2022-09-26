@@ -24,9 +24,9 @@ On OpenBSD, sigtop additionally depends on [SQLCipher][6].
 Building
 --------
 
-sigtop should build on most Unix systems. This section contains generic build
-instructions. See the sections below for build instructions for specific
-systems.
+sigtop should build on most modern Unix-like systems. This section contains
+generic build instructions. See the sections below for build instructions for
+specific systems.
 
 First install all required packages (see the "Dependencies" section above). For
 example, on Debian or Ubuntu, run the following command:
@@ -107,10 +107,9 @@ Reporting problems
 
 Please report bugs and other problems with sigtop. If sigtop shows errors or
 warnings unexpectedly, please report them as well. You can [open an issue on
-GitHub][12] or send an email. You can find my email address at the top of the
-`sigtop.c` file.
+GitHub][12] or [send an email][13].
 
-[1]: https://www.kariliq.nl/sigbak/
+[1]: https://github.com/tbvdm/sigtop
 [2]: https://github.com/signalapp/Signal-Desktop
 [3]: https://www.kariliq.nl/man/sigtop.1.html
 [4]: https://www.libressl.org/
@@ -122,3 +121,4 @@ GitHub][12] or send an email. You can find my email address at the top of the
 [10]: https://cygwin.com/cygwin-ug-net/setup-net.html#internet-setup
 [11]: https://github.com/tbvdm/cygwin-install-scripts/raw/master/install-cygwin-sigtop.ps1
 [12]: https://github.com/tbvdm/sigtop/issues
+[13]: https://www.kariliq.nl/contact.html
