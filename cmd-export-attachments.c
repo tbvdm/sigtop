@@ -337,8 +337,10 @@ export_attachments(struct sbk_ctx *ctx, const char *dir, enum mode mode,
 		return -1;
 	}
 
-	if ((lst = sbk_get_conversations(ctx)) == NULL)
+	if ((lst = sbk_get_conversations(ctx)) == NULL) {
+		close(dfd);
 		return -1;
+	}
 
 	ret = 0;
 	SIMPLEQ_FOREACH(cnv, lst, entries)
