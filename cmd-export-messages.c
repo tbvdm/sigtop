@@ -155,6 +155,7 @@ text_write_quoted_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
 		    att->content_type : "unknown type");
 	}
 }
+
 static void
 text_write_quote(FILE *fp, struct sbk_quote *qte)
 {
