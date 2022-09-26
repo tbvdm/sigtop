@@ -161,7 +161,7 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	 * Get received time
 	 *
 	 * For older messages, the received time is stored in the "received_at"
-	 * attribute. For newer messages, it is in the "received_at_ms"
+	 * attribute. For newer messages, it is in the new "received_at_ms"
 	 * attribute (and the "received_at" attribute was changed to store a
 	 * counter). See Signal-Desktop commit
 	 * d82ce079421c3fa08a0920a90b7abc19b1bb0e59.
