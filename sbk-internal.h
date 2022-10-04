@@ -51,7 +51,6 @@ int	 sbk_sqlite_open(sqlite3 **, const char *, int);
 int	 sbk_sqlite_prepare(sqlite3 *, sqlite3_stmt **, const char *);
 int	 sbk_sqlite_bind_int64(sqlite3 *, sqlite3_stmt *, int, int64_t);
 int	 sbk_sqlite_bind_text(sqlite3 *, sqlite3_stmt *, int, const char *);
-int	 sbk_sqlite_bind_time(sqlite3 *, sqlite3_stmt *, int, time_t);
 int	 sbk_sqlite_step(sqlite3 *, sqlite3_stmt *);
 int	 sbk_sqlite_column_text_copy(struct sbk_ctx *, char **, sqlite3_stmt *,
 	    int);
