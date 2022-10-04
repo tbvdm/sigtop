@@ -168,6 +168,7 @@ text_write_quoted_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
 		    att->content_type : "unknown type");
 	}
 }
+
 static void
 text_write_quote(FILE *fp, struct sbk_quote *qte)
 {
@@ -333,8 +334,10 @@ export_messages(struct sbk_ctx *ctx, const char *dir, enum format format,
 		return -1;
 	}
 
-	if ((lst = sbk_get_conversations(ctx)) == NULL)
+	if ((lst = sbk_get_conversations(ctx)) == NULL) {
+		close(dfd);
 		return -1;
+	}
 
 	ret = 0;
 	SIMPLEQ_FOREACH(cnv, lst, entries)

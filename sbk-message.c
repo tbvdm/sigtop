@@ -163,7 +163,7 @@ sbk_parse_message_json(struct sbk_ctx *ctx, struct sbk_message *msg)
 	 * Get received time
 	 *
 	 * For older messages, the received time is stored in the "received_at"
-	 * attribute. For newer messages, it is in the "received_at_ms"
+	 * attribute. For newer messages, it is in the new "received_at_ms"
 	 * attribute (and the "received_at" attribute was changed to store a
 	 * counter). See Signal-Desktop commit
 	 * d82ce079421c3fa08a0920a90b7abc19b1bb0e59.
@@ -340,6 +340,7 @@ sbk_get_messages_sent_after(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
 {
 	sqlite3_stmt	*stm;
 	const char	*query;
+	int64_t		 min_msec;
 
 	if (ctx->db_version < 20)
 		query = SBK_QUERY_SENT_AFTER_8;
@@ -354,7 +355,9 @@ sbk_get_messages_sent_after(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
 		return NULL;
 	}
 
-	if (sbk_sqlite_bind_time(ctx->db, stm, 2, min) == -1) {
+	min_msec = (int64_t)min * 1000;
+
+	if (sbk_sqlite_bind_int64(ctx->db, stm, 2, min_msec) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
@@ -368,6 +371,7 @@ sbk_get_messages_sent_before(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
 {
 	sqlite3_stmt	*stm;
 	const char	*query;
+	int64_t		 max_msec;
 
 	if (ctx->db_version < 20)
 		query = SBK_QUERY_SENT_BEFORE_8;
@@ -382,7 +386,9 @@ sbk_get_messages_sent_before(struct sbk_ctx *ctx, struct sbk_conversation *cnv,
 		return NULL;
 	}
 
-	if (sbk_sqlite_bind_time(ctx->db, stm, 2, max) == -1) {
+	max_msec = (int64_t)max * 1000 + 999;
+
+	if (sbk_sqlite_bind_int64(ctx->db, stm, 2, max_msec) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
@@ -396,6 +402,7 @@ sbk_get_messages_sent_between(struct sbk_ctx *ctx,
 {
 	sqlite3_stmt	*stm;
 	const char	*query;
+	int64_t		 max_msec, min_msec;
 
 	if (ctx->db_version < 20)
 		query = SBK_QUERY_SENT_BETWEEN_8;
@@ -410,12 +417,15 @@ sbk_get_messages_sent_between(struct sbk_ctx *ctx,
 		return NULL;
 	}
 
-	if (sbk_sqlite_bind_time(ctx->db, stm, 2, min) == -1) {
+	min_msec = (int64_t)min * 1000;
+	max_msec = (int64_t)max * 1000 + 999;
+
+	if (sbk_sqlite_bind_int64(ctx->db, stm, 2, min_msec) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}
 
-	if (sbk_sqlite_bind_time(ctx->db, stm, 3, max) == -1) {
+	if (sbk_sqlite_bind_int64(ctx->db, stm, 3, max_msec) == -1) {
 		sqlite3_finalize(stm);
 		return NULL;
 	}

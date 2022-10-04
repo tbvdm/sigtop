@@ -96,15 +96,6 @@ sbk_sqlite_bind_text(sqlite3 *db, sqlite3_stmt *stm, int idx, const char *val)
 }
 
 int
-sbk_sqlite_bind_time(sqlite3 *db, sqlite3_stmt *stm, int idx, time_t val)
-{
-	int64_t msec;
-
-	msec = (int64_t)val * 1000;
-	return sbk_sqlite_bind_int64(db, stm, idx, msec);
-}
-
-int
 sbk_sqlite_step(sqlite3 *db, sqlite3_stmt *stm)
 {
 	int ret;
