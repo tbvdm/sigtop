@@ -118,7 +118,8 @@ int		 sbk_open(struct sbk_ctx **, const char *);
 void		 sbk_close(struct sbk_ctx *);
 const char	*sbk_error(struct sbk_ctx *);
 
-int		 sbk_check(struct sbk_ctx *, char ***);
+int		 sbk_check_database(struct sbk_ctx *, char ***);
+int		 sbk_write_database(struct sbk_ctx *, const char *);
 
 struct sbk_conversation_list *sbk_get_conversations(struct sbk_ctx *);
 void		 sbk_free_conversation_list(struct sbk_conversation_list *);
@@ -147,7 +148,5 @@ void		 sbk_free_message_list(struct sbk_message_list *);
 int		 sbk_is_outgoing_message(const struct sbk_message *);
 
 const char	*sbk_get_recipient_display_name(const struct sbk_recipient *);
-
-int		 sbk_write_database(struct sbk_ctx *, const char *);
 
 #endif

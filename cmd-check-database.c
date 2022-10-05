@@ -79,7 +79,7 @@ cmd_check_database(int argc, char **argv)
 	if (sbk_open(&ctx, signaldir) == -1)
 		goto error;
 
-	if ((n = sbk_check(ctx, &errors)) == -1)
+	if ((n = sbk_check_database(ctx, &errors)) == -1)
 		goto error;
 
 	if (n > 0) {
