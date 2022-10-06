@@ -52,7 +52,6 @@ int	 sbk_sqlite_column_text_copy(struct sbk_ctx *, char **, sqlite3_stmt *,
 int	 sbk_sqlite_exec(sqlite3 *, const char *);
 int	 sbk_sqlite_key(sqlite3 *, const char *);
 int	 sbk_get_database_version(struct sbk_ctx *);
-int	 sbk_set_database_version(sqlite3 *, const char *, int);
 
 int	 sbk_jsmn_parse(const char *, size_t, jsmntok_t *, size_t);
 int	 sbk_jsmn_get_total_token_size(const jsmntok_t *);
