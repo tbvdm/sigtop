@@ -156,8 +156,7 @@ sbk_sqlite_exec(sqlite3 *db, const char *sql)
 	char *errmsg;
 
 	if (sqlite3_exec(db, sql, NULL, NULL, &errmsg) != SQLITE_OK) {
-		sbk_sqlite_warn(db, "Cannot execute SQL statement: %s",
-		    errmsg);
+		warnx("Cannot execute SQL statement: %s", errmsg);
 		sqlite3_free(errmsg);
 		return -1;
 	}
