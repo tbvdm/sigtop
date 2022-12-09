@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd June 16, 2022
+.Dd December 9, 2022
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -136,28 +136,23 @@ Export messages.
 The messages are written to separate files, one for each conversation.
 These files are created in
 .Ar directory ,
-or to the current directory if
+or in the current directory if
 .Ar directory
 is not specified.
 .Pp
 The
 .Fl f
 option may be used to specify the output format.
-Supported values are
-.Cm json
-and
-.Cm text
-(the default).
-.Pp
-With the
-.Cm json
-format, messages are written in JSON format.
+The following output formats are supported:
+.Bl -tag -width Ds
+.It Cm json
+Messages are written in JSON format.
 The JSON data is copied directly from the Signal Desktop database, so its
 structure may differ between Signal Desktop versions.
-.Pp
-With the
-.Cm text
-format, messages are written as plain text.
+.It Cm text
+Messages are written as plain text.
+This is the default.
+.El
 .Pp
 By default, all messages are exported.
 The
@@ -219,10 +214,7 @@ at
 $ sigtop db -d /mnt/Users/Alice/AppData/Roaming/Signal signal.db
 .Ed
 .Sh SEE ALSO
-.Xr sigbak 1
-.Pp
-.Lk https://github.com/tbvdm/sigtop ,
-.Lk https://www.signal.org/
+.Lk https://github.com/tbvdm/sigtop
 .Sh AUTHORS
 The
 .Nm
