@@ -29,7 +29,6 @@ const struct cmd_entry cmd_export_database_entry = {
 	.name = "export-database",
 	.alias = "db",
 	.usage = "[-d signal-directory] file",
-	.oldname = "sqlite",
 	.exec = cmd_export_database
 };
 

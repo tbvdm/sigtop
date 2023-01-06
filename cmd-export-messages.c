@@ -42,7 +42,6 @@ const struct cmd_entry cmd_export_messages_entry = {
 	.name = "export-messages",
 	.alias = "msg",
 	.usage = "[-d signal-directory] [-f format] [-s interval] [directory]",
-	.oldname = "messages",
 	.exec = cmd_export_messages
 };
 

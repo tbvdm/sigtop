@@ -63,7 +63,7 @@
 	"AND m.sent_at BETWEEN ? AND ? "
 
 #define SBK_ORDER							\
-	"ORDER BY m.received_at"
+	"ORDER BY m.received_at, m.sent_at"
 
 #define SBK_QUERY_8							\
 	SBK_SELECT_8							\

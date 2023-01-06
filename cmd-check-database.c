@@ -28,7 +28,6 @@ const struct cmd_entry cmd_check_database_entry = {
 	.name = "check-database",
 	.alias = "check",
 	.usage = "[-d signal-directory]",
-	.oldname = NULL,
 	.exec = cmd_check_database
 };
 

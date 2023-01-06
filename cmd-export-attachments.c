@@ -43,7 +43,6 @@ const struct cmd_entry cmd_export_attachments_entry = {
 	.name = "export-attachments",
 	.alias = "att",
 	.usage = "[-Ll] [-d signal-directory] [-s interval] [directory]",
-	.oldname = "attachments",
 	.exec = cmd_export_attachments
 };
 

@@ -50,15 +50,20 @@ To build sigtop on OpenBSD, run the following commands:
 	cd sigtop
 	make
 
+Building on Arch Linux
+----------------------
+
+On Arch Linux, you can install sigtop from the [AUR][7].
+
 Building on macOS
 -----------------
 
-To build sigtop on macOS, first install [Homebrew][7]. Then run the following
+To build sigtop on macOS, first install [Homebrew][8]. Then run the following
 command:
 
 	brew install --HEAD tbvdm/tap/sigtop
 
-This will build and install sigtop from [my Homebrew tap][8].
+This will build and install sigtop from [my Homebrew tap][9].
 
 To update sigtop with Homebrew, run:
 
@@ -75,12 +80,12 @@ If you prefer to build sigtop manually, run the following commands instead:
 Building on Windows
 -------------------
 
-To build sigtop on Windows, first install [Cygwin][9]. During the installation,
-you will be given the opportunity to install additional packages. Ensure the
-`gcc-core`, `git`, `libssl-devel`, `make` and `pkg-config` packages are
-installed.
+To build sigtop on Windows, first install [Cygwin][10]. During the
+installation, you will be given the opportunity to install additional packages.
+Ensure the `gcc-core`, `git`, `libssl-devel`, `make` and `pkg-config` packages
+are installed.
 
-The [Cygwin User's Guide][10] might be useful if you need help with the
+The [Cygwin User's Guide][11] might be useful if you need help with the
 installation.
 
 After the installation has completed, start the Cygwin terminal. Then run the
@@ -91,7 +96,7 @@ following commands to build and install sigtop:
 	git checkout portable
 	make install
 
-If you prefer, you can use [this PowerShell script][11] to install Cygwin and
+If you prefer, you can use [this PowerShell script][12] to install Cygwin and
 sigtop automatically. Press Windows+R to open the Run window, paste the
 following command and press Enter:
 
@@ -107,7 +112,7 @@ Reporting problems
 
 Please report bugs and other problems with sigtop. If sigtop shows errors or
 warnings unexpectedly, please report them as well. You can [open an issue on
-GitHub][12] or [send an email][13].
+GitHub][13] or [send an email][14].
 
 [1]: https://github.com/tbvdm/sigtop
 [2]: https://github.com/signalapp/Signal-Desktop
@@ -115,10 +120,11 @@ GitHub][12] or [send an email][13].
 [4]: https://www.libressl.org/
 [5]: https://www.openssl.org/
 [6]: https://www.zetetic.net/sqlcipher/
-[7]: https://brew.sh/
-[8]: https://github.com/tbvdm/homebrew-tap
-[9]: https://cygwin.com/
-[10]: https://cygwin.com/cygwin-ug-net/setup-net.html#internet-setup
-[11]: https://github.com/tbvdm/cygwin-install-scripts/raw/master/install-cygwin-sigtop.ps1
-[12]: https://github.com/tbvdm/sigtop/issues
-[13]: https://www.kariliq.nl/contact.html
+[7]: https://aur.archlinux.org/packages/sigtop-git
+[8]: https://brew.sh/
+[9]: https://github.com/tbvdm/homebrew-tap
+[10]: https://cygwin.com/
+[11]: https://cygwin.com/cygwin-ug-net/setup-net.html#internet-setup
+[12]: https://github.com/tbvdm/cygwin-install-scripts/raw/master/install-cygwin-sigtop.ps1
+[13]: https://github.com/tbvdm/sigtop/issues
+[14]: https://www.kariliq.nl/contact.html
