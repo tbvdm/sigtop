@@ -246,6 +246,7 @@ sbk_write_database(struct sbk_ctx *ctx, const char *path)
 	sqlite3		*db;
 	sqlite3_backup	*bak;
 	sqlite3_stmt	*stm;
+	int		 ret;
 
 	if (sbk_sqlite_open(&db, ":memory:",
 	    SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE) == -1)
@@ -260,8 +261,8 @@ sbk_write_database(struct sbk_ctx *ctx, const char *path)
 		goto error;
 	}
 
-	if (sqlite3_backup_step(bak, -1) != SQLITE_DONE) {
-		sbk_sqlite_warn(db, "Cannot write database");
+	if ((ret = sqlite3_backup_step(bak, -1)) != SQLITE_DONE) {
+		warnx("Cannot write database: %s", sqlite3_errstr(ret));
 		sqlite3_backup_finish(bak);
 		goto error;
 	}
