@@ -167,7 +167,7 @@ sbk_sqlite_exec(sqlite3 *db, const char *sql)
 int
 sbk_sqlite_key(sqlite3 *db, const char *key)
 {
-	if (sqlite3_key(db, key, strlen(key)) == -1) {
+	if (sqlite3_key(db, key, strlen(key)) != SQLITE_OK) {
 		sbk_sqlite_warn(db, "Cannot set key");
 		return -1;
 	}
