@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd December 9, 2022
+.Dd January 24, 2023
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -80,7 +80,7 @@ pragmas.
 .Tg att
 .It Xo
 .Ic export-attachments
-.Op Fl Ll
+.Op Fl LlMm
 .Op Fl d Ar signal-directory
 .Op Fl s Ar interval
 .Op Ar directory
@@ -106,6 +106,17 @@ option is specified, hard links are created.
 If the
 .Fl l
 option is specified, symbolic links are created.
+.Pp
+The
+.Fl M
+option may be used to set the file modification time of each attachment to the
+time it was sent.
+The
+.Fl m
+option is similar, but uses the time the attachment was received.
+These options are ignored if
+.Fl L
+is also specified.
 .Pp
 By default, all attachments are exported.
 The
