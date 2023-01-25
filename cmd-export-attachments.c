@@ -17,6 +17,7 @@
 #include "config.h"
 
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 
 #include <errno.h>
@@ -31,10 +32,16 @@
 
 #include "sigtop.h"
 
-enum mode {
+enum export_mode {
 	COPY,
 	LINK,
 	SYMLINK
+};
+
+enum mtime_mode {
+	NONE,
+	SENT,
+	RECV
 };
 
 static enum cmd_status cmd_export_attachments(int, char **);
@@ -42,7 +49,7 @@ static enum cmd_status cmd_export_attachments(int, char **);
 const struct cmd_entry cmd_export_attachments_entry = {
 	.name = "export-attachments",
 	.alias = "att",
-	.usage = "[-Ll] [-d signal-directory] [-s interval] [directory]",
+	.usage = "[-LlMm] [-d signal-directory] [-s interval] [directory]",
 	.exec = cmd_export_attachments
 };
 
@@ -167,7 +174,8 @@ get_filename(int dfd, struct sbk_attachment *att)
 #define COPY_BUFSIZE (1024 * 1024)
 
 static int
-copy_attachment(const char *src, int dfd, const char *dst)
+copy_attachment(const char *src, int dfd, const char *dst,
+    struct timespec ts[2])
 {
 	char	*buf;
 	ssize_t	 nr, nw, off;
@@ -198,7 +206,11 @@ copy_attachment(const char *src, int dfd, const char *dst)
 		warn("read: %s", src);
 		goto out;
 	}
-
+	if (ts[1].tv_nsec != UTIME_OMIT)
+		if (futimens(wfd, ts) == -1) {
+			warn("futimens: %s", dst);
+			goto out;
+		}
 	ret = 0;
 
 out:
@@ -211,11 +223,51 @@ out:
 }
 
 static int
+symlink_attachment(const char *src, int dfd, const char *dst,
+    struct timespec ts[2])
+{
+	if (symlinkat(src, dfd, dst) == -1) {
+		warn("symlinkat: %s", dst);
+		return -1;
+	}
+	if (ts[1].tv_nsec != UTIME_OMIT)
+		if (utimensat(dfd, dst, ts, AT_SYMLINK_NOFOLLOW) == -1) {
+			warn("utimensat: %s", dst);
+			return -1;
+		}
+	return 0;
+}
+
+static void
+get_mtime(struct timespec ts[2], struct sbk_attachment *att,
+    enum mtime_mode mtime_mode)
+{
+	uint64_t msec;
+
+	switch (mtime_mode) {
+	case NONE:
+		ts[1].tv_nsec = UTIME_OMIT;
+		return;
+	case SENT:
+		msec = att->time_sent;
+		break;
+	case RECV:
+		msec = att->time_recv;
+		break;
+	}
+
+	ts[0].tv_nsec = UTIME_OMIT;
+	ts[1].tv_sec = msec / 1000;
+	ts[1].tv_nsec = msec % 1000 * 1000 * 1000;
+}
+
+static int
 export_attachment_list(struct sbk_ctx *ctx, struct sbk_attachment_list *lst,
-    int dfd, enum mode mode)
+    int dfd, enum export_mode export_mode, enum mtime_mode mtime_mode)
 {
 	struct sbk_attachment	*att;
 	char			*dst, *src;
+	struct timespec		 ts[2];
 	int			 ret;
 
 	ret = 0;
@@ -236,9 +288,10 @@ export_attachment_list(struct sbk_ctx *ctx, struct sbk_attachment_list *lst,
 			ret = -1;
 			continue;
 		}
-		switch (mode) {
+		switch (export_mode) {
 		case COPY:
-			if (copy_attachment(src, dfd, dst) == -1)
+			get_mtime(ts, att, mtime_mode);
+			if (copy_attachment(src, dfd, dst, ts) == -1)
 				ret = -1;
 			break;
 		case LINK:
@@ -248,10 +301,9 @@ export_attachment_list(struct sbk_ctx *ctx, struct sbk_attachment_list *lst,
 			}
 			break;
 		case SYMLINK:
-			if (symlinkat(src, dfd, dst) == -1) {
-				warn("symlinkat: %s", dst);
+			get_mtime(ts, att, mtime_mode);
+			if (symlink_attachment(src, dfd, dst, ts) == -1)
 				ret = -1;
-			}
 			break;
 		}
 		free(src);
@@ -288,8 +340,8 @@ get_conversation_directory(int dfd, struct sbk_conversation *cnv)
 
 static int
 export_conversation_attachments(struct sbk_ctx *ctx,
-    struct sbk_conversation *cnv, int dfd, enum mode mode, time_t min,
-    time_t max)
+    struct sbk_conversation *cnv, int dfd, enum export_mode export_mode,
+    enum mtime_mode mtime_mode, time_t min, time_t max)
 {
 	struct sbk_attachment_list	*lst;
 	int				 cnv_dfd, ret;
@@ -316,7 +368,8 @@ export_conversation_attachments(struct sbk_ctx *ctx,
 	if ((cnv_dfd = get_conversation_directory(dfd, cnv)) == -1)
 		goto out;
 
-	ret = export_attachment_list(ctx, lst, cnv_dfd, mode);
+	ret = export_attachment_list(ctx, lst, cnv_dfd, export_mode,
+	    mtime_mode);
 	close(cnv_dfd);
 
 out:
@@ -325,8 +378,9 @@ out:
 }
 
 static int
-export_attachments(struct sbk_ctx *ctx, const char *dir, enum mode mode,
-    time_t min, time_t max)
+export_attachments(struct sbk_ctx *ctx, const char *dir,
+    enum export_mode export_mode, enum mtime_mode mtime_mode, time_t min,
+    time_t max)
 {
 	struct sbk_conversation_list	*lst;
 	struct sbk_conversation		*cnv;
@@ -344,8 +398,8 @@ export_attachments(struct sbk_ctx *ctx, const char *dir, enum mode mode,
 
 	ret = 0;
 	SIMPLEQ_FOREACH(cnv, lst, entries)
-		if (export_conversation_attachments(ctx, cnv, dfd, mode, min,
-		    max) == -1)
+		if (export_conversation_attachments(ctx, cnv, dfd, export_mode,
+		    mtime_mode, min, max) == -1)
 			ret = -1;
 
 	sbk_free_conversation_list(lst);
@@ -361,15 +415,17 @@ cmd_export_attachments(int argc, char **argv)
 	const char	*outdir;
 	time_t		 max, min;
 	int		 c;
-	enum mode	 mode;
+	enum export_mode export_mode;
+	enum mtime_mode  mtime_mode;
 	enum cmd_status	 status;
 
 	ctx = NULL;
 	signaldir = NULL;
-	mode = COPY;
+	export_mode = COPY;
+	mtime_mode = NONE;
 	min = max = (time_t)-1;
 
-	while ((c = getopt(argc, argv, "d:Lls:")) != -1)
+	while ((c = getopt(argc, argv, "d:LlMms:")) != -1)
 		switch (c) {
 		case 'd':
 			free(signaldir);
@@ -379,10 +435,16 @@ cmd_export_attachments(int argc, char **argv)
 			}
 			break;
 		case 'L':
-			mode = LINK;
+			export_mode = LINK;
 			break;
 		case 'l':
-			mode = SYMLINK;
+			export_mode = SYMLINK;
+			break;
+		case 'M':
+			mtime_mode = SENT;
+			break;
+		case 'm':
+			mtime_mode = RECV;
 			break;
 		case 's':
 			if (parse_time_interval(optarg, &min, &max) == -1)
@@ -428,15 +490,24 @@ cmd_export_attachments(int argc, char **argv)
 		goto error;
 	}
 
-	if (pledge("stdio rpath wpath cpath flock", NULL) == -1) {
-		warn("pledge");
-		goto error;
+	if (mtime_mode == NONE || export_mode == LINK) {
+		if (pledge("stdio rpath wpath cpath flock", NULL) == -1) {
+			warn("pledge");
+			goto error;
+		}
+	} else {
+		if (pledge("stdio rpath wpath cpath flock fattr", NULL) ==
+		    -1) {
+			warn("pledge");
+			goto error;
+		}
 	}
 
 	if (sbk_open(&ctx, signaldir) == -1)
 		goto error;
 
-	if (export_attachments(ctx, outdir, mode, min, max) == -1)
+	if (export_attachments(ctx, outdir, export_mode, mtime_mode, min, max)
+	    == -1)
 		goto error;
 
 	status = CMD_OK;
