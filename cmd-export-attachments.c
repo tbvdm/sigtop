@@ -21,6 +21,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -272,8 +273,14 @@ export_attachment_list(struct sbk_ctx *ctx, struct sbk_attachment_list *lst,
 	ret = 0;
 
 	TAILQ_FOREACH(att, lst, entries) {
-		if ((src = sbk_get_attachment_path(ctx, att)) == NULL) {
+		if (sbk_get_attachment_path(ctx, &src, att) == -1) {
 			ret = -1;
+			continue;
+		}
+		if (src == NULL) {
+			warnx("Skipping attachment (sent at %" PRIu64 "); "
+			    "possibly it was not downloaded by Signal",
+			    att->time_sent);
 			continue;
 		}
 		if (access(src, F_OK) == -1) {

@@ -215,21 +215,20 @@ sbk_get_attachments_sent_between(struct sbk_ctx *ctx,
 	return sbk_get_attachment_list(lst);
 }
 
-char *
-sbk_get_attachment_path(struct sbk_ctx *ctx, struct sbk_attachment *att)
+int
+sbk_get_attachment_path(struct sbk_ctx *ctx, char **path,
+    struct sbk_attachment *att)
 {
-	char *path;
-
 	if (att->path == NULL) {
-		warnx("Missing attachment path");
-		return NULL;
+		*path = NULL;
+		return 0;
 	}
 
-	if (asprintf(&path, "%s/%s/%s", ctx->dir, SBK_ATTACHMENT_DIR,
-	    att->path) == -1) {
+	if (asprintf(path, "%s/%s/%s", ctx->dir, SBK_ATTACHMENT_DIR, att->path)
+	    == -1) {
 		warnx("asprintf() failed");
-		return NULL;
+		return -1;
 	}
 
-	return path;
+	return 0;
 }
