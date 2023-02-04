@@ -132,7 +132,7 @@ struct sbk_attachment_list *sbk_get_attachments_sent_before(struct sbk_ctx *,
 struct sbk_attachment_list *sbk_get_attachments_sent_between(struct sbk_ctx *,
 		    struct sbk_conversation *, time_t, time_t);
 void		 sbk_free_attachment_list(struct sbk_attachment_list *);
-char		*sbk_get_attachment_path(struct sbk_ctx *,
+int		 sbk_get_attachment_path(struct sbk_ctx *, char **,
 		    struct sbk_attachment *);
 
 struct sbk_message_list *sbk_get_messages(struct sbk_ctx *,
