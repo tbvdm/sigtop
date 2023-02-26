@@ -115,7 +115,7 @@ text_write_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
 	char			*content_type, *filename;
 
 	TAILQ_FOREACH(att, lst, entries) {
-		filename = (att->filename != NULL) ?
+		filename = (att->filename != NULL && *att->filename != '\0') ?
 		    att->filename : "no filename";
 
 		content_type = (att->content_type != NULL) ?
@@ -144,10 +144,10 @@ text_write_quoted_attachment_fields(FILE *fp, struct sbk_attachment_list *lst)
 	TAILQ_FOREACH(att, lst, entries) {
 		fputs("> Attachment: ", fp);
 
-		if (att->filename == NULL)
+		if (att->filename == NULL || *att->filename == '\0')
 			fputs("no filename", fp);
 		else
-			fprintf(fp, "\"%s\"", att->filename);
+			fprintf(fp, "%s", att->filename);
 
 		fprintf(fp, " (%s)\n",
 		    (att->content_type != NULL) ?
@@ -169,7 +169,7 @@ text_write_quote(FILE *fp, struct sbk_quote *qte)
 	if (qte->attachments != NULL)
 		text_write_quoted_attachment_fields(fp, qte->attachments);
 
-	if (qte->text != NULL) {
+	if (qte->text != NULL && *qte->text != '\0') {
 		fputs(">\n", fp);
 		for (s = qte->text; (t = strchr(s, '\n')) != NULL; s = t + 1)
 			fprintf(fp, "> %.*s\n", (int)(t - s), s);
@@ -182,18 +182,18 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 {
 	struct sbk_message *msg;
 
+	msg = SIMPLEQ_FIRST(lst);
+	text_write_recipient_field(fp, "Conversation", msg->conversation);
+	putc('\n', fp);
+
 	SIMPLEQ_FOREACH(msg, lst, entries) {
-		text_write_recipient_field(fp, "Conversation",
-		    msg->conversation);
-
-		fprintf(fp, "Type: %s\n",
-		    (msg->type != NULL) ? msg->type : "Unknown");
-
 		if (sbk_is_outgoing_message(msg))
-			text_write_recipient_field(fp, "To",
-			    msg->conversation);
+			fputs("From: You\n", fp);
 		else if (msg->source != NULL)
 			text_write_recipient_field(fp, "From", msg->source);
+
+		fprintf(fp, "Type: %s\n",
+		    (msg->type != NULL) ? msg->type : "unknown");
 
 		if (msg->time_sent != 0)
 			text_write_date_field(fp, "Sent", msg->time_sent);
@@ -210,7 +210,7 @@ text_write_messages(FILE *fp, struct sbk_message_list *lst)
 		if (msg->quote != NULL)
 			text_write_quote(fp, msg->quote);
 
-		if (msg->text != NULL)
+		if (msg->text != NULL && *msg->text != '\0')
 			fprintf(fp, "\n%s\n", msg->text);
 
 		putc('\n', fp);
