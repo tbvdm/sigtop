@@ -422,7 +422,7 @@ cmd_export_attachments(int argc, char **argv)
 	time_t		 max, min;
 	int		 c;
 	enum export_mode export_mode;
-	enum mtime_mode  mtime_mode;
+	enum mtime_mode	 mtime_mode;
 	enum cmd_status	 status;
 
 	ctx = NULL;
