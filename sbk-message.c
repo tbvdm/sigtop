@@ -54,7 +54,7 @@
 
 #define SBK_WHERE_CONVERSATIONID_SENT_BEFORE				\
 	SBK_WHERE_CONVERSATIONID					\
-	"AND m.sent_at <= ? "
+	"AND (m.sent_at <= ? OR m.sent_at IS NULL) "
 
 #define SBK_WHERE_CONVERSATIONID_SENT_BETWEEN				\
 	SBK_WHERE_CONVERSATIONID					\
