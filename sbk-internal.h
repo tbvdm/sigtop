@@ -38,7 +38,6 @@ struct sbk_ctx {
 	char		*dir;
 	sqlite3		*db;
 	int		 db_version;
-	char		*error;
 	struct sbk_recipient_tree recipients;
 };
 

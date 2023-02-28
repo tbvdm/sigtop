@@ -56,7 +56,7 @@
 
 #define SBK_WHERE_CONVERSATIONID_SENT_BEFORE				\
 	SBK_WHERE_CONVERSATIONID					\
-	"AND m.sent_at <= ? "
+	"AND (m.sent_at <= ? OR m.sent_at IS NULL) "
 
 #define SBK_WHERE_CONVERSATIONID_SENT_BETWEEN				\
 	SBK_WHERE_CONVERSATIONID					\
@@ -233,7 +233,6 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 	    NULL) {
 		/* Likely message with error */
 		warnx("Conversation recipient has null id");
-		msg->conversation = NULL;
 	} else {
 		if (sbk_get_recipient_from_conversation_id(ctx,
 		    &msg->conversation, (const char *)id) == -1)
@@ -243,9 +242,7 @@ sbk_get_message(struct sbk_ctx *ctx, sqlite3_stmt *stm)
 			    id);
 	}
 
-	if ((id = sqlite3_column_text(stm, SBK_COLUMN_ID)) == NULL) {
-		msg->source = NULL;
-	} else {
+	if ((id = sqlite3_column_text(stm, SBK_COLUMN_ID)) != NULL) {
 		if (sbk_get_recipient_from_conversation_id(ctx, &msg->source,
 		    (const char *)id) == -1)
 			goto error;
