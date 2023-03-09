@@ -32,31 +32,26 @@ needs access to the directory where Signal Desktop stores its data.
 By default,
 .Nm
 tries the following locations:
-.Bl -tag -width Ds
+.Bl -tag -width "Windows"
+.It Windows
+.Pa %AppData%\eSignal
 .It macOS
-.Pa "~/Library/Application Support/Signal" .
-.It Cygwin (Windows)
-.Pa $APPDATA\eSignal .
-The
-.Ev APPDATA
-environment variable is usually set by Cygwin, and usually to
-.Pa C:\eUsers\e Ns Em <username> Ns Pa \eAppData\eRoaming .
-.It Other systems
+.Pa "$HOME/Library/Application Support/Signal"
+.It Unix
 .Pa $XDG_CONFIG_HOME/Signal ,
 or
-.Pa ~/.config/Signal
+.Pa $HOME/.config/Signal
 if
 .Ev XDG_CONFIG_HOME
 is unset or empty.
-.Pp
-If this directory does not exist,
+If neither directory exists,
 .Nm
 tries the locations used by the unofficial Snap and Flatpak versions of Signal
 Desktop.
 These locations are
-.Pa ~/snap/signal-desktop/current/.config/Signal
+.Pa $HOME/snap/signal-desktop/current/.config/Signal
 and
-.Pa ~/.var/app/org.signal.Signal/config/Signal ,
+.Pa $HOME/.var/app/org.signal.Signal/config/Signal ,
 respectively.
 .El
 .Pp
@@ -73,9 +68,10 @@ The commands are as follows:
 .Pp
 Check the integrity of the encrypted Signal Desktop database.
 The check is performed using the SQLite/SQLCipher
-.Cm cipher_integrity_check
-and
+.Cm cipher_integrity_check ,
 .Cm integrity_check
+and
+.Cm foreign_key_check
 pragmas.
 .Tg att
 .It Xo
