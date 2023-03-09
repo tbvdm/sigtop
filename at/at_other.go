@@ -12,7 +12,7 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-//go:build !(unix || aix || android || darwin || dragonfly || freebsd || hurd || illumos || ios || linux || netbsd || openbsd || solaris)
+//go:build !(unix || aix || android || dragonfly || freebsd || hurd || illumos || ios || linux || openbsd || solaris) || darwin || netbsd
 
 package at
 
