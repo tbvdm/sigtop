@@ -14,13 +14,12 @@
 
 package sqlcipher
 
-// #cgo pkg-config: sqlcipher
-//
-// #define SQLITE_HAS_CODEC
+// #cgo CPPFLAGS: -DSQLCIPHER_CRYPTO_GO -DSQLITE_HAS_CODEC -DSQLITE_TEMP_STORE=2
+// #cgo openbsd CPPFLAGS: -DOMIT_MEMLOCK
 //
 // #include <stdlib.h>
 //
-// #include <sqlite3.h>
+// #include "sqlite3.h"
 //
 // typedef void (*bind_destructor)(void *);
 // typedef int (*exec_callback)(void *, int, char **, char **);
