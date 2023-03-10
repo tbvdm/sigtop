@@ -1,5 +1,4 @@
-sigtop
-======
+# sigtop
 
 [sigtop][1] is a utility to export messages, attachments and other data from
 [Signal Desktop][2].
@@ -13,118 +12,58 @@ directory and all attachments to the `attachments` directory:
 Documentation is available in the `sigtop.1` manual page. You can also [read it
 online][3].
 
-Dependencies
-------------
+## Installing on macOS
 
-sigtop depends on libcrypto (from either [LibreSSL][4] or [OpenSSL][5]). You
-will also need a C compiler, `make` and `pkg-config`.
-
-On OpenBSD, sigtop additionally depends on [SQLCipher][6].
-
-Building
---------
-
-sigtop should build on most modern Unix-like systems. This section contains
-generic build instructions. See the sections below for build instructions for
-specific systems.
-
-First install all required packages (see the "Dependencies" section above). For
-example, on Debian or Ubuntu, run the following command:
-
-	sudo apt-get install build-essential git libssl-dev pkg-config
-
-After you have installed the required packages, run the following commands:
-
-	git clone https://github.com/tbvdm/sigtop.git
-	cd sigtop
-	git checkout portable
-	make
-
-Building on OpenBSD
--------------------
-
-To build sigtop on OpenBSD, run the following commands:
-
-	doas pkg_add git sqlcipher
-	git clone https://github.com/tbvdm/sigtop.git
-	cd sigtop
-	make
-
-Building on Arch Linux
-----------------------
-
-On Arch Linux, you can install sigtop from the [AUR][7].
-
-Building on macOS
------------------
-
-To build sigtop on macOS, first install [Homebrew][8]. Then run the following
-command:
+First install [Homebrew][4]. Then, to install sigtop, run:
 
 	brew install --HEAD tbvdm/tap/sigtop
 
-This will build and install sigtop from [my Homebrew tap][9].
-
-To update sigtop with Homebrew, run:
+Later, if you want to update sigtop, run:
 
 	brew upgrade --fetch-HEAD sigtop
 
-If you prefer to build sigtop manually, run the following commands instead:
+## Installing on other Unix-like systems
 
-	brew install libressl make pkg-config
-	git clone https://github.com/tbvdm/sigtop.git
-	cd sigtop
-	git checkout portable
-	PKG_CONFIG_PATH=$(brew --prefix)/opt/libressl/lib/pkgconfig gmake
+First install [Go][5] (version 1.18 or later) and a C compiler. On Ubuntu 22.04
+or later, you can run:
 
-Building on Windows
--------------------
+	sudo apt-get install golang gcc
 
-To build sigtop on Windows, first install [Cygwin][10]. During the
-installation, you will be given the opportunity to install additional packages.
-Ensure the `gcc-core`, `git`, `libssl-devel`, `make` and `pkg-config` packages
-are installed.
+Then, to install sigtop, run:
 
-The [Cygwin User's Guide][11] might be useful if you need help with the
-installation.
+	go install github.com/tbvdm/sigtop@master
 
-After the installation has completed, start the Cygwin terminal. Then run the
-following commands to build and install sigtop:
+This command installs a `sigtop` binary in `~/go/bin`. You can choose another
+installation directory by setting the `GOBIN` environment variable. For
+example, to install sigtop in `~/bin`, run:
 
-	git clone https://github.com/tbvdm/sigtop.git
-	cd sigtop
-	git checkout portable
-	make install
+	GOBIN=~/bin go install github.com/tbvdm/sigtop@master
 
-If you prefer, you can use [this PowerShell script][12] to install Cygwin and
-sigtop automatically. Press Windows+R to open the Run window, paste the
-following command and press Enter:
+## Installing on Windows
 
-	powershell -nop -c "iex (iwr https://github.com/tbvdm/cygwin-install-scripts/raw/master/install-cygwin-sigtop.ps1)"
+First install [Go][5]. Next, install the C compiler from [WinLibs][6]: download
+[this Zip archive][7] and extract it to `C:\winlibs`.
 
-In the Cygwin terminal, you can access your Windows drives through the
-`/cygdrive` directory. For example:
+Then, to install sigtop, open a PowerShell window and run:
 
-	sigtop export-messages /cygdrive/c/Users/Alice/Documents/messages
+	$env:cc = 'c:\winlibs\mingw64\bin\gcc'
+	go install github.com/tbvdm/sigtop@master
 
-Reporting problems
-------------------
+This command installs `sigtop.exe` in `C:\Users\<username>\go\bin`. This
+directory has been added to your `PATH`, so you can simply type `sigtop` in
+PowerShell to run sigtop.
 
-Please report bugs and other problems with sigtop. If sigtop shows errors or
-warnings unexpectedly, please report them as well. You can [open an issue on
-GitHub][13] or [send an email][14].
+## Reporting problems
+
+Please report bugs and other problems with sigtop. You can [open an issue on
+GitHub][8] or [send an email][9].
 
 [1]: https://github.com/tbvdm/sigtop
 [2]: https://github.com/signalapp/Signal-Desktop
 [3]: https://www.kariliq.nl/man/sigtop.1.html
-[4]: https://www.libressl.org/
-[5]: https://www.openssl.org/
-[6]: https://www.zetetic.net/sqlcipher/
-[7]: https://aur.archlinux.org/packages/sigtop-git
-[8]: https://brew.sh/
-[9]: https://github.com/tbvdm/homebrew-tap
-[10]: https://cygwin.com/
-[11]: https://cygwin.com/cygwin-ug-net/setup-net.html#internet-setup
-[12]: https://github.com/tbvdm/cygwin-install-scripts/raw/master/install-cygwin-sigtop.ps1
-[13]: https://github.com/tbvdm/sigtop/issues
-[14]: https://www.kariliq.nl/contact.html
+[4]: https://brew.sh/
+[5]: https://go.dev/
+[6]: https://winlibs.com/
+[7]: https://github.com/brechtsanders/winlibs_mingw/releases/download/12.2.0-15.0.7-10.0.0-ucrt-r4/winlibs-x86_64-posix-seh-gcc-12.2.0-mingw-w64ucrt-10.0.0-r4.zip
+[8]: https://github.com/tbvdm/sigtop/issues
+[9]: https://www.kariliq.nl/contact.html
