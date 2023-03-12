@@ -1,0 +1,91 @@
+name: test
+
+on: push
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        go: ['1.18', '1.19', '1.20']
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+
+      - name: setup-go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{matrix.go}}
+
+      - name: build
+        run: go build -x
+
+  test-dragonfly:
+    runs-on: macos-12
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+
+    - name: dragonfly-vm
+      uses: vmactions/dragonflybsd-vm@v0
+      with:
+        usesh: true
+        prepare: pkg install -y go
+        run: |
+          uname -a
+          go version
+          go build -x
+
+  test-freebsd:
+    runs-on: macos-12
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+
+    - name: freebsd-vm
+      uses: vmactions/freebsd-vm@v0
+      with:
+        usesh: true
+        prepare: pkg install -y go
+        run: |
+          uname -a
+          go version
+          go build -x
+
+  test-netbsd:
+    runs-on: macos-12
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+
+    - name: netbsd-vm
+      uses: vmactions/netbsd-vm@v0
+      with:
+        prepare: pkg_add go pkg_alternatives
+        run: |
+          uname -a
+          go version
+          go build -x
+
+  test-openbsd:
+    runs-on: macos-12
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+
+    - name: openbsd-vm
+      uses: vmactions/openbsd-vm@v0
+      with:
+        prepare: pkg_add go
+        run: |
+          uname -a
+          go version
+          go build -x
