@@ -53,10 +53,18 @@ This command installs `sigtop.exe` in `C:\Users\<username>\go\bin`. This
 directory has been added to your `PATH`, so you can simply type `sigtop` in
 PowerShell to run sigtop.
 
+## Downloading pre-compiled binaries
+
+You can also download a pre-compiled binary from the [latest release][8]:
+
+- [macOS (Intel)][9]
+- [Linux (x86-64)][10]
+- [Windows (x86-64)][11]
+
 ## Reporting problems
 
 Please report bugs and other problems with sigtop. You can [open an issue on
-GitHub][8] or [send an email][9].
+GitHub][12] or [send an email][13].
 
 [1]: https://github.com/tbvdm/sigtop
 [2]: https://github.com/signalapp/Signal-Desktop
@@ -65,5 +73,9 @@ GitHub][8] or [send an email][9].
 [5]: https://go.dev/
 [6]: https://winlibs.com/
 [7]: https://github.com/brechtsanders/winlibs_mingw/releases/download/12.2.0-15.0.7-10.0.0-ucrt-r4/winlibs-x86_64-posix-seh-gcc-12.2.0-mingw-w64ucrt-10.0.0-r4.zip
-[8]: https://github.com/tbvdm/sigtop/issues
-[9]: https://www.kariliq.nl/contact.html
+[8]: https://github.com/tbvdm/sigtop/releases/latest
+[9]: https://github.com/tbvdm/sigtop/releases/latest/download/sigtop-darwin-amd64
+[10]: https://github.com/tbvdm/sigtop/releases/latest/download/sigtop-linux-amd64
+[11]: https://github.com/tbvdm/sigtop/releases/latest/download/sigtop-windows-amd64.exe
+[12]: https://github.com/tbvdm/sigtop/issues
+[13]: https://www.kariliq.nl/contact.html

@@ -1,0 +1,46 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  release:
+    permissions:
+      contents: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    runs-on: ${{matrix.os}}
+
+    defaults:
+      run:
+        # For Windows
+        shell: bash
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+
+      - name: setup-go
+        uses: actions/setup-go@v3
+
+      - name: build
+        run: |
+          os=$(go env GOOS)
+          arch=$(go env GOARCH)
+          bin=sigtop-$os-$arch
+          [[ $os = windows ]] && bin+=.exe
+          go build -trimpath -o $bin
+          echo bin=$bin >> $GITHUB_ENV
+
+      - name: release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: ${{env.bin}}
