@@ -28,6 +28,8 @@ jobs:
 
       - name: setup-go
         uses: actions/setup-go@v3
+        with:
+          go-version: stable
 
       - name: build
         run: |
