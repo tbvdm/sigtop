@@ -81,7 +81,8 @@ func cmdCheckDatabase(args []string) cmdStatus {
 
 	results, err := ctx.CheckDatabase()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return cmdError
 	}
 
 	if len(results) > 0 {
