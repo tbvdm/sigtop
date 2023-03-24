@@ -31,8 +31,8 @@ The files `sqlite3.c` and `sqlite3.h` are amalgamations of separate files, each
 of which is either
 
 - placed in the public domain,
-- licensed under the ISC license, as above,
-- or licensed under the 3-clause BSD license, as follows:
+- licensed under the ISC license, as above, or
+- licensed under the 3-clause BSD license, as follows:
 
 ```
 Copyright (c) 2008, ZETETIC LLC
