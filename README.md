@@ -42,7 +42,7 @@ example, to install sigtop in `~/bin`, run:
 ## Installing on Windows
 
 First install [Go][5]. Next, install the C compiler from [WinLibs][6]: download
-[this Zip archive][7] and extract it to `C:\winlibs`.
+[this Zip archive][7] and unzip it to `C:\winlibs`.
 
 Then, to install sigtop, open a PowerShell window and run:
 
