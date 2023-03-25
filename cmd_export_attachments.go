@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +31,8 @@ import (
 	"github.com/tbvdm/sigtop/signal"
 	"github.com/tbvdm/sigtop/util"
 )
+
+const incrementalFile = ".incremental"
 
 type exportMode int
 
@@ -47,27 +50,34 @@ const (
 	mtimeRecv
 )
 
-type mode struct {
-	export exportMode
-	mtime  mtimeMode
+type attMode struct {
+	export      exportMode
+	mtime       mtimeMode
+	incremental bool
 }
 
 var cmdExportAttachmentsEntry = cmdEntry{
 	name:  "export-attachments",
 	alias: "att",
-	usage: "[-LlMm] [-d signal-directory] [-s interval] [directory]",
+	usage: "[-iLlMm] [-d signal-directory] [-s interval] [directory]",
 	exec:  cmdExportAttachments,
 }
 
 func cmdExportAttachments(args []string) cmdStatus {
-	getopt.ParseArgs("d:LlMms:", args)
+	mode := attMode{
+		export:      exportCopy,
+		mtime:       mtimeNone,
+		incremental: false,
+	}
 
+	getopt.ParseArgs("d:iLlMms:", args)
 	var dArg, sArg getopt.Arg
-	mode := mode{exportCopy, mtimeNone}
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
 		case 'd':
 			dArg = getopt.OptionArg()
+		case 'i':
+			mode.incremental = true
 		case 'L':
 			mode.export = exportLink
 		case 'l':
@@ -159,13 +169,22 @@ func cmdExportAttachments(args []string) cmdStatus {
 	return cmdOK
 }
 
-func exportAttachments(ctx *signal.Context, dir string, mode mode, ival signal.Interval) bool {
+func exportAttachments(ctx *signal.Context, dir string, mode attMode, ival signal.Interval) bool {
 	d, err := at.Open(dir)
 	if err != nil {
 		log.Print(err)
 		return false
 	}
 	defer d.Close()
+
+	var exported map[string]bool
+	if mode.incremental {
+		var err error
+		if exported, err = readIncrementalFile(d); err != nil {
+			log.Print(err)
+			return false
+		}
+	}
 
 	convs, err := ctx.Conversations()
 	if err != nil {
@@ -175,33 +194,49 @@ func exportAttachments(ctx *signal.Context, dir string, mode mode, ival signal.I
 
 	ret := true
 	for _, conv := range convs {
-		if !exportConversationAttachments(ctx, d, &conv, mode, ival) {
+		var ok bool
+		if ok, exported = exportConversationAttachments(ctx, d, &conv, mode, exported, ival); !ok {
 			ret = false
+		}
+	}
+
+	if mode.incremental {
+		if err := writeIncrementalFile(d, exported); err != nil {
+			log.Print(err)
+			return false
 		}
 	}
 
 	return ret
 }
 
-func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode mode, ival signal.Interval) bool {
+func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode attMode, exported map[string]bool, ival signal.Interval) (bool, map[string]bool) {
 	atts, err := ctx.ConversationAttachments(conv, ival)
 	if err != nil {
 		log.Print(err)
-		return false
+		return false, exported
 	}
 
 	if len(atts) == 0 {
-		return true
+		return true, exported
 	}
 
 	cd, err := conversationDir(d, conv)
 	if err != nil {
 		log.Print(err)
-		return false
+		return false, exported
 	}
 
 	ret := true
 	for _, att := range atts {
+		if mode.incremental {
+			id := filepath.Base(att.Path)
+			if exported[id] {
+				continue
+			}
+			exported[id] = true
+		}
+
 		src := ctx.AttachmentPath(&att)
 		if src == "" {
 			log.Printf("skipping attachment (sent at %d); possibly it was not downloaded by Signal", att.TimeSent)
@@ -245,7 +280,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 		}
 	}
 
-	return ret
+	return ret, exported
 }
 
 func conversationDir(d at.Dir, conv *signal.Conversation) (at.Dir, error) {
@@ -330,4 +365,40 @@ func setAttachmentModTime(d at.Dir, path string, att *signal.Attachment, mode mt
 		return nil
 	}
 	return d.Utimes(path, at.UtimeOmit, time.UnixMilli(mtime), at.SymlinkNoFollow)
+}
+
+func readIncrementalFile(d at.Dir) (map[string]bool, error) {
+	exported := make(map[string]bool)
+
+	f, err := d.OpenFile(incrementalFile, os.O_RDONLY, 0666)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return exported, nil
+		}
+		return nil, err
+	}
+	defer f.Close()
+
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		exported[s.Text()] = true
+	}
+
+	return exported, s.Err()
+}
+
+func writeIncrementalFile(d at.Dir, exported map[string]bool) error {
+	f, err := d.OpenFile(incrementalFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	for id := range exported {
+		if _, err := fmt.Fprintln(f, id); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

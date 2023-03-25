@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd January 24, 2023
+.Dd March 25, 2023
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -76,7 +76,7 @@ pragmas.
 .Tg att
 .It Xo
 .Ic export-attachments
-.Op Fl LlMm
+.Op Fl iLlMm
 .Op Fl d Ar signal-directory
 .Op Fl s Ar interval
 .Op Ar directory
@@ -115,6 +115,17 @@ These options are ignored if
 is also specified.
 .Pp
 By default, all attachments are exported.
+If the
+.Fl i
+option is specified, an incremental export is performed.
+This means that only new attachments are exported; attachments that were
+exported in a previous run are skipped.
+The
+.Pa .incremental
+file in
+.Pa directory
+is used to keep track of exported attachments.
+.Pp
 The
 .Fl s
 option may be used to export only the attachments that were sent in the
@@ -132,6 +143,7 @@ The exported database is a regular SQLite database.
 .Tg msg
 .It Xo
 .Ic export-messages
+.Op Fl i
 .Op Fl d Ar signal-directory
 .Op Fl f Ar format
 .Op Fl s Ar interval
@@ -160,6 +172,15 @@ structure may differ between Signal Desktop versions.
 Messages are written as plain text.
 This is the default.
 .El
+.Pp
+By default,
+existing files in
+.Pa directory
+are not overwritten.
+If the
+.Fl i
+option is specified, an incremental export is performed.
+This means that existing conversation files are updated.
 .Pp
 By default, all messages are exported.
 The

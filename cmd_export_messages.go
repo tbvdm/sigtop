@@ -27,25 +27,33 @@ import (
 	"github.com/tbvdm/sigtop/util"
 )
 
-type format int
+type formatMode int
 
 const (
-	formatJSON format = iota
+	formatJSON formatMode = iota
 	formatText
 )
+
+type msgMode struct {
+	format      formatMode
+	incremental bool
+}
 
 var cmdExportMessagesEntry = cmdEntry{
 	name:  "export-messages",
 	alias: "msg",
-	usage: "[-d signal-directory] [-f format] [-s interval] [directory]",
+	usage: "[-i] [-d signal-directory] [-f format] [-s interval] [directory]",
 	exec:  cmdExportMessages,
 }
 
 func cmdExportMessages(args []string) cmdStatus {
-	getopt.ParseArgs("d:f:s:", args)
+	mode := msgMode{
+		format:      formatText,
+		incremental: false,
+	}
 
+	getopt.ParseArgs("d:f:s:", args)
 	var dArg, sArg getopt.Arg
-	format := formatText
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
 		case 'd':
@@ -53,12 +61,14 @@ func cmdExportMessages(args []string) cmdStatus {
 		case 'f':
 			switch arg := getopt.OptionArg().String(); arg {
 			case "json":
-				format = formatJSON
+				mode.format = formatJSON
 			case "text":
-				format = formatText
+				mode.format = formatText
 			default:
 				log.Fatalf("invalid format: %s", arg)
 			}
+		case 'i':
+			mode.incremental = true
 		case 's':
 			sArg = getopt.OptionArg()
 		}
@@ -125,14 +135,14 @@ func cmdExportMessages(args []string) cmdStatus {
 	}
 	defer ctx.Close()
 
-	if !exportMessages(ctx, exportDir, format, ival) {
+	if !exportMessages(ctx, exportDir, mode, ival) {
 		return cmdError
 	}
 
 	return cmdOK
 }
 
-func exportMessages(ctx *signal.Context, dir string, format format, ival signal.Interval) bool {
+func exportMessages(ctx *signal.Context, dir string, mode msgMode, ival signal.Interval) bool {
 	d, err := at.Open(dir)
 	if err != nil {
 		log.Print(err)
@@ -148,7 +158,7 @@ func exportMessages(ctx *signal.Context, dir string, format format, ival signal.
 
 	ret := true
 	for _, conv := range convs {
-		if err = exportConversationMessages(ctx, d, &conv, format, ival); err != nil {
+		if err = exportConversationMessages(ctx, d, &conv, mode, ival); err != nil {
 			log.Print(err)
 			ret = false
 		}
@@ -157,7 +167,7 @@ func exportMessages(ctx *signal.Context, dir string, format format, ival signal.
 	return ret
 }
 
-func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conversation, format format, ival signal.Interval) error {
+func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode msgMode, ival signal.Interval) error {
 	msgs, err := ctx.ConversationMessages(conv, ival)
 	if err != nil {
 		return err
@@ -167,14 +177,14 @@ func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conv
 		return nil
 	}
 
-	f, err := conversationFile(d, conv, format)
+	f, err := conversationFile(d, conv, mode)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	ew := errio.NewWriter(f)
 
-	switch format {
+	switch mode.format {
 	case formatJSON:
 		err = jsonWriteMessages(ew, msgs)
 	case formatText:
@@ -184,17 +194,22 @@ func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conv
 	return err
 }
 
-func conversationFile(d at.Dir, conv *signal.Conversation, format format) (*os.File, error) {
+func conversationFile(d at.Dir, conv *signal.Conversation, mode msgMode) (*os.File, error) {
 	var ext string
-	switch format {
+	switch mode.format {
 	case formatJSON:
 		ext = ".json"
 	case formatText:
 		ext = ".txt"
 	}
 
+	flags := os.O_WRONLY | os.O_CREATE
+	if !mode.incremental {
+		flags |= os.O_EXCL
+	}
+
 	name := sanitiseFilename(recipientFilename(conv.Recipient, ext))
-	f, err := d.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+	f, err := d.OpenFile(name, flags, 0666)
 	if err != nil {
 		return nil, err
 	}
