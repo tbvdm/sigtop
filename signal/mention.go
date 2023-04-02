@@ -20,8 +20,8 @@ import (
 )
 
 type mentionJSON struct {
-	Start  int    `json:"Start"`
-	Length int    `json:"Length"`
+	Start  int    `json:"start"`
+	Length int    `json:"length"`
 	UUID   string `json:"mentionUuid"`
 }
 
