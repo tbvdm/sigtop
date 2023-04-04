@@ -16,6 +16,7 @@ package signal
 
 import (
 	"errors"
+	"sort"
 	"strings"
 )
 
@@ -46,41 +47,30 @@ func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error
 			Length:    jmnt.Length,
 			Recipient: rpt,
 		}
-
-		// Insert the mention in order. It seems that in most cases the
-		// mentions in the JSON data are already ordered. So, as an
-		// optimisation, traverse the slice in reverse direction.
-		var i int
-		for i = len(body.Mentions); i > 0; i-- {
-			if body.Mentions[i-1].Start < mnt.Start {
-				break
-			}
-		}
-		if i == len(body.Mentions) {
-			body.Mentions = append(body.Mentions, mnt)
-		} else {
-			body.Mentions = append(body.Mentions[:i+1], body.Mentions[i:]...)
-			body.Mentions[i] = mnt
-		}
+		body.Mentions = append(body.Mentions, mnt)
 	}
 
 	return nil
 }
 
 func (b *MessageBody) insertMentions() error {
-	// Ensure the mentions are ordered and don't overlap
-	for i := 1; i < len(b.Mentions); i++ {
-		end := b.Mentions[i-1].Start + b.Mentions[i-1].Length
-		if b.Mentions[i].Start < end {
-			return errors.New("unordered or overlapping mentions")
-		}
+	if len(b.Mentions) == 0 {
+		return nil
 	}
 
 	var runes = []rune(b.Text)
 	var text strings.Builder
 	var off int
 
-	for _, mnt := range b.Mentions {
+	sort.Slice(b.Mentions, func(i, j int) bool { return b.Mentions[i].Start < b.Mentions[j].Start })
+
+	for i := range b.Mentions {
+		mnt := &b.Mentions[i]
+
+		if mnt.Start < off || mnt.Length < 0 || mnt.Start+mnt.Length > len(runes) {
+			return errors.New("invalid mention")
+		}
+
 		// Copy text preceding mention
 		text.WriteString(string(runes[off:mnt.Start]))
 		off = mnt.Start + mnt.Length
