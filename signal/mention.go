@@ -58,11 +58,11 @@ func (b *MessageBody) insertMentions() error {
 		return nil
 	}
 
+	sort.Slice(b.Mentions, func(i, j int) bool { return b.Mentions[i].Start < b.Mentions[j].Start })
+
 	var runes = []rune(b.Text)
 	var text strings.Builder
 	var off int
-
-	sort.Slice(b.Mentions, func(i, j int) bool { return b.Mentions[i].Start < b.Mentions[j].Start })
 
 	for i := range b.Mentions {
 		mnt := &b.Mentions[i]
