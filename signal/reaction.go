@@ -14,7 +14,10 @@
 
 package signal
 
-import "strings"
+import (
+	"log"
+	"strings"
+)
 
 type reactionJSON struct {
 	Emoji           string `json:"emoji"`
@@ -37,7 +40,7 @@ func (c *Context) parseReactionJSON(msg *Message, jmsg *messageJSON) error {
 			return err
 		}
 		if rpt == nil {
-			warn("cannot find reaction recipient for ID %q", jrct.FromID)
+			log.Printf("cannot find reaction recipient for ID %q", jrct.FromID)
 		}
 		rct := Reaction{
 			Recipient: rpt,

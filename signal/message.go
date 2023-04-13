@@ -17,6 +17,7 @@ package signal
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/tbvdm/sigtop/sqlcipher"
@@ -225,7 +226,7 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 
 		if stmt.ColumnType(messageColumnConversationID) == sqlcipher.ColumnTypeNull {
 			// Likely message with error
-			warn("conversation recipient has null ID")
+			log.Printf("conversation recipient has null ID")
 		} else {
 			id := stmt.ColumnText(messageColumnConversationID)
 			rpt, err := c.recipientFromConversationID(id)
@@ -234,7 +235,7 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 				return nil, err
 			}
 			if rpt == nil {
-				warn("cannot find conversation recipient for ID %q", id)
+				log.Printf("cannot find conversation recipient for ID %q", id)
 			}
 			msg.Conversation = rpt
 		}
@@ -247,7 +248,7 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 				return nil, err
 			}
 			if rpt == nil {
-				warn("cannot find source recipient for ID %q", id)
+				log.Printf("cannot find source recipient for ID %q", id)
 			}
 			msg.Source = rpt
 		}

@@ -16,6 +16,7 @@ package signal
 
 import (
 	"errors"
+	"log"
 	"sort"
 	"strings"
 )
@@ -39,7 +40,7 @@ func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error
 			return err
 		}
 		if rpt == nil {
-			warn("cannot find mention recipient for UUID %q", jmnt.UUID)
+			log.Printf("cannot find mention recipient for UUID %q", jmnt.UUID)
 		}
 
 		mnt := Mention{

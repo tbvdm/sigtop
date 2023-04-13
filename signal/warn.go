@@ -18,21 +18,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
+	"log"
 )
-
-func warn(format string, a ...any) {
-	fmt.Fprintf(os.Stderr, format, a...)
-	if len(format) > 0 && format[len(format)-1] != '\n' {
-		fmt.Fprintln(os.Stderr)
-	}
-}
 
 func dumpMessageJSON(msg *Message) {
 	var buf bytes.Buffer
 	if err := json.Indent(&buf, []byte(msg.JSON), "", "  "); err != nil {
-		warn("cannot dump message JSON data: %v", err)
+		log.Printf("cannot dump message JSON data: %v", err)
 		return
 	}
-	fmt.Fprintln(os.Stderr, buf.String())
+	fmt.Fprintln(log.Writer(), buf.String())
 }
