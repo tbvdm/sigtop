@@ -24,6 +24,7 @@ type attachmentJSON struct {
 	ContentType string `json:"contentType"`
 	FileName    string `json:"fileName"`
 	Size        int64  `json:"size"`
+	Pending     bool   `json:"pending"`
 	Path        string `json:"path"`
 }
 
@@ -34,6 +35,7 @@ type Attachment struct {
 	Size        int64
 	TimeSent    int64
 	TimeRecv    int64
+	Pending     bool
 }
 
 func (c *Context) parseAttachmentJSON(msg *Message, jmsg *messageJSON) error {
@@ -45,6 +47,7 @@ func (c *Context) parseAttachmentJSON(msg *Message, jmsg *messageJSON) error {
 			Size:        jatt.Size,
 			TimeSent:    msg.TimeSent,
 			TimeRecv:    msg.TimeRecv,
+			Pending:     jatt.Pending,
 		}
 		msg.Attachments = append(msg.Attachments, att)
 	}

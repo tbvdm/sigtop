@@ -239,7 +239,13 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 
 		src := ctx.AttachmentPath(&att)
 		if src == "" {
-			log.Printf("skipping attachment (sent at %d); possibly it was not downloaded by Signal", att.TimeSent)
+			var msg string
+			if att.Pending {
+				msg = "skipping pending attachment"
+			} else {
+				msg = "skipping attachment without path"
+			}
+			log.Printf("%s (conversation: %q, sent: %s)", msg, conv.Recipient.DisplayName(), time.UnixMilli(att.TimeSent).Format("2006-01-02 15:04:05"))
 			continue
 		}
 		if _, err := os.Stat(src); err != nil {
