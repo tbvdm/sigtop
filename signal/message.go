@@ -15,6 +15,7 @@
 package signal
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -309,6 +310,15 @@ func (c *Context) parseMessageJSON(msg *Message) error {
 		return err
 	}
 	return nil
+}
+
+func (m *Message) dumpJSON() {
+	var buf bytes.Buffer
+	if err := json.Indent(&buf, []byte(m.JSON), "", "  "); err != nil {
+		log.Printf("cannot dump message JSON data: %v", err)
+		return
+	}
+	fmt.Fprintln(log.Writer(), buf.String())
 }
 
 func (m *Message) IsOutgoing() bool {
