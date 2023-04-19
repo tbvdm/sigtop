@@ -291,7 +291,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 }
 
 func conversationDir(d at.Dir, conv *signal.Conversation) (at.Dir, error) {
-	name := sanitiseFilename(recipientFilename(conv.Recipient, ""))
+	name := recipientFilename(conv.Recipient, "")
 	if err := d.Mkdir(name, 0777); err != nil && !errors.Is(err, fs.ErrExist) {
 		return at.InvalidDir, err
 	}

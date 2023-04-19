@@ -208,7 +208,7 @@ func conversationFile(d at.Dir, conv *signal.Conversation, mode msgMode) (*os.Fi
 		flags |= os.O_EXCL
 	}
 
-	name := sanitiseFilename(recipientFilename(conv.Recipient, ext))
+	name := recipientFilename(conv.Recipient, ext)
 	f, err := d.OpenFile(name, flags, 0666)
 	if err != nil {
 		return nil, err
