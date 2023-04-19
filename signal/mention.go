@@ -15,10 +15,11 @@
 package signal
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"sort"
 	"strings"
+	"unicode/utf8"
 )
 
 type mentionJSON struct {
@@ -54,6 +55,38 @@ func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error
 	return nil
 }
 
+type ErrMention struct {
+	Msg   string
+	Index int
+	Body  *MessageBody
+}
+
+func (e *ErrMention) Error() string {
+	var buf strings.Builder
+	var runes = []rune(e.Body.Text)
+
+	buf.WriteString(fmt.Sprintf("%s (index: %d, body: %d %d", e.Msg, e.Index, len(runes), len(e.Body.Text)))
+
+	if !utf8.ValidString(e.Body.Text) {
+		buf.WriteString(" invalid")
+	}
+
+	buf.WriteString(", placeholders:")
+	for i, r := range runes {
+		if r == '\ufffc' {
+			buf.WriteString(fmt.Sprintf(" %d", i))
+		}
+	}
+
+	buf.WriteString(", mentions:")
+	for i, mnt := range e.Body.Mentions {
+		buf.WriteString(fmt.Sprintf(" %d:%d,%d", i, mnt.Start, mnt.Length))
+	}
+
+	buf.WriteString(")")
+	return buf.String()
+}
+
 func (b *MessageBody) insertMentions() error {
 	if len(b.Mentions) == 0 {
 		return nil
@@ -69,7 +102,7 @@ func (b *MessageBody) insertMentions() error {
 		mnt := &b.Mentions[i]
 
 		if mnt.Start < off || mnt.Length < 0 || mnt.Start+mnt.Length > len(runes) {
-			return errors.New("invalid mention")
+			return &ErrMention{Msg: "invalid mention", Index: i, Body: b}
 		}
 
 		// Copy text preceding mention

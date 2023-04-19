@@ -265,14 +265,16 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 		}
 
 		if err := msg.Body.insertMentions(); err != nil {
-			stmt.Finalize()
-			return nil, err
+			log.Print(err)
+			log.Printf("message with invalid mention (conversation: %q, sent: %s)", msg.Conversation.DisplayName(), time.UnixMilli(msg.TimeSent).Format("2006-01-02 15:04:05"))
+			msg.Body.Mentions = nil
 		}
 
 		if msg.Quote != nil {
 			if err := msg.Quote.Body.insertMentions(); err != nil {
-				stmt.Finalize()
-				return nil, err
+				log.Print(err)
+				log.Printf("message with invalid mention in quote (conversation: %q, sent: %s)", msg.Conversation.DisplayName(), time.UnixMilli(msg.TimeSent).Format("2006-01-02 15:04:05"))
+				msg.Quote.Body.Mentions = nil
 			}
 		}
 
