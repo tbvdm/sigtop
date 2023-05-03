@@ -117,11 +117,7 @@ func (c *Context) makeRecipientMaps() error {
 		}
 	}
 
-	if err := stmt.Finalize(); err != nil {
-		return err
-	}
-
-	return nil
+	return stmt.Finalize()
 }
 
 func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {

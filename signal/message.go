@@ -281,7 +281,7 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 		msgs = append(msgs, msg)
 	}
 
-	return msgs, nil
+	return msgs, stmt.Finalize()
 }
 
 func (c *Context) parseMessageJSON(msg *Message) error {

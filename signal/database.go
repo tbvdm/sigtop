@@ -73,11 +73,7 @@ func runPragmaCheck(db *sqlcipher.DB, pragma string) ([]string, error) {
 		return nil, fmt.Errorf("invalid check: %s", pragma)
 	}
 
-	if err := stmt.Finalize(); err != nil {
-		return nil, err
-	}
-
-	return results, nil
+	return results, stmt.Finalize()
 }
 
 func (c *Context) WriteDatabase(path string) error {
@@ -169,8 +165,7 @@ func databaseVersion(db *sqlcipher.DB) (int, error) {
 		version = stmt.ColumnInt(0)
 	}
 
-	err = stmt.Finalize()
-	return version, err
+	return version, stmt.Finalize()
 }
 
 func setDatabaseVersion(db *sqlcipher.DB, schema string, version int) error {
