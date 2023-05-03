@@ -240,7 +240,7 @@ func (s *Stmt) Finalize() error {
 	}
 	if ret := C.sqlite3_finalize(s.stmt); ret != C.SQLITE_OK {
 		msg := C.GoString(C.sqlite3_errstr(ret))
-		return errors.New("cannot not finalize statement: " + msg)
+		return errors.New("cannot finalize statement: " + msg)
 	}
 	return nil
 }
