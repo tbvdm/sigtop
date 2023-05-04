@@ -84,7 +84,11 @@ jobs:
       - name: openbsd-vm
         uses: vmactions/openbsd-vm@v0
         with:
-          prepare: pkg_add go
+          prepare: |
+            for i in $(jot 10); do
+              echo attempt $i:
+              pkg_add -vv go && break
+            done
           run: |
             uname -a
             go version
