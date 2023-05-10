@@ -19,7 +19,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"unicode"
 
 	"github.com/tbvdm/sigtop/signal"
 	"github.com/tbvdm/sigtop/util"
@@ -118,20 +117,4 @@ func recipientFilename(rpt *signal.Recipient, ext string) string {
 	}
 
 	return sanitiseFilename(rpt.DisplayName() + detail + ext)
-}
-
-func sanitiseFilename(name string) string {
-	if name == "." {
-		return "_"
-	}
-	if name == ".." {
-		return "__"
-	}
-	newName := []rune(name)
-	for i, r := range newName {
-		if r == os.PathSeparator || unicode.IsControl(r) {
-			newName[i] = '_'
-		}
-	}
-	return string(newName)
 }
