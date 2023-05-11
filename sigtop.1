@@ -190,6 +190,17 @@ time interval.
 See the
 .Sx TIME INTERVALS
 section below details.
+.Tg query
+.It Ic query-database Oo Fl d Ar signal-directory Oc Ar query
+.D1 Pq Alias: Ic query
+.Pp
+Query the Signal Desktop database.
+The results of the query, if any, are printed on standard output.
+Only the first statement in
+.Ar query
+is evaluated.
+Furthermore, because the Signal Desktop database is opened in read-only mode,
+statements attempting to modify the database will fail.
 .El
 .Sh TIME INTERVALS
 A time is specified as

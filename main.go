@@ -44,6 +44,7 @@ var cmdEntries = []cmdEntry{
 	cmdExportAttachmentsEntry,
 	cmdExportDatabaseEntry,
 	cmdExportMessagesEntry,
+	cmdQueryDatabaseEntry,
 }
 
 func main() {

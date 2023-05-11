@@ -76,6 +76,23 @@ func runPragmaCheck(db *sqlcipher.DB, pragma string) ([]string, error) {
 	return results, stmt.Finalize()
 }
 
+func (c *Context) QueryDatabase(query string) ([][]string, error) {
+	stmt, err := c.db.Prepare(query)
+	if err != nil {
+		return nil, err
+	}
+	var rows [][]string
+	for stmt.Step() {
+		n := stmt.ColumnCount()
+		cols := make([]string, n)
+		for i := 0; i < n; i++ {
+			cols[i] = stmt.ColumnText(i)
+		}
+		rows = append(rows, cols)
+	}
+	return rows, stmt.Finalize()
+}
+
 func (c *Context) WriteDatabase(path string) error {
 	// To decrypt an encrypted database to a plaintext database, the
 	// SQLCipher documentation recommends to do the following:
