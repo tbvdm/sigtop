@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd March 25, 2023
+.Dd May 11, 2023
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -192,21 +192,76 @@ See the
 section below details.
 .El
 .Sh TIME INTERVALS
-A time interval is specified using the format
+A time is specified as
+.So
 .Sm off
-.Sq Oo Ar time Oc Cm \&, Oo Ar time Oc ,
+.Ar yyyy
+.Oo
+.Cm - Ar mm
+.Oo
+.Cm - Ar dd
+.Oo
+.Cm T Ar hh
+.Oo
+.Cm \&: Ar mm
+.Oo
+.Cm \&: Ar ss
+.Oc Oc Oc Oc Oc
 .Sm on
-and a time is specified using the format
-.Sm off
-.Sq Ar yyyy Cm - Ar mm Cm - Ar dd Cm T Ar hh Cm \&: Ar mm Cm \&: Ar ss .
-.Sm on
-The endpoints of the interval are inclusive, and either endpoint may be
-omitted.
-Examples of time intervals are:
+.Sc .
+For example:
 .Bd -literal -offset indent
-2020-01-01T00:00:00,2020-12-31T23:59:59
-2016-10-13T21:43:27,
-,2038-01-19T03:14:07
+2023-01-23T12:34:56
+2023-01-23T12:34
+2023-01
+2023
+.Ed
+.Pp
+A time interval is specified either as
+.So
+.Sm off
+.Op Ar min-time
+.Cm \&,
+.Op Ar max-time
+.Sm on
+.Sc
+or as
+.Sq Ar time .
+In the first form,
+.Ar min-time
+and
+.Ar max-time
+are the endpoints of the time interval.
+The endpoints are inclusive.
+.Pp
+Each omitted time field in
+.Ar min-time
+defaults to the smallest possible value for that time field.
+Analogously, each omitted time field in
+.Ar max-time
+defaults to the largest possible value for that time field.
+For example, the interval
+.Ql 2023-02,2023
+is equivalent to:
+.Bd -literal -offset indent
+2023-02-01T00:00:00,2023-12-31T23:59:59
+.Ed
+.Pp
+Furthermore, either endpoint of the time interval may be omitted.
+For example, the interval from the start of February 2023 to now may be
+specified as
+.Ql 2023-02\&, .
+.Pp
+Time intervals may also be specified in a second form, consisting of a single
+time specification.
+In this form, the same time specification is used for both endpoints.
+For example, the time interval
+.Ql 2023
+is equivalent to
+.Ql 2023,2023 ,
+which is equivalent to:
+.Bd -literal -offset indent
+2023-01-01T00:00:00,2023-12-31T23:59:59
 .Ed
 .Sh EXIT STATUS
 .Ex -std
