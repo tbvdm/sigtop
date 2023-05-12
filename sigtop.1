@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 11, 2023
+.Dd May 12, 2023
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -195,7 +195,7 @@ section below details.
 .D1 Pq Alias: Ic query
 .Pp
 Query the Signal Desktop database.
-The results of the query, if any, are printed on standard output.
+The results of the query, if any, are written to standard output.
 Only the first statement in
 .Ar query
 is evaluated.
@@ -207,16 +207,11 @@ A time is specified as
 .So
 .Sm off
 .Ar yyyy
-.Oo
-.Cm - Ar mm
-.Oo
-.Cm - Ar dd
-.Oo
-.Cm T Ar hh
-.Oo
-.Cm \&: Ar mm
-.Oo
-.Cm \&: Ar ss
+.Oo Cm - Ar mm
+.Oo Cm - Ar dd
+.Oo Cm T Ar hh
+.Oo Cm \&: Ar mm
+.Oo Cm \&: Ar ss
 .Oc Oc Oc Oc Oc
 .Sm on
 .Sc .
