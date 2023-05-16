@@ -41,6 +41,7 @@ func sanitiseFilename(name string) string {
 	for _, rname := range rnames {
 		if strings.EqualFold(base, rname) {
 			name = base + "_" + ext
+			break
 		}
 	}
 
