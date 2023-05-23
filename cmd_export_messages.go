@@ -181,7 +181,6 @@ func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conv
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 	ew := errio.NewWriter(f)
 
 	switch mode.format {
@@ -191,7 +190,12 @@ func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conv
 		err = textWriteMessages(ew, msgs)
 	}
 
-	return err
+	if err != nil {
+		f.Close()
+		return err
+	}
+
+	return f.Close()
 }
 
 func conversationFile(d at.Dir, conv *signal.Conversation, mode msgMode) (*os.File, error) {

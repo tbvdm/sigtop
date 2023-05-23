@@ -352,13 +352,13 @@ func copyAttachment(src string, d at.Dir, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer wf.Close()
 
 	if _, err := io.Copy(wf, rf); err != nil {
+		wf.Close()
 		return fmt.Errorf("copy %s: %w", dst, err)
 	}
 
-	return nil
+	return wf.Close()
 }
 
 func setAttachmentModTime(d at.Dir, path string, att *signal.Attachment, mode mtimeMode) error {
@@ -399,7 +399,6 @@ func writeIncrementalFile(d at.Dir, exported map[string]bool) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
 	for id := range exported {
 		if _, err := fmt.Fprintln(f, id); err != nil {
@@ -407,5 +406,5 @@ func writeIncrementalFile(d at.Dir, exported map[string]bool) error {
 		}
 	}
 
-	return nil
+	return f.Close()
 }
