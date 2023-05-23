@@ -52,7 +52,7 @@ func cmdExportMessages(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("d:f:s:", args)
+	getopt.ParseArgs("d:f:is:", args)
 	var dArg, sArg getopt.Arg
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
