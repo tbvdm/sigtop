@@ -67,7 +67,7 @@ GitHub][10] or [send an email][11].
 [4]: https://brew.sh/
 [5]: https://go.dev/
 [6]: https://winlibs.com/
-[7]: https://github.com/brechtsanders/winlibs_mingw/releases/download/12.2.0-15.0.7-10.0.0-ucrt-r4/winlibs-x86_64-posix-seh-gcc-12.2.0-mingw-w64ucrt-10.0.0-r4.zip
+[7]: https://github.com/brechtsanders/winlibs_mingw/releases/download/13.1.0-16.0.5-11.0.0-ucrt-r5/winlibs-x86_64-posix-seh-gcc-13.1.0-mingw-w64ucrt-11.0.0-r5.zip
 [8]: https://github.com/tbvdm/sigtop/releases/latest/download/sigtop-windows-amd64.exe
 [9]: https://github.com/tbvdm/sigtop/releases/latest
 [10]: https://github.com/tbvdm/sigtop/issues
