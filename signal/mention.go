@@ -36,6 +36,10 @@ type Mention struct {
 
 func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error {
 	for _, jmnt := range jmnts {
+		// XXX Ignore non-mentions for now
+		if jmnt.UUID == "" {
+			continue
+		}
 		rpt, err := c.recipientFromUUID(jmnt.UUID)
 		if err != nil {
 			return err
