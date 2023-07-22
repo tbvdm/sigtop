@@ -150,7 +150,7 @@ func (db *DB) Prepare(query string) (*Stmt, error) {
 
 	stmt := Stmt{db: db}
 	if C.sqlite3_prepare_v2(db.db, queryCS, -1, &stmt.stmt, (**C.char)(C.NULL)) != C.SQLITE_OK {
-		return nil, db.errorf("cannot prepare statement")
+		return nil, db.errorf("cannot prepare SQL statement")
 	}
 	return &stmt, nil
 }
@@ -298,7 +298,7 @@ func (s *Stmt) ColumnText(idx int) string {
 		// If an error occurred, it should be an out-of-memory error,
 		// so panic.
 		msg := C.GoString(C.sqlite3_errstr(C.sqlite3_errcode(s.db.db)))
-		panic("cannot get column string: " + msg)
+		panic("cannot get column text: " + msg)
 	}
 
 	// The C string returned by sqlite3_column_text() might contain
