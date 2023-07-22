@@ -56,6 +56,9 @@ PowerShell to run sigtop.
 Alternatively, you can download a [pre-compiled Windows binary][8] from the
 [latest release][9].
 
+Note that sigtop is a console program; it should be run in a PowerShell or
+Command Prompt window.
+
 ## Reporting problems
 
 Please report bugs and other problems with sigtop. You can [open an issue on
