@@ -32,6 +32,7 @@ type formatMode int
 const (
 	formatJSON formatMode = iota
 	formatText
+	formatTextShort
 )
 
 type msgMode struct {
@@ -64,6 +65,8 @@ func cmdExportMessages(args []string) cmdStatus {
 				mode.format = formatJSON
 			case "text":
 				mode.format = formatText
+			case "text-short":
+				mode.format = formatTextShort
 			default:
 				log.Fatalf("invalid format: %s", arg)
 			}
@@ -188,6 +191,8 @@ func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conv
 		err = jsonWriteMessages(ew, msgs)
 	case formatText:
 		err = textWriteMessages(ew, msgs)
+	case formatTextShort:
+		err = textShortWriteMessages(ew, msgs)
 	}
 
 	if err != nil {
@@ -203,7 +208,7 @@ func conversationFile(d at.Dir, conv *signal.Conversation, mode msgMode) (*os.Fi
 	switch mode.format {
 	case formatJSON:
 		ext = ".json"
-	case formatText:
+	case formatText, formatTextShort:
 		ext = ".txt"
 	}
 

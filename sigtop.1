@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd May 12, 2023
+.Dd July 22, 2023
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -163,7 +163,7 @@ The
 .Fl f
 option may be used to specify the output format.
 The following output formats are supported:
-.Bl -tag -width Ds
+.Bl -tag -width "text-short"
 .It Cm json
 Messages are written in JSON format.
 The JSON data is copied directly from the Signal Desktop database, so its
@@ -171,6 +171,9 @@ structure may differ between Signal Desktop versions.
 .It Cm text
 Messages are written as plain text.
 This is the default.
+.It Cm text-short
+Messages are written as plain text, in short form.
+Every message is written on a single line.
 .El
 .Pp
 By default,
