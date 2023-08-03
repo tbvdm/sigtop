@@ -12,7 +12,7 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-//go:build (unix || aix || android || darwin || freebsd || hurd || illumos || ios || linux || openbsd || solaris) && !(darwin || netbsd)
+//go:build (unix || aix || android || dragonfly || freebsd || hurd || illumos || ios || linux || openbsd || solaris) && !(darwin || netbsd)
 
 package at
 
@@ -217,5 +217,4 @@ func statToFileInfo(path string, stat unix.Stat_t) fileInfo {
 		modTime: time.Unix(stat.Mtim.Unix()),
 		stat:    stat,
 	}
-
 }
