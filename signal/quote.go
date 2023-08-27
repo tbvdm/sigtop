@@ -21,11 +21,15 @@ import (
 
 type quoteJSON struct {
 	Attachments []quoteAttachmentJSON `json:"attachments"`
+	// Newer quotes have an "authorAci" (since database version 88) or
+	// "authorUuid" field. Older quotes have an "author" field containing a
+	// phone number.
 	Author      string                `json:"author"`
 	AuthorUUID  string                `json:"authorUuid"`
+	AuthorACI   string                `json:"authorAci"`
 	Mentions    []mentionJSON         `json:"bodyRanges"`
-	// The ID is a JSON number now, but apparently it used to be a number
-	// encoded as a JSON string. See sigtop GitHub issue 9 and
+	// The "id" field is a JSON number now, but apparently it used to be a
+	// number encoded as a JSON string. See sigtop GitHub issue 9 and
 	// Signal-Desktop commit ddbbe3a6b1b725007597536a39651ae845366920.
 	// Using a json.Number allows us to handle both cases.
 	ID          json.Number           `json:"id"`
@@ -64,18 +68,21 @@ func (c *Context) parseQuoteJSON(msg *Message, jmsg *messageJSON) error {
 		return fmt.Errorf("cannot parse quote ID: %w", err)
 	}
 
-	// Newer quotes have an "authorUuid" attribute, older quotes have an
-	// "author" attribute containing a phone number
-	if jmsg.Quote.AuthorUUID != "" {
+	switch {
+	case jmsg.Quote.AuthorACI != "":
+		if qte.Recipient, err = c.recipientFromUUID(jmsg.Quote.AuthorACI); err != nil {
+			return err
+		}
+	case jmsg.Quote.AuthorUUID != "":
 		if qte.Recipient, err = c.recipientFromUUID(jmsg.Quote.AuthorUUID); err != nil {
 			return err
 		}
-	} else if jmsg.Quote.Author != "" {
+	case jmsg.Quote.Author != "":
 		if qte.Recipient, err = c.recipientFromPhone(jmsg.Quote.Author); err != nil {
 			return err
 		}
-	} else {
-		return fmt.Errorf("quote without authorUuid and author")
+	default:
+		return fmt.Errorf("quote without author")
 	}
 
 	qte.Body.Text = jmsg.Quote.Text

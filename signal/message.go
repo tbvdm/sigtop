@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	// For database versions 8 to 19
+	// For database versions [8, 19]
 	messageSelect8 = "SELECT "              +
 		"m.conversationId, "            +
 		"m.source, "                    +
@@ -35,7 +35,7 @@ const (
 		"m.sent_at "                    +
 		"FROM messages AS m "
 
-	// For database versions >= 20
+	// For database versions [20, 87]
 	messageSelect20 = "SELECT "             +
 		"m.conversationId, "            +
 		"c.id, "                        +
@@ -47,6 +47,18 @@ const (
 		"LEFT JOIN conversations AS c " +
 		"ON m.sourceUuid = c.uuid "
 
+	// For database versions >= 88
+	messageSelect88 = "SELECT "             +
+		"m.conversationId, "            +
+		"c.id, "                        +
+		"m.type, "                      +
+		"m.body, "                      +
+		"m.json, "                      +
+		"m.sent_at "                    +
+		"FROM messages AS m "           +
+		"LEFT JOIN conversations AS c " +
+		"ON m.sourceServiceId = c.serviceId "
+
 	messageWhereConversationID               = "WHERE m.conversationId = ? "
 	messageWhereConversationIDAndSentBefore  = messageWhereConversationID + "AND (m.sent_at <= ? OR m.sent_at IS NULL) "
 	messageWhereConversationIDAndSentAfter   = messageWhereConversationID + "AND m.sent_at >= ? "
@@ -55,15 +67,19 @@ const (
 
 	messageQuery8  = messageSelect8  + messageWhereConversationID + messageOrder
 	messageQuery20 = messageSelect20 + messageWhereConversationID + messageOrder
+	messageQuery88 = messageSelect88 + messageWhereConversationID + messageOrder
 
 	messageQuerySentBefore8  = messageSelect8  + messageWhereConversationIDAndSentBefore + messageOrder
 	messageQuerySentBefore20 = messageSelect20 + messageWhereConversationIDAndSentBefore + messageOrder
+	messageQuerySentBefore88 = messageSelect88 + messageWhereConversationIDAndSentBefore + messageOrder
 
 	messageQuerySentAfter8  = messageSelect8  + messageWhereConversationIDAndSentAfter + messageOrder
 	messageQuerySentAfter20 = messageSelect20 + messageWhereConversationIDAndSentAfter + messageOrder
+	messageQuerySentAfter88 = messageSelect88 + messageWhereConversationIDAndSentAfter + messageOrder
 
 	messageQuerySentBetween8  = messageSelect8  + messageWhereConversationIDAndSentBetween + messageOrder
 	messageQuerySentBetween20 = messageSelect20 + messageWhereConversationIDAndSentBetween + messageOrder
+	messageQuerySentBetween88 = messageSelect88 + messageWhereConversationIDAndSentBetween + messageOrder
 )
 
 const (
@@ -125,8 +141,10 @@ func (c *Context) allConversationMessages(conv *Conversation) ([]Message, error)
 	switch {
 	case c.dbVersion < 20:
 		query = messageQuery8
-	default:
+	case c.dbVersion < 88:
 		query = messageQuery20
+	default:
+		query = messageQuery88
 	}
 
 	stmt, err := c.db.Prepare(query)
@@ -146,8 +164,10 @@ func (c *Context) conversationMessagesSentBefore(conv *Conversation, max time.Ti
 	switch {
 	case c.dbVersion < 20:
 		query = messageQuerySentBefore8
-	default:
+	case c.dbVersion < 88:
 		query = messageQuerySentBefore20
+	default:
+		query = messageQuerySentBefore88
 	}
 
 	stmt, err := c.db.Prepare(query)
@@ -171,8 +191,10 @@ func (c *Context) conversationMessagesSentAfter(conv *Conversation, min time.Tim
 	switch {
 	case c.dbVersion < 20:
 		query = messageQuerySentAfter8
-	default:
+	case c.dbVersion < 88:
 		query = messageQuerySentAfter20
+	default:
+		query = messageQuerySentAfter88
 	}
 
 	stmt, err := c.db.Prepare(query)
@@ -196,8 +218,10 @@ func (c *Context) conversationMessagesSentBetween(conv *Conversation, min, max t
 	switch {
 	case c.dbVersion < 20:
 		query = messageQuerySentBetween8
-	default:
+	case c.dbVersion < 88:
 		query = messageQuerySentBetween20
+	default:
+		query = messageQuerySentBetween88
 	}
 
 	stmt, err := c.db.Prepare(query)

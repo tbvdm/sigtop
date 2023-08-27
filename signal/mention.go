@@ -25,7 +25,10 @@ import (
 type mentionJSON struct {
 	Start  int    `json:"start"`
 	Length int    `json:"length"`
+	// The "mentionUuid" field was renamed to "mentionAci" in database
+	// version 88
 	UUID   string `json:"mentionUuid"`
+	ACI    string `json:"mentionAci"`
 }
 
 type Mention struct {
@@ -36,23 +39,33 @@ type Mention struct {
 
 func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error {
 	for _, jmnt := range jmnts {
-		// XXX Ignore non-mentions for now
-		if jmnt.UUID == "" {
+		var mnt Mention
+		var err error
+
+		switch {
+		case jmnt.ACI != "":
+			mnt.Recipient, err = c.recipientFromUUID(jmnt.ACI)
+			if err != nil {
+				return err
+			}
+			if mnt.Recipient == nil {
+				log.Printf("cannot find mention recipient for ACI %q", jmnt.ACI)
+			}
+		case jmnt.UUID != "":
+			mnt.Recipient, err = c.recipientFromUUID(jmnt.UUID)
+			if err != nil {
+				return err
+			}
+			if mnt.Recipient == nil {
+				log.Printf("cannot find mention recipient for UUID %q", jmnt.UUID)
+			}
+		default:
+			// XXX Ignore non-mentions for now
 			continue
 		}
-		rpt, err := c.recipientFromUUID(jmnt.UUID)
-		if err != nil {
-			return err
-		}
-		if rpt == nil {
-			log.Printf("cannot find mention recipient for UUID %q", jmnt.UUID)
-		}
 
-		mnt := Mention{
-			Start:     jmnt.Start,
-			Length:    jmnt.Length,
-			Recipient: rpt,
-		}
+		mnt.Start = jmnt.Start
+		mnt.Length = jmnt.Length
 		body.Mentions = append(body.Mentions, mnt)
 	}
 

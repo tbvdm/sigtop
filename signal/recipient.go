@@ -34,10 +34,10 @@ const (
 			"WHEN 'private' THEN '+' || id " +
 			"ELSE NULL "                     +
 		"END, "                                  + // e164
-		"NULL "                                  + // uuid
+		"NULL "                                  + // serviceId
 		"FROM conversations"
 
-	// For database versions >= 20
+	// For database versions [20, 87]
 	recipientQuery20 = "SELECT "                     +
 		"id, "                                   +
 		"type, "                                 +
@@ -46,7 +46,19 @@ const (
 		"profileFamilyName, "                    +
 		"profileFullName, "                      +
 		"e164, "                                 +
-		"uuid "                                  +
+		"uuid "                                  + //serviceId
+		"FROM conversations"
+
+	// For database versions >= 88
+	recipientQuery88 = "SELECT "                     +
+		"id, "                                   +
+		"type, "                                 +
+		"name, "                                 +
+		"profileName, "                          +
+		"profileFamilyName, "                    +
+		"profileFullName, "                      +
+		"e164, "                                 +
+		"serviceId "                             +
 		"FROM conversations"
 )
 
@@ -101,8 +113,10 @@ func (c *Context) makeRecipientMaps() error {
 	switch {
 	case c.dbVersion < 20:
 		query = recipientQuery19
-	default:
+	case c.dbVersion < 88:
 		query = recipientQuery20
+	default:
+		query = recipientQuery88
 	}
 
 	stmt, err := c.db.Prepare(query)
