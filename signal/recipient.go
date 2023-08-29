@@ -111,12 +111,12 @@ func (c *Context) makeRecipientMaps() error {
 
 	var query string
 	switch {
-	case c.dbVersion < 20:
-		query = recipientQuery19
-	case c.dbVersion < 88:
+	case c.dbVersion >= 88:
+		query = recipientQuery88
+	case c.dbVersion >= 20:
 		query = recipientQuery20
 	default:
-		query = recipientQuery88
+		query = recipientQuery19
 	}
 
 	stmt, err := c.db.Prepare(query)

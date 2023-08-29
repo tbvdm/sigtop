@@ -139,12 +139,12 @@ func (c *Context) ConversationMessages(conv *Conversation, ival Interval) ([]Mes
 func (c *Context) allConversationMessages(conv *Conversation) ([]Message, error) {
 	var query string
 	switch {
-	case c.dbVersion < 20:
-		query = messageQuery8
-	case c.dbVersion < 88:
+	case c.dbVersion >= 88:
+		query = messageQuery88
+	case c.dbVersion >= 20:
 		query = messageQuery20
 	default:
-		query = messageQuery88
+		query = messageQuery8
 	}
 
 	stmt, err := c.db.Prepare(query)
@@ -162,12 +162,12 @@ func (c *Context) allConversationMessages(conv *Conversation) ([]Message, error)
 func (c *Context) conversationMessagesSentBefore(conv *Conversation, max time.Time) ([]Message, error) {
 	var query string
 	switch {
-	case c.dbVersion < 20:
-		query = messageQuerySentBefore8
-	case c.dbVersion < 88:
+	case c.dbVersion >= 88:
+		query = messageQuerySentBefore88
+	case c.dbVersion >= 20:
 		query = messageQuerySentBefore20
 	default:
-		query = messageQuerySentBefore88
+		query = messageQuerySentBefore8
 	}
 
 	stmt, err := c.db.Prepare(query)
@@ -189,12 +189,12 @@ func (c *Context) conversationMessagesSentBefore(conv *Conversation, max time.Ti
 func (c *Context) conversationMessagesSentAfter(conv *Conversation, min time.Time) ([]Message, error) {
 	var query string
 	switch {
-	case c.dbVersion < 20:
-		query = messageQuerySentAfter8
-	case c.dbVersion < 88:
+	case c.dbVersion >= 88:
+		query = messageQuerySentAfter88
+	case c.dbVersion >= 20:
 		query = messageQuerySentAfter20
 	default:
-		query = messageQuerySentAfter88
+		query = messageQuerySentAfter8
 	}
 
 	stmt, err := c.db.Prepare(query)
@@ -216,12 +216,12 @@ func (c *Context) conversationMessagesSentAfter(conv *Conversation, min time.Tim
 func (c *Context) conversationMessagesSentBetween(conv *Conversation, min, max time.Time) ([]Message, error) {
 	var query string
 	switch {
-	case c.dbVersion < 20:
-		query = messageQuerySentBetween8
-	case c.dbVersion < 88:
+	case c.dbVersion >= 88:
+		query = messageQuerySentBetween88
+	case c.dbVersion >= 20:
 		query = messageQuerySentBetween20
 	default:
-		query = messageQuerySentBetween88
+		query = messageQuerySentBetween8
 	}
 
 	stmt, err := c.db.Prepare(query)
