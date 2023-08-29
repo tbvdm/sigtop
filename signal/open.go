@@ -29,7 +29,7 @@ type Context struct {
 	dbVersion                  int
 	recipientsByConversationID map[string]*Recipient
 	recipientsByPhone          map[string]*Recipient
-	recipientsByUUID           map[string]*Recipient
+	recipientsByACI            map[string]*Recipient
 }
 
 func Open(dir string) (*Context, error) {

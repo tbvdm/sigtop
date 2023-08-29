@@ -70,11 +70,11 @@ func (c *Context) parseQuoteJSON(msg *Message, jmsg *messageJSON) error {
 
 	switch {
 	case jmsg.Quote.AuthorACI != "":
-		if qte.Recipient, err = c.recipientFromUUID(jmsg.Quote.AuthorACI); err != nil {
+		if qte.Recipient, err = c.recipientFromACI(jmsg.Quote.AuthorACI); err != nil {
 			return err
 		}
 	case jmsg.Quote.AuthorUUID != "":
-		if qte.Recipient, err = c.recipientFromUUID(jmsg.Quote.AuthorUUID); err != nil {
+		if qte.Recipient, err = c.recipientFromACI(jmsg.Quote.AuthorUUID); err != nil {
 			return err
 		}
 	case jmsg.Quote.Author != "":

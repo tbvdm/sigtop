@@ -70,7 +70,7 @@ const (
 	recipientColumnProfileFamilyName
 	recipientColumnProfileFullName
 	recipientColumnE164
-	recipientColumnUUID
+	recipientColumnServiceID
 )
 
 type Recipient struct {
@@ -87,7 +87,7 @@ const (
 )
 
 type Contact struct {
-	UUID              string
+	ACI               string // Account Identity
 	Name              string
 	ProfileName       string
 	ProfileFamilyName string
@@ -107,7 +107,7 @@ func (c *Context) makeRecipientMaps() error {
 
 	c.recipientsByConversationID = make(map[string]*Recipient)
 	c.recipientsByPhone = make(map[string]*Recipient)
-	c.recipientsByUUID = make(map[string]*Recipient)
+	c.recipientsByACI = make(map[string]*Recipient)
 
 	var query string
 	switch {
@@ -147,7 +147,7 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 				ProfileFamilyName: stmt.ColumnText(recipientColumnProfileFamilyName),
 				ProfileJoinedName: stmt.ColumnText(recipientColumnProfileFullName),
 				Phone:             stmt.ColumnText(recipientColumnE164),
-				UUID:              stmt.ColumnText(recipientColumnUUID),
+				ACI:               stmt.ColumnText(recipientColumnServiceID),
 			},
 		}
 	case "group":
@@ -168,8 +168,8 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 		if r.Contact.Phone != "" {
 			c.recipientsByPhone[r.Contact.Phone] = r
 		}
-		if r.Contact.UUID != "" {
-			c.recipientsByUUID[strings.ToLower(r.Contact.UUID)] = r
+		if r.Contact.ACI != "" {
+			c.recipientsByACI[strings.ToLower(r.Contact.ACI)] = r
 		}
 	}
 
@@ -196,11 +196,11 @@ func (c *Context) recipientFromPhone(phone string) (*Recipient, error) {
 	return c.recipientsByPhone[phone], nil
 }
 
-func (c *Context) recipientFromUUID(uuid string) (*Recipient, error) {
+func (c *Context) recipientFromACI(aci string) (*Recipient, error) {
 	if err := c.makeRecipientMaps(); err != nil {
 		return nil, err
 	}
-	return c.recipientsByUUID[strings.ToLower(uuid)], nil
+	return c.recipientsByACI[strings.ToLower(aci)], nil
 }
 
 func (r *Recipient) DisplayName() string {
@@ -216,8 +216,8 @@ func (r *Recipient) DisplayName() string {
 				return r.Contact.ProfileName
 			case r.Contact.Phone != "":
 				return r.Contact.Phone
-			case r.Contact.UUID != "":
-				return r.Contact.UUID
+			case r.Contact.ACI != "":
+				return r.Contact.ACI
 			}
 		case RecipientTypeGroup:
 			switch {

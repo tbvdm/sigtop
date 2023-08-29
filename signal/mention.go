@@ -44,7 +44,7 @@ func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error
 
 		switch {
 		case jmnt.ACI != "":
-			mnt.Recipient, err = c.recipientFromUUID(jmnt.ACI)
+			mnt.Recipient, err = c.recipientFromACI(jmnt.ACI)
 			if err != nil {
 				return err
 			}
@@ -52,7 +52,7 @@ func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error
 				log.Printf("cannot find mention recipient for ACI %q", jmnt.ACI)
 			}
 		case jmnt.UUID != "":
-			mnt.Recipient, err = c.recipientFromUUID(jmnt.UUID)
+			mnt.Recipient, err = c.recipientFromACI(jmnt.UUID)
 			if err != nil {
 				return err
 			}
