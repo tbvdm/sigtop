@@ -144,12 +144,12 @@ type Stmt struct {
 	err  error
 }
 
-func (db *DB) Prepare(query string) (*Stmt, error) {
-	queryCS := C.CString(query)
-	defer C.free(unsafe.Pointer(queryCS))
+func (db *DB) Prepare(sql string) (*Stmt, error) {
+	sqlCS := C.CString(sql)
+	defer C.free(unsafe.Pointer(sqlCS))
 
 	stmt := Stmt{db: db}
-	if C.sqlite3_prepare_v2(db.db, queryCS, -1, &stmt.stmt, (**C.char)(C.NULL)) != C.SQLITE_OK {
+	if C.sqlite3_prepare_v2(db.db, sqlCS, -1, &stmt.stmt, (**C.char)(C.NULL)) != C.SQLITE_OK {
 		return nil, db.errorf("cannot prepare SQL statement")
 	}
 	return &stmt, nil
