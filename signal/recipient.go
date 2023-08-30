@@ -119,7 +119,7 @@ func (c *Context) makeRecipientMaps() error {
 		query = recipientQuery19
 	}
 
-	stmt, err := c.db.Prepare(query)
+	stmt, _, err := c.db.Prepare(query)
 	if err != nil {
 		return err
 	}

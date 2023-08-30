@@ -144,15 +144,20 @@ type Stmt struct {
 	err  error
 }
 
-func (db *DB) Prepare(sql string) (*Stmt, error) {
+func (db *DB) Prepare(sql string) (*Stmt, string, error) {
 	sqlCS := C.CString(sql)
 	defer C.free(unsafe.Pointer(sqlCS))
 
 	stmt := Stmt{db: db}
-	if C.sqlite3_prepare_v2(db.db, sqlCS, -1, &stmt.stmt, (**C.char)(C.NULL)) != C.SQLITE_OK {
-		return nil, db.errorf("cannot prepare SQL statement")
+	var tailCS *C.char
+	if C.sqlite3_prepare_v2(db.db, sqlCS, -1, &stmt.stmt, &tailCS) != C.SQLITE_OK {
+		return nil, "", db.errorf("cannot prepare SQL statement")
 	}
-	return &stmt, nil
+
+	off := uintptr(unsafe.Pointer(tailCS)) - uintptr(unsafe.Pointer(sqlCS))
+	tail := sql[off:]
+
+	return &stmt, tail, nil
 }
 
 func (s *Stmt) Bind(idx int, val any) error {

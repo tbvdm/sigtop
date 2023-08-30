@@ -147,7 +147,7 @@ func (c *Context) allConversationMessages(conv *Conversation) ([]Message, error)
 		query = messageQuery8
 	}
 
-	stmt, err := c.db.Prepare(query)
+	stmt, _, err := c.db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (c *Context) conversationMessagesSentBefore(conv *Conversation, max time.Ti
 		query = messageQuerySentBefore8
 	}
 
-	stmt, err := c.db.Prepare(query)
+	stmt, _, err := c.db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (c *Context) conversationMessagesSentAfter(conv *Conversation, min time.Tim
 		query = messageQuerySentAfter8
 	}
 
-	stmt, err := c.db.Prepare(query)
+	stmt, _, err := c.db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,7 @@ func (c *Context) conversationMessagesSentBetween(conv *Conversation, min, max t
 		query = messageQuerySentBetween8
 	}
 
-	stmt, err := c.db.Prepare(query)
+	stmt, _, err := c.db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}

@@ -40,7 +40,7 @@ func (c *Context) CheckDatabase() ([]string, error) {
 }
 
 func runPragmaCheck(db *sqlcipher.DB, pragma string) ([]string, error) {
-	stmt, err := db.Prepare("PRAGMA " + pragma)
+	stmt, _, err := db.Prepare("PRAGMA " + pragma)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func runPragmaCheck(db *sqlcipher.DB, pragma string) ([]string, error) {
 }
 
 func (c *Context) QueryDatabase(query string) ([][]string, error) {
-	stmt, err := c.db.Prepare(query)
+	stmt, _, err := c.db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (c *Context) WriteDatabase(path string) error {
 	}
 
 	// Attach a new plaintext database to the temporary database
-	stmt, err := db.Prepare("ATTACH DATABASE ? AS plaintext KEY ''")
+	stmt, _, err := db.Prepare("ATTACH DATABASE ? AS plaintext KEY ''")
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (c *Context) WriteDatabase(path string) error {
 }
 
 func databaseVersion(db *sqlcipher.DB) (int, error) {
-	stmt, err := db.Prepare("PRAGMA user_version")
+	stmt, _, err := db.Prepare("PRAGMA user_version")
 	if err != nil {
 		return 0, err
 	}
