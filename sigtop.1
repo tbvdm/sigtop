@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd July 22, 2023
+.Dd August 30, 2023
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -194,16 +194,13 @@ See the
 .Sx TIME INTERVALS
 section below details.
 .Tg query
-.It Ic query-database Oo Fl d Ar signal-directory Oc Ar query
+.It Ic query-database Oo Fl d Ar signal-directory Oc Ar sql
 .D1 Pq Alias: Ic query
 .Pp
 Query the Signal Desktop database.
 The results of the query, if any, are written to standard output.
-Only the first statement in
-.Ar query
-is evaluated.
-Furthermore, because the Signal Desktop database is opened in read-only mode,
-statements attempting to modify the database will fail.
+Because the Signal Desktop database is opened in read-only mode, statements
+attempting to modify the database will fail.
 .El
 .Sh TIME INTERVALS
 A time is specified as

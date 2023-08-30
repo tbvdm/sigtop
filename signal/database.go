@@ -76,21 +76,28 @@ func runPragmaCheck(db *sqlcipher.DB, pragma string) ([]string, error) {
 	return results, stmt.Finalize()
 }
 
-func (c *Context) QueryDatabase(query string) ([][]string, error) {
-	stmt, _, err := c.db.Prepare(query)
-	if err != nil {
-		return nil, err
-	}
+func (c *Context) QueryDatabase(sql string) ([][]string, error) {
 	var rows [][]string
-	for stmt.Step() {
-		n := stmt.ColumnCount()
-		cols := make([]string, n)
-		for i := 0; i < n; i++ {
-			cols[i] = stmt.ColumnText(i)
+	for sql != "" {
+		var stmt *sqlcipher.Stmt
+		var err error
+		stmt, sql, err = c.db.Prepare(sql)
+		if err != nil {
+			return nil, err
 		}
-		rows = append(rows, cols)
+		for stmt.Step() {
+			n := stmt.ColumnCount()
+			cols := make([]string, n)
+			for i := 0; i < n; i++ {
+				cols[i] = stmt.ColumnText(i)
+			}
+			rows = append(rows, cols)
+		}
+		if err = stmt.Finalize(); err != nil {
+			return nil, err
+		}
 	}
-	return rows, stmt.Finalize()
+	return rows, nil
 }
 
 func (c *Context) WriteDatabase(path string) error {
