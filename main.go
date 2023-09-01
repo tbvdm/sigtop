@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/tbvdm/go-openbsd"
 	"github.com/tbvdm/sigtop/signal"
 	"github.com/tbvdm/sigtop/util"
 )
@@ -82,7 +83,7 @@ func command(name string) *cmdEntry {
 }
 
 func unveilSignalDir(dir string) error {
-	if err := util.Unveil(dir, "r"); err != nil {
+	if err := openbsd.Unveil(dir, "r"); err != nil {
 		return err
 	}
 
@@ -92,11 +93,11 @@ func unveilSignalDir(dir string) error {
 	walFile := filepath.Join(dir, signal.DatabaseFile+"-wal")
 	shmFile := filepath.Join(dir, signal.DatabaseFile+"-shm")
 
-	if err := util.Unveil(walFile, "rwc"); err != nil {
+	if err := openbsd.Unveil(walFile, "rwc"); err != nil {
 		return err
 	}
 
-	if err := util.Unveil(shmFile, "rwc"); err != nil {
+	if err := openbsd.Unveil(shmFile, "rwc"); err != nil {
 		return err
 	}
 

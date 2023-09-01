@@ -26,10 +26,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tbvdm/go-openbsd"
 	"github.com/tbvdm/sigtop/at"
 	"github.com/tbvdm/sigtop/getopt"
 	"github.com/tbvdm/sigtop/signal"
-	"github.com/tbvdm/sigtop/util"
 )
 
 const incrementalFile = ".incremental"
@@ -133,12 +133,12 @@ func cmdExportAttachments(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	if err := util.Unveil(exportDir, "rwc"); err != nil {
+	if err := openbsd.Unveil(exportDir, "rwc"); err != nil {
 		log.Fatal(err)
 	}
 
 	// For SQLite/SQLCipher
-	if err := util.Unveil("/dev/urandom", "r"); err != nil {
+	if err := openbsd.Unveil("/dev/urandom", "r"); err != nil {
 		log.Fatal(err)
 	}
 
@@ -147,11 +147,11 @@ func cmdExportAttachments(args []string) cmdStatus {
 	}
 
 	if mode.mtime == mtimeNone || mode.export == exportLink {
-		if err := util.Pledge("stdio rpath wpath cpath flock", ""); err != nil {
+		if err := openbsd.Pledge("stdio rpath wpath cpath flock"); err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		if err := util.Pledge("stdio rpath wpath cpath flock fattr", ""); err != nil {
+		if err := openbsd.Pledge("stdio rpath wpath cpath flock fattr"); err != nil {
 			log.Fatal(err)
 		}
 	}

@@ -20,7 +20,7 @@ import (
 	"mime"
 	"strings"
 
-	"github.com/tbvdm/sigtop/util"
+	"github.com/tbvdm/go-openbsd"
 )
 
 // unveilMimeFiles unveils files that the mime package tries to read. See the
@@ -37,7 +37,7 @@ func unveilMimeFiles() error {
 	}
 
 	for _, file := range files {
-		err := util.Unveil(file, "r")
+		err := openbsd.Unveil(file, "r")
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
