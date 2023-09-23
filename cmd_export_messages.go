@@ -43,7 +43,7 @@ type msgMode struct {
 var cmdExportMessagesEntry = cmdEntry{
 	name:  "export-messages",
 	alias: "msg",
-	usage: "[-i] [-d signal-directory] [-f format] [-s interval] [directory]",
+	usage: "[-i] [-c conversation] [-d signal-directory] [-f format] [-s interval] [directory]",
 	exec:  cmdExportMessages,
 }
 
@@ -53,10 +53,13 @@ func cmdExportMessages(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("d:f:is:", args)
+	getopt.ParseArgs("c:d:f:is:", args)
 	var dArg, sArg getopt.Arg
+	var selectors []string
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
+		case 'c':
+			selectors = append(selectors, getopt.OptionArg().String())
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'f':
@@ -138,14 +141,14 @@ func cmdExportMessages(args []string) cmdStatus {
 	}
 	defer ctx.Close()
 
-	if !exportMessages(ctx, exportDir, mode, ival) {
+	if !exportMessages(ctx, exportDir, mode, selectors, ival) {
 		return cmdError
 	}
 
 	return cmdOK
 }
 
-func exportMessages(ctx *signal.Context, dir string, mode msgMode, ival signal.Interval) bool {
+func exportMessages(ctx *signal.Context, dir string, mode msgMode, selectors []string, ival signal.Interval) bool {
 	d, err := at.Open(dir)
 	if err != nil {
 		log.Print(err)
@@ -153,7 +156,7 @@ func exportMessages(ctx *signal.Context, dir string, mode msgMode, ival signal.I
 	}
 	defer d.Close()
 
-	convs, err := ctx.Conversations()
+	convs, err := selectConversations(ctx, selectors)
 	if err != nil {
 		log.Print(err)
 		return false

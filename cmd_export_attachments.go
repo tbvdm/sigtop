@@ -59,7 +59,7 @@ type attMode struct {
 var cmdExportAttachmentsEntry = cmdEntry{
 	name:  "export-attachments",
 	alias: "att",
-	usage: "[-iLlMm] [-d signal-directory] [-s interval] [directory]",
+	usage: "[-iLlMm] [-c conversation] [-d signal-directory] [-s interval] [directory]",
 	exec:  cmdExportAttachments,
 }
 
@@ -70,10 +70,13 @@ func cmdExportAttachments(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("d:iLlMms:", args)
+	getopt.ParseArgs("c:d:iLlMms:", args)
 	var dArg, sArg getopt.Arg
+	var selectors []string
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
+		case 'c':
+			selectors = append(selectors, getopt.OptionArg().String())
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'i':
@@ -162,14 +165,14 @@ func cmdExportAttachments(args []string) cmdStatus {
 	}
 	defer ctx.Close()
 
-	if !exportAttachments(ctx, exportDir, mode, ival) {
+	if !exportAttachments(ctx, exportDir, mode, selectors, ival) {
 		return cmdError
 	}
 
 	return cmdOK
 }
 
-func exportAttachments(ctx *signal.Context, dir string, mode attMode, ival signal.Interval) bool {
+func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors []string, ival signal.Interval) bool {
 	d, err := at.Open(dir)
 	if err != nil {
 		log.Print(err)
@@ -186,7 +189,7 @@ func exportAttachments(ctx *signal.Context, dir string, mode attMode, ival signa
 		}
 	}
 
-	convs, err := ctx.Conversations()
+	convs, err := selectConversations(ctx, selectors)
 	if err != nil {
 		log.Print(err)
 		return false
