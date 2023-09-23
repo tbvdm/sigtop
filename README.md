@@ -71,7 +71,7 @@ GitHub][10] or [send an email][11].
 [5]: https://go.dev/
 [6]: https://winlibs.com/
 [7]: https://github.com/brechtsanders/winlibs_mingw/releases/download/13.1.0-16.0.5-11.0.0-ucrt-r5/winlibs-x86_64-posix-seh-gcc-13.1.0-mingw-w64ucrt-11.0.0-r5.zip
-[8]: https://github.com/tbvdm/sigtop/releases/latest/download/sigtop-windows-amd64.exe
+[8]: https://github.com/tbvdm/sigtop/releases/latest/download/sigtop.exe
 [9]: https://github.com/tbvdm/sigtop/releases/latest
 [10]: https://github.com/tbvdm/sigtop/issues
 [11]: https://www.kariliq.nl/contact.html

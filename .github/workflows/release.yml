@@ -10,17 +10,7 @@ jobs:
     permissions:
       contents: write
 
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-
-    runs-on: ${{matrix.os}}
-
-    defaults:
-      run:
-        # For Windows
-        shell: bash
+    runs-on: windows-latest
 
     steps:
       - name: checkout
@@ -32,17 +22,11 @@ jobs:
           go-version: stable
 
       - name: build
-        run: |
-          os=$(go env GOOS)
-          arch=$(go env GOARCH)
-          bin=sigtop-$os-$arch
-          [[ $os = windows ]] && bin+=.exe
-          go build -trimpath -o $bin
-          echo bin=$bin >> $GITHUB_ENV
+        run: go build -trimpath
 
       - name: release
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: ${{env.bin}}
+          artifacts: sigtop.exe
