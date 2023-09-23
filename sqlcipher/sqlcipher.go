@@ -233,7 +233,7 @@ func (s *Stmt) Step() bool {
 	case C.SQLITE_DONE:
 		return false
 	default:
-		s.err = s.db.errorf("cannot execute statement")
+		s.err = s.db.errorf("cannot execute SQL statement")
 		return false
 	}
 }
@@ -245,7 +245,7 @@ func (s *Stmt) Finalize() error {
 	}
 	if ret := C.sqlite3_finalize(s.stmt); ret != C.SQLITE_OK {
 		msg := C.GoString(C.sqlite3_errstr(ret))
-		return errors.New("cannot finalize statement: " + msg)
+		return errors.New("cannot finalize SQL statement: " + msg)
 	}
 	return nil
 }
@@ -303,7 +303,7 @@ func (s *Stmt) ColumnText(idx int) string {
 		// If an error occurred, it should be an out-of-memory error,
 		// so panic.
 		msg := C.GoString(C.sqlite3_errstr(C.sqlite3_errcode(s.db.db)))
-		panic("cannot get column text: " + msg)
+		panic("sqlite: cannot get column text: " + msg)
 	}
 
 	// The C string returned by sqlite3_column_text() might contain
@@ -325,7 +325,7 @@ func (s *Stmt) ColumnBlob(idx int) []byte {
 		// so panic.
 		if code := C.sqlite3_errcode(s.db.db); code != C.SQLITE_OK {
 			msg := C.GoString(C.sqlite3_errstr(code))
-			panic("cannot get column blob: " + msg)
+			panic("sqlite: cannot get column blob: " + msg)
 		}
 	}
 
