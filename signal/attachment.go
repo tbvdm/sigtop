@@ -38,8 +38,9 @@ type Attachment struct {
 	Pending     bool
 }
 
-func (c *Context) parseAttachmentJSON(msg *Message, jmsg *messageJSON) error {
-	for _, jatt := range jmsg.Attachments {
+func (c *Context) parseAttachmentJSON(msg *Message, jatts []attachmentJSON) []Attachment {
+	atts := make([]Attachment, 0, len(jatts))
+	for _, jatt := range jatts {
 		att := Attachment{
 			Path:        jatt.Path,
 			FileName:    jatt.FileName,
@@ -49,9 +50,9 @@ func (c *Context) parseAttachmentJSON(msg *Message, jmsg *messageJSON) error {
 			TimeRecv:    msg.TimeRecv,
 			Pending:     jatt.Pending,
 		}
-		msg.Attachments = append(msg.Attachments, att)
+		atts = append(atts, att)
 	}
-	return nil
+	return atts
 }
 
 func (c *Context) ConversationAttachments(conv *Conversation, ival Interval) ([]Attachment, error) {

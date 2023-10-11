@@ -289,15 +289,13 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 		}
 
 		if err := msg.Body.insertMentions(); err != nil {
-			log.Print(err)
-			log.Printf("message with invalid mention (conversation: %q, sent: %s)", msg.Conversation.DisplayName(), time.UnixMilli(msg.TimeSent).Format("2006-01-02 15:04:05"))
+			msg.logError(err, "message with invalid mention")
 			msg.Body.Mentions = nil
 		}
 
 		if msg.Quote != nil {
 			if err := msg.Quote.Body.insertMentions(); err != nil {
-				log.Print(err)
-				log.Printf("message with invalid mention in quote (conversation: %q, sent: %s)", msg.Conversation.DisplayName(), time.UnixMilli(msg.TimeSent).Format("2006-01-02 15:04:05"))
+				msg.logError(err, "message with invalid mention in quote")
 				msg.Quote.Body.Mentions = nil
 			}
 		}
@@ -310,7 +308,8 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 
 func (c *Context) parseMessageJSON(msg *Message) error {
 	var jmsg messageJSON
-	if err := json.Unmarshal([]byte(msg.JSON), &jmsg); err != nil {
+	var err error
+	if err = json.Unmarshal([]byte(msg.JSON), &jmsg); err != nil {
 		return fmt.Errorf("cannot parse JSON data: %w", err)
 	}
 	// For older messages, the received time is stored in the "received_at"
@@ -323,19 +322,26 @@ func (c *Context) parseMessageJSON(msg *Message) error {
 	} else {
 		msg.TimeRecv = jmsg.ReceivedAt
 	}
-	if err := c.parseAttachmentJSON(msg, &jmsg); err != nil {
+	msg.Attachments = c.parseAttachmentJSON(msg, jmsg.Attachments)
+	if msg.Body.Mentions, err = c.parseMentionJSON(jmsg.Mentions); err != nil {
 		return err
 	}
-	if err := c.parseMentionJSON(&msg.Body, jmsg.Mentions); err != nil {
+	if msg.Quote, err = c.parseQuoteJSON(jmsg.Quote); err != nil {
 		return err
 	}
-	if err := c.parseReactionJSON(msg, &jmsg); err != nil {
-		return err
-	}
-	if err := c.parseQuoteJSON(msg, &jmsg); err != nil {
+	if err = c.parseReactionJSON(msg, &jmsg); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (m *Message) logError(err error, format string, a ...any) {
+	if err != nil {
+		log.Print(err)
+	}
+	s := fmt.Sprintf(format, a...)
+	s += fmt.Sprintf(" (conversation: %q, sent: %s (%d))", m.Conversation.DisplayName(), time.UnixMilli(m.TimeSent).Format("2006-01-02 15:04:05"), m.TimeSent)
+	log.Print(s)
 }
 
 func (m *Message) dumpJSON() {

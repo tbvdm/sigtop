@@ -53,45 +53,45 @@ type QuoteAttachment struct {
 	ContentType string
 }
 
-func (c *Context) parseQuoteJSON(msg *Message, jmsg *messageJSON) error {
-	if jmsg.Quote == nil {
-		return nil
+func (c *Context) parseQuoteJSON(jqte *quoteJSON) (*Quote, error) {
+	if jqte == nil {
+		return nil, nil
 	}
 
 	var qte Quote
 	var err error
 
-	if jmsg.Quote.ID.String() == "" {
-		return fmt.Errorf("quote without ID")
+	if jqte.ID.String() == "" {
+		return nil, fmt.Errorf("quote without ID")
 	}
-	if qte.ID, err = jmsg.Quote.ID.Int64(); err != nil {
-		return fmt.Errorf("cannot parse quote ID: %w", err)
+	if qte.ID, err = jqte.ID.Int64(); err != nil {
+		return nil, fmt.Errorf("cannot parse quote ID: %w", err)
 	}
 
 	switch {
-	case jmsg.Quote.AuthorACI != "":
-		if qte.Recipient, err = c.recipientFromACI(jmsg.Quote.AuthorACI); err != nil {
-			return err
+	case jqte.AuthorACI != "":
+		if qte.Recipient, err = c.recipientFromACI(jqte.AuthorACI); err != nil {
+			return nil, err
 		}
-	case jmsg.Quote.AuthorUUID != "":
-		if qte.Recipient, err = c.recipientFromACI(jmsg.Quote.AuthorUUID); err != nil {
-			return err
+	case jqte.AuthorUUID != "":
+		if qte.Recipient, err = c.recipientFromACI(jqte.AuthorUUID); err != nil {
+			return nil, err
 		}
-	case jmsg.Quote.Author != "":
-		if qte.Recipient, err = c.recipientFromPhone(jmsg.Quote.Author); err != nil {
-			return err
+	case jqte.Author != "":
+		if qte.Recipient, err = c.recipientFromPhone(jqte.Author); err != nil {
+			return nil, err
 		}
 	default:
-		return fmt.Errorf("quote without author")
+		return nil, fmt.Errorf("quote without author")
 	}
 
-	qte.Body.Text = jmsg.Quote.Text
+	qte.Body.Text = jqte.Text
 
-	if err := c.parseMentionJSON(&qte.Body, jmsg.Quote.Mentions); err != nil {
-		return err
+	if qte.Body.Mentions, err = c.parseMentionJSON(jqte.Mentions); err != nil {
+		return nil, err
 	}
 
-	for _, jatt := range jmsg.Quote.Attachments {
+	for _, jatt := range jqte.Attachments {
 		// Skip long-message attachments
 		if jatt.ContentType == LongTextType {
 			continue
@@ -103,6 +103,5 @@ func (c *Context) parseQuoteJSON(msg *Message, jmsg *messageJSON) error {
 		qte.Attachments = append(qte.Attachments, att)
 	}
 
-	msg.Quote = &qte
-	return nil
+	return &qte, nil
 }

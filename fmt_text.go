@@ -24,7 +24,7 @@ import (
 )
 
 func textWriteMessages(ew *errio.Writer, msgs []signal.Message) error {
-	textWriteRecipientField(ew, "Conversation", msgs[0].Conversation)
+	textWriteRecipientField(ew, "", "Conversation", msgs[0].Conversation)
 	fmt.Fprintln(ew)
 	for _, msg := range msgs {
 		textWriteMessage(ew, &msg)
@@ -34,46 +34,42 @@ func textWriteMessages(ew *errio.Writer, msgs []signal.Message) error {
 
 func textWriteMessage(ew *errio.Writer, msg *signal.Message) {
 	if msg.IsOutgoing() {
-		textWriteField(ew, "From", "You")
+		textWriteField(ew, "", "From", "You")
 	} else if msg.Source != nil {
-		textWriteRecipientField(ew, "From", msg.Source)
+		textWriteRecipientField(ew, "", "From", msg.Source)
 	}
 	if msg.Type != "" {
-		textWriteField(ew, "Type", msg.Type)
+		textWriteField(ew, "", "Type", msg.Type)
 	} else {
-		textWriteField(ew, "Type", "unknown")
+		textWriteField(ew, "", "Type", "unknown")
 	}
 	if msg.TimeSent != 0 {
-		textWriteTimeField(ew, "Sent", msg.TimeSent)
+		textWriteTimeField(ew, "", "Sent", msg.TimeSent)
 	}
 	if !msg.IsOutgoing() {
-		textWriteTimeField(ew, "Received", msg.TimeRecv)
+		textWriteTimeField(ew, "", "Received", msg.TimeRecv)
 	}
-	for _, att := range msg.Attachments {
-		textWriteAttachmentField(ew, &att)
-	}
+	textWriteAttachmentFields(ew, "", msg.Attachments)
 	for _, rct := range msg.Reactions {
-		textWriteFieldf(ew, "Reaction", "%s from %s", rct.Emoji, rct.Recipient.DisplayName())
+		textWriteFieldf(ew, "", "Reaction", "%s from %s", rct.Emoji, rct.Recipient.DisplayName())
 	}
-	if msg.Quote != nil {
-		textWriteQuote(ew, msg.Quote)
-	}
-	if msg.Body.Text == "" {
-		fmt.Fprintln(ew)
-	} else {
-		fmt.Fprintf(ew, "\n%s\n\n", msg.Body.Text)
-	}
+	textWriteQuote(ew, "", msg.Quote)
+	textWriteBody(ew, "", &msg.Body)
+	fmt.Fprintln(ew)
 }
 
-func textWriteField(ew *errio.Writer, field, value string) {
-	fmt.Fprintf(ew, "%s: %s\n", field, value)
+func textWriteField(ew *errio.Writer, prefix, field, value string) {
+	if prefix != "" {
+		prefix += " "
+	}
+	fmt.Fprintf(ew, "%s%s: %s\n", prefix, field, value)
 }
 
-func textWriteFieldf(ew *errio.Writer, field, format string, a ...any) {
-	textWriteField(ew, field, fmt.Sprintf(format, a...))
+func textWriteFieldf(ew *errio.Writer, prefix, field, format string, a ...any) {
+	textWriteField(ew, prefix, field, fmt.Sprintf(format, a...))
 }
 
-func textWriteRecipientField(ew *errio.Writer, field string, rpt *signal.Recipient) {
+func textWriteRecipientField(ew *errio.Writer, prefix, field string, rpt *signal.Recipient) {
 	value := rpt.DisplayName()
 	if rpt != nil {
 		if rpt.Type == signal.RecipientTypeGroup {
@@ -82,40 +78,57 @@ func textWriteRecipientField(ew *errio.Writer, field string, rpt *signal.Recipie
 			value += " (" + rpt.Contact.Phone + ")"
 		}
 	}
-	textWriteField(ew, field, value)
+	textWriteField(ew, prefix, field, value)
 }
 
-func textWriteTimeField(ew *errio.Writer, field string, msec int64) {
-	textWriteField(ew, field, time.UnixMilli(msec).Format("Mon, 2 Jan 2006 15:04:05 -0700"))
+func textWriteTimeField(ew *errio.Writer, prefix, field string, msec int64) {
+	textWriteField(ew, prefix, field, time.UnixMilli(msec).Format("Mon, 2 Jan 2006 15:04:05 -0700"))
 }
 
-func textWriteAttachmentField(ew *errio.Writer, att *signal.Attachment) {
-	fileName := "no filename"
-	if att.FileName != "" {
-		fileName = att.FileName
-	}
-	textWriteFieldf(ew, "Attachment", "%s (%s, %d bytes)", fileName, att.ContentType, att.Size)
-}
-
-func textWriteQuote(ew *errio.Writer, qte *signal.Quote) {
-	fmt.Fprint(ew, "\n> ")
-	textWriteRecipientField(ew, "From", qte.Recipient)
-	fmt.Fprint(ew, "> ")
-	textWriteTimeField(ew, "Sent", qte.ID)
-	for _, att := range qte.Attachments {
-		fmt.Fprint(ew, "> ")
-		textWriteQuoteAttachmentField(ew, &att)
-	}
-	if qte.Body.Text != "" {
-		fmt.Fprint(ew, ">\n> ")
-		fmt.Fprintln(ew, strings.ReplaceAll(qte.Body.Text, "\n", "\n> "))
+func textWriteAttachmentFields(ew *errio.Writer, prefix string, atts []signal.Attachment) {
+	for _, att := range atts {
+		fileName := "no filename"
+		if att.FileName != "" {
+			fileName = att.FileName
+		}
+		textWriteFieldf(ew, prefix, "Attachment", "%s (%s, %d bytes)", fileName, att.ContentType, att.Size)
 	}
 }
 
-func textWriteQuoteAttachmentField(ew *errio.Writer, att *signal.QuoteAttachment) {
-	fileName := "no filename"
-	if att.FileName != "" {
-		fileName = att.FileName
+func textWriteBody(ew *errio.Writer, prefix string, body *signal.MessageBody) {
+	if body.Text == "" {
+		return
 	}
-	textWriteFieldf(ew, "Attachment", "%s (%s)", fileName, att.ContentType)
+	fmt.Fprintln(ew, prefix)
+	if prefix != "" {
+		prefix += " "
+	}
+	for _, line := range strings.Split(body.Text, "\n") {
+		fmt.Fprintln(ew, prefix+line)
+	}
+}
+
+func textWriteQuote(ew *errio.Writer, prefix string, qte *signal.Quote) {
+	if qte == nil {
+		return
+	}
+	fmt.Fprintln(ew, prefix)
+	if prefix != "" {
+		prefix += " "
+	}
+	prefix += ">"
+	textWriteRecipientField(ew, prefix, "From", qte.Recipient)
+	textWriteTimeField(ew, prefix, "Sent", qte.ID)
+	textWriteQuoteAttachmentFields(ew, prefix, qte.Attachments)
+	textWriteBody(ew, prefix, &qte.Body)
+}
+
+func textWriteQuoteAttachmentFields(ew *errio.Writer, prefix string, atts []signal.QuoteAttachment) {
+	for _, att := range atts {
+		fileName := "no filename"
+		if att.FileName != "" {
+			fileName = att.FileName
+		}
+		textWriteFieldf(ew, prefix, "Attachment", "%s (%s)", fileName, att.ContentType)
+	}
 }

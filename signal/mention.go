@@ -37,7 +37,9 @@ type Mention struct {
 	Recipient *Recipient
 }
 
-func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error {
+func (c *Context) parseMentionJSON(jmnts []mentionJSON) ([]Mention, error) {
+	var mnts []Mention
+
 	for _, jmnt := range jmnts {
 		var mnt Mention
 		var err error
@@ -46,7 +48,7 @@ func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error
 		case jmnt.ACI != "":
 			mnt.Recipient, err = c.recipientFromACI(jmnt.ACI)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if mnt.Recipient == nil {
 				log.Printf("cannot find mention recipient for ACI %q", jmnt.ACI)
@@ -54,7 +56,7 @@ func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error
 		case jmnt.UUID != "":
 			mnt.Recipient, err = c.recipientFromACI(jmnt.UUID)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if mnt.Recipient == nil {
 				log.Printf("cannot find mention recipient for UUID %q", jmnt.UUID)
@@ -66,10 +68,10 @@ func (c *Context) parseMentionJSON(body *MessageBody, jmnts []mentionJSON) error
 
 		mnt.Start = jmnt.Start
 		mnt.Length = jmnt.Length
-		body.Mentions = append(body.Mentions, mnt)
+		mnts = append(mnts, mnt)
 	}
 
-	return nil
+	return mnts, nil
 }
 
 type ErrMention struct {
