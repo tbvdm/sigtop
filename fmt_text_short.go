@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/tbvdm/sigtop/errio"
@@ -34,22 +35,26 @@ func textShortWriteMessage(ew *errio.Writer, msg *signal.Message) {
 	if !msg.IsOutgoing() {
 		name = msg.Source.DisplayName()
 	}
-	fmt.Fprint(ew, textShortFormatTime(msg.TimeSent) + " " + name + ":")
+	fmt.Fprintf(ew, "%s %s:", textShortFormatTime(msg.TimeSent), name)
 	if msg.Type != "incoming" && msg.Type != "outgoing" {
 		fmt.Fprintf(ew, " [%s message]", msg.Type)
 	} else {
+		var details []string
 		if msg.Quote != nil {
-			fmt.Fprintf(ew, " [reply to %s on %s]", msg.Quote.Recipient.DisplayName(), textShortFormatTime(msg.Quote.ID))
+			details = append(details, fmt.Sprintf("reply to %s on %s", msg.Quote.Recipient.DisplayName(), textShortFormatTime(msg.Quote.ID)))
 		}
 		if len(msg.Attachments) > 0 {
 			plural := ""
 			if len(msg.Attachments) > 1 {
 				plural = "s"
 			}
-			fmt.Fprintf(ew, " [%d attachment%s]", len(msg.Attachments), plural)
+			details = append(details, fmt.Sprintf("%d attachment%s", len(msg.Attachments), plural))
+		}
+		if len(details) > 0 {
+			fmt.Fprintf(ew, " [%s]", strings.Join(details, ", "))
 		}
 		if msg.Body.Text != "" {
-			fmt.Fprint(ew, " " + msg.Body.Text)
+			fmt.Fprint(ew, " "+msg.Body.Text)
 		}
 	}
 	fmt.Fprintln(ew)
