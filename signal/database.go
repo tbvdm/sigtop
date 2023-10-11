@@ -86,9 +86,8 @@ func (c *Context) QueryDatabase(sql string) ([][]string, error) {
 			return nil, err
 		}
 		for stmt.Step() {
-			n := stmt.ColumnCount()
-			cols := make([]string, n)
-			for i := 0; i < n; i++ {
+			cols := make([]string, stmt.ColumnCount())
+			for i := range cols {
 				cols[i] = stmt.ColumnText(i)
 			}
 			rows = append(rows, cols)
