@@ -405,6 +405,7 @@ func writeIncrementalFile(d at.Dir, exported map[string]bool) error {
 
 	for id := range exported {
 		if _, err := fmt.Fprintln(f, id); err != nil {
+			f.Close()
 			return err
 		}
 	}
