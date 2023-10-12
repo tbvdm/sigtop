@@ -98,6 +98,7 @@ type messageJSON struct {
 	Mentions     []mentionJSON    `json:"bodyRanges"`
 	Reactions    []reactionJSON   `json:"reactions"`
 	Quote        *quoteJSON       `json:"quote"`
+	Edits        []editJSON       `json:"editHistory"`
 }
 
 type Message struct {
@@ -111,6 +112,7 @@ type Message struct {
 	Attachments  []Attachment
 	Reactions    []Reaction
 	Quote        *Quote
+	Edits        []Edit
 }
 
 type MessageBody struct {
@@ -300,6 +302,19 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 			}
 		}
 
+		for i := range msg.Edits {
+			if err := msg.Edits[i].Body.insertMentions(); err != nil {
+				msg.logError(err, "message with invalid mention in edit %d", i)
+				msg.Edits[i].Body.Mentions = nil
+			}
+			if msg.Edits[i].Quote != nil {
+				if err := msg.Edits[i].Quote.Body.insertMentions(); err != nil {
+					msg.logError(err, "message with invalid mention in quote in edit %d", i)
+					msg.Edits[i].Quote.Body.Mentions = nil
+				}
+			}
+		}
+
 		msgs = append(msgs, msg)
 	}
 
@@ -330,6 +345,9 @@ func (c *Context) parseMessageJSON(msg *Message) error {
 		return err
 	}
 	if err = c.parseReactionJSON(msg, &jmsg); err != nil {
+		return err
+	}
+	if err = c.parseEditJSON(msg, &jmsg); err != nil {
 		return err
 	}
 	return nil

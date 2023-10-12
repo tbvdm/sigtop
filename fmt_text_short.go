@@ -43,6 +43,9 @@ func textShortWriteMessage(ew *errio.Writer, msg *signal.Message) {
 		if msg.Quote != nil {
 			details = append(details, fmt.Sprintf("reply to %s on %s", msg.Quote.Recipient.DisplayName(), textShortFormatTime(msg.Quote.ID)))
 		}
+		if len(msg.Edits) > 0 {
+			details = append(details, "edited")
+		}
 		if len(msg.Attachments) > 0 {
 			plural := ""
 			if len(msg.Attachments) > 1 {

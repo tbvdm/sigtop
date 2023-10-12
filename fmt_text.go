@@ -53,8 +53,13 @@ func textWriteMessage(ew *errio.Writer, msg *signal.Message) {
 	for _, rct := range msg.Reactions {
 		textWriteFieldf(ew, "", "Reaction", "%s from %s", rct.Emoji, rct.Recipient.DisplayName())
 	}
-	textWriteQuote(ew, "", msg.Quote)
-	textWriteBody(ew, "", &msg.Body)
+	if len(msg.Edits) == 0 {
+		textWriteQuote(ew, "", msg.Quote)
+		textWriteBody(ew, "", &msg.Body)
+	} else {
+		textWriteFieldf(ew, "", "Edited", "%d versions", len(msg.Edits))
+		textWriteEditHistory(ew, msg.Edits)
+	}
 	fmt.Fprintln(ew)
 }
 
@@ -130,5 +135,20 @@ func textWriteQuoteAttachmentFields(ew *errio.Writer, prefix string, atts []sign
 			fileName = att.FileName
 		}
 		textWriteFieldf(ew, prefix, "Attachment", "%s (%s)", fileName, att.ContentType)
+	}
+}
+
+func textWriteEditHistory(ew *errio.Writer, edits []signal.Edit) {
+	fmt.Fprintln(ew)
+	prefix := "|"
+	for i := range edits {
+		textWriteFieldf(ew, prefix, "Version", "%d", len(edits)-i)
+		textWriteAttachmentFields(ew, prefix, edits[i].Attachments)
+		textWriteTimeField(ew, prefix, "Sent", edits[i].TimeEdit)
+		textWriteQuote(ew, prefix, edits[i].Quote)
+		textWriteBody(ew, prefix, &edits[i].Body)
+		if i+1 < len(edits) {
+			fmt.Fprintln(ew, prefix)
+		}
 	}
 }
