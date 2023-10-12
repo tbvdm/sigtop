@@ -14,6 +14,11 @@
 
 package signal
 
+import (
+	"os"
+	"strings"
+)
+
 // Based on EditHistoryType in ts/model-types.d.ts in the Signal-Desktop
 // repository
 type editJSON struct {
@@ -45,7 +50,31 @@ func (c *Context) parseEditJSON(msg *Message, jmsg *messageJSON) error {
 		if edit.Quote, err = c.parseQuoteJSON(jedit.Quote); err != nil {
 			return err
 		}
+		if err = c.fixEditedLongMessage(&edit); err != nil {
+			return err
+		}
 		msg.Edits = append(msg.Edits, edit)
+	}
+	return nil
+}
+
+// fixEditedLongMessage restores the complete message text from a long-text
+// attachment, if there is one. This works around what appears to be a bug in
+// Signal Desktop; see Signal Desktop issue 6641.
+func (c *Context) fixEditedLongMessage(edit *Edit) error {
+	for i, att := range edit.Attachments {
+		if att.ContentType == LongTextType {
+			data, err := os.ReadFile(c.AttachmentPath(&att))
+			if err != nil {
+				return err
+			}
+			longText := string(data)
+			if strings.HasPrefix(longText, edit.Body.Text) {
+				edit.Body.Text = longText
+				edit.Attachments = append(edit.Attachments[:i], edit.Attachments[i+1:]...)
+				break
+			}
+		}
 	}
 	return nil
 }
