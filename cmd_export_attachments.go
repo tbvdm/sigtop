@@ -232,14 +232,10 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 
 	ret := true
 	for _, att := range atts {
-		if mode.incremental {
-			id := filepath.Base(att.Path)
-			if exported[id] {
-				continue
-			}
-			exported[id] = true
+		id := filepath.Base(att.Path)
+		if mode.incremental && exported[id] {
+			continue
 		}
-
 		src := ctx.AttachmentPath(&att)
 		if src == "" {
 			var msg string
@@ -289,6 +285,9 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 				log.Print(err)
 				ret = false
 			}
+		}
+		if mode.incremental {
+			exported[id] = true
 		}
 	}
 
