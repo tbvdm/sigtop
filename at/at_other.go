@@ -108,7 +108,7 @@ func (d Dir) stat(path string, flag int) (fs.FileInfo, error) {
 
 func (d Dir) utimes(path string, atime, mtime time.Time, flag int) error {
 	if flag == SymlinkNoFollow {
-		return &Error{Op: "link", Err: ErrUnsupportedFlag}
+		return &Error{Op: "utimes", Err: ErrUnsupportedFlag}
 	}
 	return chtimes(d.join(path), atime, mtime)
 }
