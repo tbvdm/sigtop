@@ -268,6 +268,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 			if err := copyAttachment(src, cd, dst); err != nil {
 				log.Print(err)
 				ret = false
+				continue
 			}
 			if err := setAttachmentModTime(cd, dst, &att, mode.mtime); err != nil {
 				log.Print(err)
@@ -282,6 +283,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 			if err := cd.Symlink(src, dst); err != nil {
 				log.Print(err)
 				ret = false
+				continue
 			}
 			if err := setAttachmentModTime(cd, dst, &att, mode.mtime); err != nil {
 				log.Print(err)
