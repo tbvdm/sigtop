@@ -176,10 +176,14 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 	return nil
 }
 
-// trimBidiChars removes all leading and trailing FSI (U+2068) and PDI (U+2069)
+// trimBidiChars removes one surrounding pair of FSI (U+2068) and PDI (U+2069)
 // characters from the string s.
 func trimBidiChars(s string) string {
-	return strings.Trim(s, "\u2068\u2069")
+	const fsi, pdi = "\u2068", "\u2069"
+	if strings.HasPrefix(s, fsi) && strings.HasSuffix(s[len(fsi):], pdi) {
+		return s[len(fsi) : len(s)-len(pdi)]
+	}
+	return s
 }
 
 func (c *Context) recipientFromConversationID(id string) (*Recipient, error) {
