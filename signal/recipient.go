@@ -46,7 +46,7 @@ const (
 		"profileFamilyName, "                    +
 		"profileFullName, "                      +
 		"e164, "                                 +
-		"uuid "                                  + //serviceId
+		"uuid "                                  + // serviceId
 		"FROM conversations"
 
 	// For database versions >= 88
