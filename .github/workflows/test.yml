@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: setup-go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{matrix.go}}
 
@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: dragonfly-vm
         uses: vmactions/dragonflybsd-vm@v0
@@ -42,14 +42,14 @@ jobs:
             go build
 
   test-freebsd:
-    runs-on: macos-12
+    runs-on: ubuntu-22.04
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: freebsd-vm
-        uses: vmactions/freebsd-vm@v0
+        uses: vmactions/freebsd-vm@v1
         with:
           usesh: true
           prepare: pkg install -y go
@@ -59,14 +59,14 @@ jobs:
             go build
 
   test-netbsd:
-    runs-on: macos-12
+    runs-on: ubuntu-22.04
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: netbsd-vm
-        uses: vmactions/netbsd-vm@v0
+        uses: vmactions/netbsd-vm@v1
         with:
           prepare: pkg_add go pkg_alternatives
           run: |
@@ -75,14 +75,14 @@ jobs:
             go build
 
   test-openbsd:
-    runs-on: macos-12
+    runs-on: ubuntu-22.04
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: openbsd-vm
-        uses: vmactions/openbsd-vm@v0
+        uses: vmactions/openbsd-vm@v1
         with:
           prepare: |
             for i in $(jot 10); do
