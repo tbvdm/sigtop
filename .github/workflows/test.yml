@@ -25,14 +25,14 @@ jobs:
         run: go build
 
   test-dragonfly:
-    runs-on: macos-12
+    runs-on: ubuntu-latest
 
     steps:
       - name: checkout
         uses: actions/checkout@v4
 
       - name: dragonfly-vm
-        uses: vmactions/dragonflybsd-vm@v0
+        uses: vmactions/dragonflybsd-vm@v1
         with:
           usesh: true
           prepare: pkg install -y go
@@ -42,7 +42,7 @@ jobs:
             go build
 
   test-freebsd:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: checkout
@@ -59,7 +59,7 @@ jobs:
             go build
 
   test-netbsd:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: checkout
@@ -75,7 +75,7 @@ jobs:
             go build
 
   test-openbsd:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: checkout
