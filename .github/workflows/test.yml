@@ -21,6 +21,12 @@ jobs:
         with:
           go-version: ${{matrix.go}}
 
+        # Work around a problem in GitHub Actions
+      - name: set-cc
+        if: startsWith(matrix.os, 'windows') && (matrix.go == '1.18' || matrix.go == '1.19')
+        run: |
+          'CC=c:\mingw64\bin\gcc' | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: build
         run: go build
 
