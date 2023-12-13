@@ -15,14 +15,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/tbvdm/go-cli"
 	"github.com/tbvdm/go-openbsd"
 	"github.com/tbvdm/sigtop/signal"
-	"github.com/tbvdm/sigtop/util"
 )
 
 type cmdStatus int
@@ -49,10 +48,10 @@ var cmdEntries = []cmdEntry{
 }
 
 func main() {
-	util.SetLog()
+	cli.SetLog()
 
 	if len(os.Args) < 2 {
-		usage("command", "[argument ...]")
+		cli.ExitUsage("command", "[argument ...]")
 	}
 
 	cmd := command(os.Args[1])
@@ -64,13 +63,8 @@ func main() {
 	case cmdError:
 		os.Exit(1)
 	case cmdUsage:
-		usage(cmd.name, cmd.usage)
+		cli.ExitUsage(cmd.name, cmd.usage)
 	}
-}
-
-func usage(cmd, args string) {
-	fmt.Fprintln(os.Stderr, "usage:", util.Progname(), cmd, args)
-	os.Exit(1)
 }
 
 func command(name string) *cmdEntry {

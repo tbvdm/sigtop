@@ -1,3 +1,5 @@
+github.com/tbvdm/go-cli v0.1.0 h1:1BoVwYzJjjSG8cjXA2LSKvw0XaSTnjeQ99vps6GHp9s=
+github.com/tbvdm/go-cli v0.1.0/go.mod h1:vsnfU50SMtIaSWdA2Am0mTQdvFLAX/pcT4/AWCtJ1E4=
 github.com/tbvdm/go-openbsd v0.1.1 h1:sMH1EbfhUloJw5bmgY9v/ipbLRTtcSWweJPESLGPsVI=
 github.com/tbvdm/go-openbsd v0.1.1/go.mod h1:BbRmyLIxr9coBWyS7SaCzzhyMYhRBC2M1DPYO7MzMHk=
 golang.org/x/crypto v0.16.0 h1:mMMrFzRSCF0GvB7Ne27XVtVAaXLrPmgPC7/v0tkwHaY=
