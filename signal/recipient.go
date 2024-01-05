@@ -207,28 +207,44 @@ func (c *Context) recipientFromACI(aci string) (*Recipient, error) {
 	return c.recipientsByACI[strings.ToLower(aci)], nil
 }
 
-func (r *Recipient) DisplayName() string {
+func (r *Recipient) displayNameAndDetail() (string, string) {
+	name, detail := "Unknown", ""
 	if r != nil {
 		switch r.Type {
 		case RecipientTypeContact:
 			switch {
 			case r.Contact.Name != "":
-				return r.Contact.Name
+				name = r.Contact.Name
 			case r.Contact.ProfileJoinedName != "":
-				return r.Contact.ProfileJoinedName
+				name = r.Contact.ProfileJoinedName
 			case r.Contact.ProfileName != "":
-				return r.Contact.ProfileName
+				name = r.Contact.ProfileName
 			case r.Contact.Phone != "":
-				return r.Contact.Phone
+				name = r.Contact.Phone
 			case r.Contact.ACI != "":
-				return r.Contact.ACI
+				name = r.Contact.ACI
 			}
+			detail = r.Contact.Phone
 		case RecipientTypeGroup:
 			switch {
 			case r.Group.Name != "":
-				return r.Group.Name
+				name = r.Group.Name
 			}
+			detail = "group"
 		}
 	}
-	return "Unknown"
+	return name, detail
+}
+
+func (r *Recipient) DisplayName() string {
+	name, _ := r.displayNameAndDetail()
+	return name
+}
+
+func (r *Recipient) DetailedDisplayName() string {
+	name, detail := r.displayNameAndDetail()
+	if detail == "" {
+		return name
+	}
+	return name + " (" + detail + ")"
 }

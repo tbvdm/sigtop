@@ -75,15 +75,7 @@ func textWriteFieldf(ew *errio.Writer, prefix, field, format string, a ...any) {
 }
 
 func textWriteRecipientField(ew *errio.Writer, prefix, field string, rpt *signal.Recipient) {
-	value := rpt.DisplayName()
-	if rpt != nil {
-		if rpt.Type == signal.RecipientTypeGroup {
-			value += " (group)"
-		} else if rpt.Contact.Phone != "" {
-			value += " (" + rpt.Contact.Phone + ")"
-		}
-	}
-	textWriteField(ew, prefix, field, value)
+	textWriteField(ew, prefix, field, rpt.DetailedDisplayName())
 }
 
 func textWriteTimeField(ew *errio.Writer, prefix, field string, msec int64) {

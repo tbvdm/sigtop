@@ -99,18 +99,5 @@ func unveilSignalDir(dir string) error {
 }
 
 func recipientFilename(rpt *signal.Recipient, ext string) string {
-	var detail string
-
-	switch rpt.Type {
-	case signal.RecipientTypeContact:
-		detail = rpt.Contact.Phone
-	case signal.RecipientTypeGroup:
-		detail = "group"
-	}
-
-	if detail != "" {
-		detail = " (" + detail + ")"
-	}
-
-	return sanitiseFilename(rpt.DisplayName() + detail + ext)
+	return sanitiseFilename(rpt.DetailedDisplayName() + ext)
 }
