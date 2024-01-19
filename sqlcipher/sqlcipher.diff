@@ -1,8 +1,8 @@
 diff --git Makefile.in Makefile.in
-index 097081a0..77ff1d41 100644
+index 870c5d30..e6d93f8d 100644
 --- Makefile.in
 +++ Makefile.in
-@@ -156,6 +156,7 @@ CRYPTOSRC = \
+@@ -157,6 +157,7 @@ CRYPTOSRC = \
    $(TOP)/src/sqlcipher.h \
    $(TOP)/src/crypto.c \
    $(TOP)/src/crypto_impl.c \
@@ -11,7 +11,7 @@ index 097081a0..77ff1d41 100644
  	$(TOP)/src/crypto_nss.c \
  	$(TOP)/src/crypto_openssl.c \
 diff --git src/crypto.h src/crypto.h
-index 804306d8..15ebae95 100644
+index c9583308..2b09a42f 100644
 --- src/crypto.h
 +++ src/crypto.h
 @@ -72,6 +72,7 @@ void sqlite3pager_reset(Pager *pPager);
@@ -217,7 +217,7 @@ index 00000000..a9008bb5
 +
 +#endif
 diff --git src/crypto_impl.c src/crypto_impl.c
-index 318c48b0..204208d7 100644
+index 6e3ab2c3..68c9520d 100644
 --- src/crypto_impl.c
 +++ src/crypto_impl.c
 @@ -213,6 +213,9 @@ void sqlcipher_activate() {
@@ -231,10 +231,10 @@ index 318c48b0..204208d7 100644
      extern int sqlcipher_ltc_setup(sqlcipher_provider *p);
      sqlcipher_ltc_setup(p);
 diff --git tool/mksqlite3c.tcl tool/mksqlite3c.tcl
-index 4d9fc59f..12d13c93 100644
+index f278d0d8..4269b54b 100644
 --- tool/mksqlite3c.tcl
 +++ tool/mksqlite3c.tcl
-@@ -391,6 +391,7 @@ set flist {
+@@ -414,6 +414,7 @@ set flist {
  
     crypto.c
     crypto_impl.c
