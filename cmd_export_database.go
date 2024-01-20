@@ -36,7 +36,7 @@ func cmdExportDatabase(args []string) cmdStatus {
 
 	var dArg getopt.Arg
 	for getopt.Next() {
-		switch opt := getopt.Option(); opt {
+		switch getopt.Option() {
 		case 'd':
 			dArg = getopt.OptionArg()
 		}

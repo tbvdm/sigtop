@@ -74,7 +74,7 @@ func cmdExportAttachments(args []string) cmdStatus {
 	var dArg, sArg getopt.Arg
 	var selectors []string
 	for getopt.Next() {
-		switch opt := getopt.Option(); opt {
+		switch getopt.Option() {
 		case 'c':
 			selectors = append(selectors, getopt.OptionArg().String())
 		case 'd':

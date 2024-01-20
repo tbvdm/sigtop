@@ -51,17 +51,17 @@ func parseTime(str string, max bool) (time.Time, error) {
 	nsec := time.Duration(0)
 
 	switch len(str) {
-	case 4: // yyyy
+	case len("yyyy"):
 		year = 1
-	case 7: // yyyy-mm
+	case len("yyyy-mm"):
 		month = 1
-	case 10: // yyyy-mm-dd
+	case len("yyyy-mm-dd"):
 		day = 1
-	case 13: // yyyy-mm-ddThh
+	case len("yyyy-mm-ddThh"):
 		nsec = time.Hour
-	case 16: // yyyy-mm-ddThh:mm
+	case len("yyyy-mm-ddThh:mm"):
 		nsec = time.Minute
-	case 19: // yyyy-mm-ddThh:mm:ss
+	case len("yyyy-mm-ddThh:mm:ss"):
 		nsec = time.Second
 	default:
 		return time.Time{}, invalidTimeError(str)
