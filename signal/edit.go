@@ -15,6 +15,7 @@
 package signal
 
 import (
+	"errors"
 	"os"
 	"strings"
 )
@@ -51,7 +52,9 @@ func (c *Context) parseEditJSON(msg *Message, jmsg *messageJSON) error {
 			return err
 		}
 		if err = c.fixEditedLongMessage(&edit); err != nil {
-			return err
+			// Fixing edited long messages is a best-effort
+			// attempt. Just report the error and move on.
+			msg.logError(err, "cannot fix edited long message")
 		}
 		msg.Edits = append(msg.Edits, edit)
 	}
@@ -63,18 +66,31 @@ func (c *Context) parseEditJSON(msg *Message, jmsg *messageJSON) error {
 // Signal Desktop; see Signal Desktop issue 6641.
 func (c *Context) fixEditedLongMessage(edit *Edit) error {
 	for i, att := range edit.Attachments {
-		if att.ContentType == LongTextType {
-			data, err := os.ReadFile(c.AttachmentPath(&att))
-			if err != nil {
-				return err
-			}
-			longText := string(data)
-			if strings.HasPrefix(longText, edit.Body.Text) {
-				edit.Body.Text = longText
-				edit.Attachments = append(edit.Attachments[:i], edit.Attachments[i+1:]...)
-				break
-			}
+		if att.ContentType != LongTextType {
+			continue
 		}
+
+		data, err := os.ReadFile(c.AttachmentPath(&att))
+		if err != nil {
+			// Signal Desktop considers long-message attachments of
+			// edits to be orphaned, and eventually removes them
+			// from disk
+			if errors.Is(err, os.ErrNotExist) {
+				return errors.New("long-message attachment not or no longer available")
+			}
+			return err
+		}
+
+		longText := string(data)
+
+		if !strings.HasPrefix(longText, edit.Body.Text) {
+			return errors.New("long-message attachment does not match body text")
+		}
+
+		edit.Body.Text = longText
+		edit.Attachments = append(edit.Attachments[:i], edit.Attachments[i+1:]...)
+		break
 	}
+
 	return nil
 }
