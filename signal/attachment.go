@@ -70,7 +70,11 @@ func (c *Context) ConversationAttachments(conv *Conversation, ival Interval) ([]
 }
 
 func (c *Context) AttachmentPath(att *Attachment) string {
-	if att.Path == "" {
+	return c.absoluteAttachmentPath(att.Path)
+}
+
+func (c *Context) absoluteAttachmentPath(path string) string {
+	if path == "" {
 		return ""
 	}
 
@@ -81,7 +85,7 @@ func (c *Context) AttachmentPath(att *Attachment) string {
 	} else {
 		foreignSep = "/"
 	}
-	path := strings.Replace(att.Path, foreignSep, string(os.PathSeparator), -1)
+	path = strings.Replace(path, foreignSep, string(os.PathSeparator), -1)
 
 	return filepath.Join(c.dir, AttachmentDir, path)
 }

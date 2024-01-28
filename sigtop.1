@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd September 23, 2023
+.Dd January 28, 2024
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -143,6 +143,43 @@ is specified, only the attachments that were sent in the specified time
 interval are exported.
 See the
 .Sx TIME INTERVALS
+section below for details.
+.Tg avt
+.It Xo
+.Ic export-avatars
+.Op Fl Ll
+.Op Fl c Ar conversation
+.Op Fl d Ar signal-directory
+.Op Ar directory
+.Xc
+.D1 Pq Alias: Ic avt
+.Pp
+Export avatars.
+The avatar files are created in
+.Ar directory ,
+or in the current directory if
+.Ar directory
+is not specified.
+.Pp
+Signal Desktop stores avatars in unencrypted files.
+.Nm
+can copy these files, or create hard links or symbolic links to them.
+By default, avatars are copied.
+If
+.Fl L
+is specified, hard links are created.
+If
+.Fl l
+is specified, symbolic links are created.
+.Pp
+If
+.Fl c
+is specified, only the avatar from the specified conversation is exported.
+The
+.Fl c
+option can be specified multiple times to specify multiple conversations.
+See the
+.Sx CONVERSATION SELECTORS
 section below for details.
 .Tg db
 .It Ic export-database Oo Fl d Ar signal-directory Oc Ar file

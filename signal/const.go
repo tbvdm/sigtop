@@ -23,4 +23,7 @@ const (
 
 	// Content type of the long-text attachment of a long message
 	LongTextType = "text/x-signal-plain"
+
+	// Avatar for the Signal release chat
+	SignalAvatarPath = "images/profile-avatar.svg"
 )

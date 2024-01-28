@@ -325,7 +325,7 @@ func (c *Context) parseMessageJSON(msg *Message) error {
 	var jmsg messageJSON
 	var err error
 	if err = json.Unmarshal([]byte(msg.JSON), &jmsg); err != nil {
-		return fmt.Errorf("cannot parse JSON data: %w", err)
+		return fmt.Errorf("cannot parse message JSON data: %w", err)
 	}
 	// For older messages, the received time is stored in the "received_at"
 	// attribute. For newer messages, it is in the new "received_at_ms"

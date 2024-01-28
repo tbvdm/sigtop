@@ -41,6 +41,7 @@ type cmdEntry struct {
 
 var cmdEntries = []cmdEntry{
 	cmdCheckDatabaseEntry,
+	cmdExportAvatarsEntry,
 	cmdExportAttachmentsEntry,
 	cmdExportDatabaseEntry,
 	cmdExportMessagesEntry,

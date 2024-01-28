@@ -15,6 +15,7 @@
 package signal
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -25,6 +26,7 @@ const (
 	// For database version 19
 	recipientQuery19 = "SELECT "                     +
 		"id, "                                   +
+		"json, "                                 +
 		"type, "                                 +
 		"name, "                                 +
 		"profileName, "                          +
@@ -40,6 +42,7 @@ const (
 	// For database versions [20, 87]
 	recipientQuery20 = "SELECT "                     +
 		"id, "                                   +
+		"json, "                                 +
 		"type, "                                 +
 		"name, "                                 +
 		"profileName, "                          +
@@ -52,6 +55,7 @@ const (
 	// For database versions >= 88
 	recipientQuery88 = "SELECT "                     +
 		"id, "                                   +
+		"json, "                                 +
 		"type, "                                 +
 		"name, "                                 +
 		"profileName, "                          +
@@ -64,6 +68,7 @@ const (
 
 const (
 	recipientColumnID = iota
+	recipientColumnJSON
 	recipientColumnType
 	recipientColumnName
 	recipientColumnProfileName
@@ -73,10 +78,24 @@ const (
 	recipientColumnServiceID
 )
 
+// Based on ContactAvatarType in ts/types/Avatar.ts in the Signal-Desktop
+// repository
+type avatarJSON struct {
+	Path string `json:"path"`
+}
+
+// Based on ConversationAttributesType in ts/model-types.d.ts in the
+// Signal-Desktop repository
+type recipientJSON struct {
+	ProfileAvatar avatarJSON `json:"profileAvatar"` // For contacts
+	Avatar        avatarJSON `json:"avatar"`        // For groups
+}
+
 type Recipient struct {
-	Type    RecipientType
-	Contact Contact
-	Group   Group
+	Type       RecipientType
+	Contact    Contact
+	Group      Group
+	AvatarPath string
 }
 
 type RecipientType int
@@ -137,6 +156,11 @@ func (c *Context) makeRecipientMaps() error {
 func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 	var r *Recipient
 
+	var jrpt recipientJSON
+	if err := json.Unmarshal([]byte(stmt.ColumnText(recipientColumnJSON)), &jrpt); err != nil {
+		return fmt.Errorf("cannot parse recipient JSON data: %w", err)
+	}
+
 	switch t := stmt.ColumnText(recipientColumnType); t {
 	case "private":
 		r = &Recipient{
@@ -149,6 +173,7 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 				Phone:             stmt.ColumnText(recipientColumnE164),
 				ACI:               stmt.ColumnText(recipientColumnServiceID),
 			},
+			AvatarPath: jrpt.ProfileAvatar.Path,
 		}
 	case "group":
 		r = &Recipient{
@@ -156,9 +181,16 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 			Group: Group{
 				Name: stmt.ColumnText(recipientColumnName),
 			},
+			AvatarPath: jrpt.Avatar.Path,
 		}
 	default:
 		return fmt.Errorf("unknown recipient type: %q", t)
+	}
+
+	if r.AvatarPath == SignalAvatarPath {
+		// Ignore the avatar for the Signal release chat. It does not
+		// exist in the Signal Desktop directory.
+		r.AvatarPath = ""
 	}
 
 	id := stmt.ColumnText(recipientColumnID)
@@ -205,6 +237,10 @@ func (c *Context) recipientFromACI(aci string) (*Recipient, error) {
 		return nil, err
 	}
 	return c.recipientsByACI[strings.ToLower(aci)], nil
+}
+
+func (c *Context) AvatarPath(rpt *Recipient) string {
+	return c.absoluteAttachmentPath(rpt.AvatarPath)
 }
 
 func (r *Recipient) displayNameAndDetail() (string, string) {
