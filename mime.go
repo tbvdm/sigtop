@@ -58,12 +58,8 @@ func extensionFromContentType(contentType string) (string, error) {
 	}
 
 	exts, err := mime.ExtensionsByType(contentType)
-	if err != nil {
-		return "", nil
-	}
-
-	if len(exts) == 0 {
-		return "", nil
+	if err != nil || len(exts) == 0 {
+		return "", err
 	}
 
 	return exts[0], nil
