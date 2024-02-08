@@ -106,13 +106,6 @@ func (d Dir) stat(path string, flag int) (fs.FileInfo, error) {
 	return os.Stat(d.join(path))
 }
 
-func (d Dir) utimes(path string, atime, mtime time.Time, flag int) error {
-	if flag == SymlinkNoFollow {
-		return &Error{Op: "utimes", Err: ErrUnsupportedFlag}
-	}
-	return chtimes(d.join(path), atime, mtime)
-}
-
 func futimes(f *os.File, atime, mtime time.Time) error {
 	return os.Chtimes(f.Name(), atime, mtime)
 }
@@ -122,14 +115,4 @@ func (d Dir) join(path string) string {
 		return path
 	}
 	return filepath.Join(d.path, path)
-}
-
-func chtimes(path string, atime, mtime time.Time) error {
-	if mtime == UtimeOmit {
-		return &Error{Op: "chtimes", Err: ErrMtimeOmitted}
-	}
-	if atime == UtimeOmit {
-		atime = time.Now()
-	}
-	return os.Chtimes(path, atime, mtime)
 }
