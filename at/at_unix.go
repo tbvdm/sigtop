@@ -12,7 +12,7 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-//go:build (unix || aix || android || dragonfly || freebsd || hurd || illumos || ios || linux || openbsd || solaris) && !(darwin || netbsd)
+//go:build unix || aix || android || darwin || dragonfly || freebsd || hurd || illumos || ios || linux || netbsd || openbsd || solaris
 
 package at
 
@@ -176,7 +176,7 @@ func futimes(f *os.File, atime, mtime time.Time) error {
 
 func timeToTimespec(t time.Time) (unix.Timespec, error) {
 	if t == UtimeOmit {
-		return unix.Timespec{0, unix.UTIME_OMIT}, nil
+		return unix.Timespec{0, unixUtimeOmit}, nil
 	}
 	return unix.TimeToTimespec(t)
 }
