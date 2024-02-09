@@ -22,7 +22,7 @@ import (
 )
 
 func (d Dir) utimes(path string, atime, mtime time.Time, flag int) error {
-	upath, err := windows.UTF16PtrFromString(path)
+	upath, err := windows.UTF16PtrFromString(d.join(path))
 	if err != nil {
 		return &os.PathError{Op: "utimes", Path: path, Err: err}
 	}
