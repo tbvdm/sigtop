@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023 Tim van der Molen <tim@kariliq.nl>
+// Copyright (c) 2024 Tim van der Molen <tim@kariliq.nl>
 //
 // Permission to use, copy, modify, and distribute this software for any
 // purpose with or without fee is hereby granted, provided that the above
@@ -12,14 +12,23 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-//go:build !(darwin || windows)
-
 package main
 
 import (
 	"os"
 	"unicode"
+
+	"golang.org/x/text/unicode/rangetable"
 )
+
+var unicode9 *unicode.RangeTable
+
+func init() {
+	unicode9 = rangetable.Assigned("9.0.0")
+	if unicode9 == nil {
+		panic("cannot get range table")
+	}
+}
 
 func sanitiseFilename(name string) string {
 	if name == "" || name == "." || name == ".." {
@@ -28,7 +37,8 @@ func sanitiseFilename(name string) string {
 
 	runes := []rune(name)
 	for i, r := range runes {
-		if r == os.PathSeparator || unicode.IsControl(r) {
+		// Note that APFS allows only Unicode 9.0 characters
+		if r == os.PathSeparator || unicode.IsControl(r) || !unicode.Is(unicode9, r) {
 			runes[i] = '_'
 		}
 	}
