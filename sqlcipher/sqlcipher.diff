@@ -1,5 +1,5 @@
 diff --git Makefile.in Makefile.in
-index 870c5d30..e6d93f8d 100644
+index ce2617c7..933e4612 100644
 --- Makefile.in
 +++ Makefile.in
 @@ -157,6 +157,7 @@ CRYPTOSRC = \
@@ -11,10 +11,10 @@ index 870c5d30..e6d93f8d 100644
  	$(TOP)/src/crypto_nss.c \
  	$(TOP)/src/crypto_openssl.c \
 diff --git src/crypto.h src/crypto.h
-index c9583308..2b09a42f 100644
+index cdd973ca..d99abbd4 100644
 --- src/crypto.h
 +++ src/crypto.h
-@@ -72,6 +72,7 @@ void sqlite3pager_reset(Pager *pPager);
+@@ -77,6 +77,7 @@ void sqlite3pager_reset(Pager *pPager);
  /* end extensions defined in pager.c */
  
  #if !defined (SQLCIPHER_CRYPTO_CC) \
@@ -217,7 +217,7 @@ index 00000000..a9008bb5
 +
 +#endif
 diff --git src/crypto_impl.c src/crypto_impl.c
-index 6e3ab2c3..68c9520d 100644
+index 9dffb5f9..0e735fa1 100644
 --- src/crypto_impl.c
 +++ src/crypto_impl.c
 @@ -213,6 +213,9 @@ void sqlcipher_activate() {
