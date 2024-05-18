@@ -56,7 +56,15 @@ PowerShell to run sigtop.
 Alternatively, you can download a [pre-compiled Windows binary][8] from the
 [latest release][9].
 
-Note that sigtop is a console program; it should be run in a PowerShell or
+If you have WSL2 available and want to cross-compile from e.g. Ubuntu to Windows you can run:
+
+```bash
+sudo apt-get install golang gcc gcc-multilib gcc-mingw-w64
+
+GOOS=windows GOARCH=386 CGO_ENABLED=1 CXX=i686-w64-mingw32-g++ CC=i686-w64-mingw32-gcc go build
+```
+
+Note that `sigtop.exe` is a console program; it should be run in a PowerShell or
 Command Prompt window.
 
 ## Reporting problems
