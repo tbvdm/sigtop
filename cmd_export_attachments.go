@@ -305,13 +305,13 @@ func conversationDir(d at.Dir, conv *signal.Conversation) (at.Dir, error) {
 func attachmentFilename(d at.Dir, att *signal.Attachment) (string, error) {
 	var name string
 	if att.FileName != "" {
-		name = sanitiseFilename(att.FileName)
+		name = time.UnixMilli(att.TimeSent).Format("2006-01-02-15-04-05") + "-" + sanitiseFilename(att.FileName)
 	} else {
 		ext, err := extensionFromContentType(att.ContentType)
 		if err != nil {
 			return "", err
 		}
-		name = "attachment-" + time.UnixMilli(att.TimeSent).Format("2006-01-02-15-04-05") + ext
+		name = time.UnixMilli(att.TimeSent).Format("2006-01-02-15-04-05") + "-attachment" + ext
 	}
 
 	return uniqueFilename(d, name)
