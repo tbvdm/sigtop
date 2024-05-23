@@ -65,10 +65,23 @@ This command installs `sigtop.exe` in `C:\Users\<username>\go\bin`. This
 directory has been added to your `PATH`, so you can simply type `sigtop` in
 PowerShell to run sigtop.
 
+### Cross-compiling in WSL
+
+If you have installed [WSL][10], you find may it simpler to cross-compile. For
+example, if you are running Ubuntu (22.04 or later) in WSL:
+
+	sudo apt install golang gcc-mingw-w64-x86-64
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go install github.com/tbvdm/sigtop@master
+
+This command installs `sigtop.exe` in `~/go/bin/windows_amd64`. You can move
+the binary to another location if you wish. For example:
+
+	mv ~/go/bin/windows_amd64/sigtop.exe /mnt/c/Users/Alice
+
 ## Reporting problems
 
 Please report bugs and other problems with sigtop. You can [open an issue on
-GitHub][10] or [send an email][11].
+GitHub][11] or [send an email][12].
 
 [1]: https://github.com/tbvdm/sigtop
 [2]: https://github.com/signalapp/Signal-Desktop
@@ -79,5 +92,6 @@ GitHub][10] or [send an email][11].
 [7]: https://github.com/tbvdm/sigtop/releases/latest
 [8]: https://winlibs.com/
 [9]: https://github.com/brechtsanders/winlibs_mingw/releases/download/13.1.0-16.0.5-11.0.0-ucrt-r5/winlibs-x86_64-posix-seh-gcc-13.1.0-mingw-w64ucrt-11.0.0-r5.zip
-[10]: https://github.com/tbvdm/sigtop/issues
-[11]: https://www.kariliq.nl/contact.html
+[10]: https://learn.microsoft.com/windows/wsl/
+[11]: https://github.com/tbvdm/sigtop/issues
+[12]: https://www.kariliq.nl/contact.html
