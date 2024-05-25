@@ -67,7 +67,7 @@ PowerShell to run sigtop.
 
 ### Cross-compiling in WSL
 
-If you have installed [WSL][10], you find may it simpler to cross-compile. For
+If you have installed [WSL][10], you may find it simpler to cross-compile. For
 example, if you are running Ubuntu (22.04 or later) in WSL:
 
 	sudo apt install golang gcc-mingw-w64-x86-64
