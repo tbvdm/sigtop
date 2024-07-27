@@ -27,18 +27,19 @@ import (
 var cmdExportDatabaseEntry = cmdEntry{
 	name:  "export-database",
 	alias: "db",
-	usage: "[-d signal-directory] file",
+	usage: "[-d signal-directory] [-p passfile] file",
 	exec:  cmdExportDatabase,
 }
 
 func cmdExportDatabase(args []string) cmdStatus {
-	getopt.ParseArgs("d:", args)
-
-	var dArg getopt.Arg
+	getopt.ParseArgs("d:p:", args)
+	var dArg, pArg getopt.Arg
 	for getopt.Next() {
 		switch getopt.Option() {
 		case 'd':
 			dArg = getopt.OptionArg()
+		case 'p':
+			pArg = getopt.OptionArg()
 		}
 	}
 
@@ -49,6 +50,11 @@ func cmdExportDatabase(args []string) cmdStatus {
 	args = getopt.Args()
 	if len(args) != 1 {
 		return cmdUsage
+	}
+
+	password, err := passwordFromFile(pArg)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	dbFile := args[0]
@@ -90,7 +96,12 @@ func cmdExportDatabase(args []string) cmdStatus {
 	}
 	f.Close()
 
-	ctx, err := signal.Open(signalDir)
+	var ctx *signal.Context
+	if password == nil {
+		ctx, err = signal.Open(signalDir)
+	} else {
+		ctx, err = signal.OpenWithPassword(signalDir, password)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}

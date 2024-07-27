@@ -30,15 +30,15 @@ import (
 var cmdExportAvatarsEntry = cmdEntry{
 	name:  "export-avatars",
 	alias: "avt",
-	usage: "[-Ll] [-c conversation] [-d signal-directory] [directory]",
+	usage: "[-Ll] [-c conversation] [-d signal-directory] [-p passfile] [directory]",
 	exec:  cmdExportAvatars,
 }
 
 func cmdExportAvatars(args []string) cmdStatus {
 	mode := exportCopy
 
-	getopt.ParseArgs("c:d:Ll", args)
-	var dArg getopt.Arg
+	getopt.ParseArgs("c:d:Llp:", args)
+	var dArg, pArg getopt.Arg
 	var selectors []string
 	for getopt.Next() {
 		switch getopt.Option() {
@@ -50,6 +50,8 @@ func cmdExportAvatars(args []string) cmdStatus {
 			mode = exportLink
 		case 'l':
 			mode = exportSymlink
+		case 'p':
+			pArg = getopt.OptionArg()
 		}
 	}
 
@@ -69,6 +71,11 @@ func cmdExportAvatars(args []string) cmdStatus {
 		}
 	default:
 		return cmdUsage
+	}
+
+	password, err := passwordFromFile(pArg)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	var signalDir string
@@ -99,7 +106,12 @@ func cmdExportAvatars(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	ctx, err := signal.Open(signalDir)
+	var ctx *signal.Context
+	if password == nil {
+		ctx, err = signal.Open(signalDir)
+	} else {
+		ctx, err = signal.OpenWithPassword(signalDir, password)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -26,18 +26,19 @@ import (
 var cmdCheckDatabaseEntry = cmdEntry{
 	name:  "check-database",
 	alias: "check",
-	usage: "[-d signal-directory]",
+	usage: "[-d signal-directory] [-p passfile]",
 	exec:  cmdCheckDatabase,
 }
 
 func cmdCheckDatabase(args []string) cmdStatus {
-	getopt.ParseArgs("d:", args)
-
-	var dArg getopt.Arg
+	getopt.ParseArgs("d:p:", args)
+	var dArg, pArg getopt.Arg
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
 		case 'd':
 			dArg = getopt.OptionArg()
+		case 'p':
+			pArg = getopt.OptionArg()
 		}
 	}
 
@@ -47,6 +48,11 @@ func cmdCheckDatabase(args []string) cmdStatus {
 
 	if len(getopt.Args()) != 0 {
 		return cmdUsage
+	}
+
+	password, err := passwordFromFile(pArg)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	var signalDir string
@@ -73,7 +79,12 @@ func cmdCheckDatabase(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	ctx, err := signal.Open(signalDir)
+	var ctx *signal.Context
+	if password == nil {
+		ctx, err = signal.Open(signalDir)
+	} else {
+		ctx, err = signal.OpenWithPassword(signalDir, password)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}

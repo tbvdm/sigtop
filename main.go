@@ -15,12 +15,14 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/tbvdm/go-cli"
 	"github.com/tbvdm/go-openbsd"
+	"github.com/tbvdm/sigtop/getopt"
 	"github.com/tbvdm/sigtop/signal"
 )
 
@@ -75,6 +77,26 @@ func command(name string) *cmdEntry {
 		}
 	}
 	return nil
+}
+
+func passwordFromFile(passfile getopt.Arg) ([]byte, error) {
+	if !passfile.Set() {
+		return nil, nil
+	}
+
+	f, err := os.Open(passfile.String())
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	s := bufio.NewScanner(f)
+	if s.Scan() == false {
+		return []byte{}, s.Err()
+	}
+	pwd := append([]byte{}, s.Bytes()...)
+
+	return pwd, nil
 }
 
 func unveilSignalDir(dir string) error {

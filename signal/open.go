@@ -15,11 +15,13 @@
 package signal
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/tbvdm/sigtop/safestorage"
 	"github.com/tbvdm/sigtop/sqlcipher"
 )
 
@@ -33,6 +35,22 @@ type Context struct {
 }
 
 func Open(dir string) (*Context, error) {
+	key, err := databaseKey(dir)
+	if err != nil {
+		return nil, err
+	}
+	return open(dir, key)
+}
+
+func OpenWithPassword(dir string, password []byte) (*Context, error) {
+	key, err := encryptedDatabaseKey(dir, password)
+	if err != nil {
+		return nil, err
+	}
+	return open(dir, key)
+}
+
+func open(dir string, key []byte) (*Context, error) {
 	dbFile := filepath.Join(dir, DatabaseFile)
 
 	// SQLite/SQLCipher doesn't provide a useful error message if the
@@ -48,11 +66,8 @@ func Open(dir string) (*Context, error) {
 		return nil, err
 	}
 
-	key, err := dbKey(dir)
-	if err != nil {
-		db.Close()
-		return nil, err
-	}
+	// Format the key as an SQLite blob literal
+	key = []byte(fmt.Sprintf("x'%s'", string(key)))
 
 	if err := db.Key(key); err != nil {
 		db.Close()
@@ -89,23 +104,57 @@ func (c *Context) Close() {
 	c.db.Close()
 }
 
-func dbKey(dir string) ([]byte, error) {
-	configFile := filepath.Join(dir, ConfigFile)
-	data, err := os.ReadFile(configFile)
+type config struct {
+	Key          *string `json:"key"`
+	EncryptedKey *string `json:"encryptedKey"`
+}
+
+func databaseKey(dir string) ([]byte, error) {
+	config, err := parseConfigFile(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	var config struct {
-		Key string `json:"key"`
+	if config.Key == nil {
+		return nil, fmt.Errorf("legacy database key not found")
 	}
 
+	return []byte(*config.Key), nil
+}
+
+func encryptedDatabaseKey(dir string, password []byte) ([]byte, error) {
+	config, err := parseConfigFile(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.EncryptedKey == nil {
+		return nil, fmt.Errorf("encrypted database key not found")
+	}
+
+	encKey, err := hex.DecodeString(*config.EncryptedKey)
+	if err != nil {
+		return nil, fmt.Errorf("invalid encrypted database key: %w", err)
+	}
+
+	key, err := safestorage.DecryptWithPassword(encKey, password)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decrypt database key: %w", err)
+	}
+
+	return key, nil
+}
+
+func parseConfigFile(dir string) (config, error) {
+	configFile := filepath.Join(dir, ConfigFile)
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		return config{}, err
+	}
+
+	var config config
 	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("cannot parse %s: %w", configFile, err)
+		return config, fmt.Errorf("cannot parse %s: %w", configFile, err)
 	}
-
-	// Write the key as an SQLite blob literal
-	key := "x'" + config.Key + "'"
-
-	return []byte(key), nil
+	return config, nil
 }

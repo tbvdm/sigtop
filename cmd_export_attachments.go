@@ -59,7 +59,7 @@ type attMode struct {
 var cmdExportAttachmentsEntry = cmdEntry{
 	name:  "export-attachments",
 	alias: "att",
-	usage: "[-iLlMm] [-c conversation] [-d signal-directory] [-s interval] [directory]",
+	usage: "[-iLlMm] [-c conversation] [-d signal-directory] [-p passfile] [-s interval] [directory]",
 	exec:  cmdExportAttachments,
 }
 
@@ -70,8 +70,8 @@ func cmdExportAttachments(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("c:d:iLlMms:", args)
-	var dArg, sArg getopt.Arg
+	getopt.ParseArgs("c:d:iLlMmp:s:", args)
+	var dArg, pArg, sArg getopt.Arg
 	var selectors []string
 	for getopt.Next() {
 		switch getopt.Option() {
@@ -89,6 +89,8 @@ func cmdExportAttachments(args []string) cmdStatus {
 			mode.mtime = mtimeSent
 		case 'm':
 			mode.mtime = mtimeRecv
+		case 'p':
+			pArg = getopt.OptionArg()
 		case 's':
 			sArg = getopt.OptionArg()
 		}
@@ -110,6 +112,11 @@ func cmdExportAttachments(args []string) cmdStatus {
 		}
 	default:
 		return cmdUsage
+	}
+
+	password, err := passwordFromFile(pArg)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	var signalDir string
@@ -159,7 +166,12 @@ func cmdExportAttachments(args []string) cmdStatus {
 		}
 	}
 
-	ctx, err := signal.Open(signalDir)
+	var ctx *signal.Context
+	if password == nil {
+		ctx, err = signal.Open(signalDir)
+	} else {
+		ctx, err = signal.OpenWithPassword(signalDir, password)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
