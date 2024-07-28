@@ -84,11 +84,14 @@ func passwordFromFile(passfile getopt.Arg) ([]byte, error) {
 		return nil, nil
 	}
 
-	f, err := os.Open(passfile.String())
-	if err != nil {
-		return nil, err
+	f := os.Stdin
+	if passfile.String() != "-" {
+		var err error
+		if f, err = os.Open(passfile.String()); err != nil {
+			return nil, err
+		}
+		defer f.Close()
 	}
-	defer f.Close()
 
 	s := bufio.NewScanner(f)
 	if s.Scan() == false {
