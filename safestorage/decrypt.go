@@ -29,42 +29,42 @@ const (
 	keySize = 16 // AES-128
 	salt    = "saltysalt"
 
-	keychainPrefix     = "v10"
-	keychainIterations = 1003
+	macosPrefix     = "v10"
+	macosIterations = 1003
 
-	libsecretPrefixV10  = "v10"
-	libsecretPrefixV11  = "v11"
-	libsecretIterations = 1
+	linuxPrefixV10  = "v10"
+	linuxPrefixV11  = "v11"
+	linuxIterations = 1
 )
 
 func DecryptWithPassword(ciphertext, password []byte) ([]byte, error) {
 	switch runtime.GOOS {
 	case "darwin":
-		return decryptWithKeychainPassword(ciphertext, password)
+		return decryptWithMacosPassword(ciphertext, password)
 	case "linux", "openbsd":
-		return decryptWithLibsecretPassword(ciphertext, password)
+		return decryptWithLinuxPassword(ciphertext, password)
 	default:
 		return nil, errors.New("not yet supported")
 	}
 }
 
-func decryptWithKeychainPassword(ciphertext, password []byte) ([]byte, error) {
-	if !bytes.HasPrefix(ciphertext, []byte(keychainPrefix)) {
+func decryptWithMacosPassword(ciphertext, password []byte) ([]byte, error) {
+	if !bytes.HasPrefix(ciphertext, []byte(macosPrefix)) {
 		return ciphertext, nil
 	}
-	ciphertext = bytes.TrimPrefix(ciphertext, []byte(keychainPrefix))
-	return decryptWithPassword(ciphertext, password, keychainIterations)
+	ciphertext = bytes.TrimPrefix(ciphertext, []byte(macosPrefix))
+	return decryptWithPassword(ciphertext, password, macosIterations)
 }
 
-func decryptWithLibsecretPassword(ciphertext, password []byte) ([]byte, error) {
-	if bytes.HasPrefix(ciphertext, []byte(libsecretPrefixV10)) {
+func decryptWithLinuxPassword(ciphertext, password []byte) ([]byte, error) {
+	if bytes.HasPrefix(ciphertext, []byte(linuxPrefixV10)) {
 		return nil, errors.New("unsupported encryption version prefix")
 	}
-	if !bytes.HasPrefix(ciphertext, []byte(libsecretPrefixV11)) {
+	if !bytes.HasPrefix(ciphertext, []byte(linuxPrefixV11)) {
 		return ciphertext, nil
 	}
-	ciphertext = bytes.TrimPrefix(ciphertext, []byte(libsecretPrefixV11))
-	return decryptWithPassword(ciphertext, password, libsecretIterations)
+	ciphertext = bytes.TrimPrefix(ciphertext, []byte(linuxPrefixV11))
+	return decryptWithPassword(ciphertext, password, linuxIterations)
 }
 
 func decryptWithPassword(ciphertext, password []byte, iters int) ([]byte, error) {
