@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/tbvdm/sigtop/safestorage"
 	"github.com/tbvdm/sigtop/sqlcipher"
@@ -129,7 +130,12 @@ func databaseKey(dir string, password []byte) ([]byte, error) {
 	if password != nil {
 		dbKey, err = safestorage.DecryptWithPassword(key, password)
 	} else {
-		err = fmt.Errorf("not yet supported")
+		if runtime.GOOS == "windows" {
+			localStateFile := filepath.Join(dir, LocalStateFile)
+			dbKey, err = safestorage.DecryptWithLocalState(key, localStateFile)
+		} else {
+			dbKey, err = safestorage.Decrypt(key)
+		}
 	}
 	if err != nil {
 		return nil, fmt.Errorf("cannot decrypt database key: %w", err)

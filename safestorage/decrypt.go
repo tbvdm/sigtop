@@ -35,6 +35,10 @@ const (
 	linuxPrefixV10  = "v10"
 	linuxPrefixV11  = "v11"
 	linuxIterations = 1
+
+	windowsPrefix    = "v10"
+	windowsKeySize   = 32 // AES-256
+	windowsNonceSize = 12
 )
 
 func DecryptWithPassword(ciphertext, password []byte) ([]byte, error) {
@@ -43,6 +47,8 @@ func DecryptWithPassword(ciphertext, password []byte) ([]byte, error) {
 		return decryptWithMacosPassword(ciphertext, password)
 	case "linux", "openbsd":
 		return decryptWithLinuxPassword(ciphertext, password)
+	case "windows":
+		return decryptWithWindowsPassword(ciphertext, password)
 	default:
 		return nil, errors.New("not yet supported")
 	}
@@ -65,6 +71,39 @@ func decryptWithLinuxPassword(ciphertext, password []byte) ([]byte, error) {
 	}
 	ciphertext = bytes.TrimPrefix(ciphertext, []byte(linuxPrefixV11))
 	return decryptWithPassword(ciphertext, password, linuxIterations)
+}
+
+func decryptWithWindowsPassword(ciphertext, password []byte) ([]byte, error) {
+	if !bytes.HasPrefix(ciphertext, []byte(windowsPrefix)) {
+		return nil, errors.New("unsupported ciphertext format")
+	}
+	ciphertext = bytes.TrimPrefix(ciphertext, []byte(windowsPrefix))
+
+	if len(ciphertext) < windowsNonceSize {
+		return nil, errors.New("invalid ciphertext length")
+	}
+	nonce := ciphertext[:windowsNonceSize]
+	ciphertext = ciphertext[windowsNonceSize:]
+
+	if len(password) != windowsKeySize {
+		return nil, errors.New("invalid password length")
+	}
+
+	c, err := aes.NewCipher(password)
+	if err != nil {
+		return nil, err
+	}
+	gcm, err := cipher.NewGCMWithNonceSize(c, windowsNonceSize)
+	if err != nil {
+		return nil, err
+	}
+
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return plaintext, nil
 }
 
 func decryptWithPassword(ciphertext, password []byte, iters int) ([]byte, error) {

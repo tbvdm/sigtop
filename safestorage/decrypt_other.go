@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023 Tim van der Molen <tim@kariliq.nl>
+// Copyright (c) 2024 Tim van der Molen <tim@kariliq.nl>
 //
 // Permission to use, copy, modify, and distribute this software for any
 // purpose with or without fee is hereby granted, provided that the above
@@ -12,19 +12,16 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-package signal
+//go:build !windows
 
-import "os"
+package safestorage
 
-const (
-	DatabaseFile   = "sql" + string(os.PathSeparator) + "db.sqlite"
-	ConfigFile     = "config.json"
-	LocalStateFile = "Local State"
-	AttachmentDir  = "attachments.noindex"
+import "errors"
 
-	// Content type of the long-text attachment of a long message
-	LongTextType = "text/x-signal-plain"
+func Decrypt(ciphertext []byte) ([]byte, error) {
+	return nil, errors.New("not yet supported")
+}
 
-	// Avatar for the Signal release chat
-	SignalAvatarPath = "images/profile-avatar.svg"
-)
+func DecryptWithLocalState(ciphertext []byte, localStateFile string) ([]byte, error) {
+	return nil, errors.New("not supported")
+}
