@@ -22,11 +22,10 @@ jobs:
           go-version: stable
 
       - name: build
-        run: go build -trimpath
+        run: go build -ldflags='-s -w' -trimpath
 
       - name: release
         uses: ncipollo/release-action@v1
         with:
-          allowUpdates: true
           artifactErrorsFailBuild: true
           artifacts: sigtop.exe
