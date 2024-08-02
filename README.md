@@ -14,10 +14,13 @@ online][3].
 
 ## Installing on Unix
 
-First install [Go][4] (version 1.18 or later) and a C compiler. On Ubuntu 22.04
-or later, you can run:
+First install [Go][4] (version 1.18 or later) and a C compiler. On systems
+other than OpenBSD, you also need to install `libsecret` and `pkg-config`.
 
-	sudo apt install golang gcc
+On Ubuntu 22.04 or later, you can run the following command to install the
+required packages:
+
+	sudo apt install gcc golang libsecret-1-dev pkg-config
 
 Then, to install sigtop, run:
 
@@ -28,6 +31,11 @@ installation directory by setting the `GOBIN` environment variable. For
 example, to install sigtop in `~/bin`, run:
 
 	GOBIN=~/bin go install github.com/tbvdm/sigtop@master
+
+If you prefer, you can install sigtop without `libsecret` support by specifying
+the `no_libsecret` build tag:
+
+	go install -tags no_libsecret github.com/tbvdm/sigtop@master
 
 ## Installing on macOS
 

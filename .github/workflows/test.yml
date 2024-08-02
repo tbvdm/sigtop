@@ -21,6 +21,12 @@ jobs:
         with:
           go-version: ${{matrix.go}}
 
+      - name: apt
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          apt update
+          apt install libsecret-1-dev pkg-config
+
         # Work around a problem in GitHub Actions
       - name: set-cc
         if: startsWith(matrix.os, 'windows') && (matrix.go == '1.18' || matrix.go == '1.19')
@@ -41,7 +47,7 @@ jobs:
         uses: vmactions/dragonflybsd-vm@v1
         with:
           usesh: true
-          prepare: pkg install -y go
+          prepare: pkg install -y go libsecret pkgconf
           run: |
             uname -a
             go version
@@ -58,7 +64,7 @@ jobs:
         uses: vmactions/freebsd-vm@v1
         with:
           usesh: true
-          prepare: pkg install -y go
+          prepare: pkg install -y go libsecret pkgconf
           run: |
             uname -a
             go version
@@ -74,7 +80,7 @@ jobs:
       - name: netbsd-vm
         uses: vmactions/netbsd-vm@v1
         with:
-          prepare: pkg_add go pkg_alternatives
+          prepare: pkg_add go libsecret pkg-config pkg_alternatives
           run: |
             uname -a
             go version
