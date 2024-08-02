@@ -65,8 +65,7 @@ func encryptionKey() ([]byte, error) {
 
 	data := C.CFDataGetBytePtr(C.CFDataRef(result))
 	dataLen := C.CFDataGetLength(C.CFDataRef(result))
-	key := make([]byte, dataLen)
-	copy(key, unsafe.Slice((*byte)(data), dataLen))
+	key := C.GoBytes(unsafe.Pointer(data), C.int(dataLen))
 
 	return key, nil
 }
