@@ -24,8 +24,8 @@ jobs:
       - name: apt
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          apt update
-          apt install libsecret-1-dev pkg-config
+          sudo apt update
+          sudo apt install libsecret-1-dev pkg-config
 
         # Work around a problem in GitHub Actions
       - name: set-cc
