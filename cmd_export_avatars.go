@@ -30,14 +30,12 @@ import (
 var cmdExportAvatarsEntry = cmdEntry{
 	name:  "export-avatars",
 	alias: "avt",
-	usage: "[-Ll] [-c conversation] [-d signal-directory] [-p passfile] [directory]",
+	usage: "[-c conversation] [-d signal-directory] [-p passfile] [directory]",
 	exec:  cmdExportAvatars,
 }
 
 func cmdExportAvatars(args []string) cmdStatus {
-	mode := exportCopy
-
-	getopt.ParseArgs("c:d:Llp:", args)
+	getopt.ParseArgs("c:d:p:", args)
 	var dArg, pArg getopt.Arg
 	var selectors []string
 	for getopt.Next() {
@@ -46,10 +44,6 @@ func cmdExportAvatars(args []string) cmdStatus {
 			selectors = append(selectors, getopt.OptionArg().String())
 		case 'd':
 			dArg = getopt.OptionArg()
-		case 'L':
-			mode = exportLink
-		case 'l':
-			mode = exportSymlink
 		case 'p':
 			pArg = getopt.OptionArg()
 		}
@@ -117,14 +111,14 @@ func cmdExportAvatars(args []string) cmdStatus {
 	}
 	defer ctx.Close()
 
-	if !exportAvatars(ctx, exportDir, mode, selectors) {
+	if !exportAvatars(ctx, exportDir, selectors) {
 		return cmdError
 	}
 
 	return cmdOK
 }
 
-func exportAvatars(ctx *signal.Context, dir string, mode exportMode, selectors []string) bool {
+func exportAvatars(ctx *signal.Context, dir string, selectors []string) bool {
 	d, err := at.Open(dir)
 	if err != nil {
 		log.Print(err)
@@ -140,7 +134,7 @@ func exportAvatars(ctx *signal.Context, dir string, mode exportMode, selectors [
 
 	ret := true
 	for _, conv := range convs {
-		if err := exportAvatar(ctx, d, conv.Recipient, mode); err != nil {
+		if err := exportAvatar(ctx, d, conv.Recipient); err != nil {
 			log.Print(err)
 			ret = false
 		}
@@ -149,7 +143,7 @@ func exportAvatars(ctx *signal.Context, dir string, mode exportMode, selectors [
 	return ret
 }
 
-func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient, mode exportMode) error {
+func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) error {
 	src := ctx.AvatarPath(rpt)
 	if src == "" {
 		return nil
@@ -162,27 +156,16 @@ func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient, mode exp
 
 	dst := avatarFilename(rpt, data)
 
-	switch mode {
-	case exportCopy:
-		f, err := d.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
-		if err != nil {
-			return err
-		}
-		if _, err = f.Write(data); err != nil {
-			f.Close()
-			return err
-		}
-		if err = f.Close(); err != nil {
-			return err
-		}
-	case exportLink:
-		if err = d.Link(at.CurrentDir, src, dst, 0); err != nil {
-			return err
-		}
-	case exportSymlink:
-		if err = d.Symlink(src, dst); err != nil {
-			return err
-		}
+	f, err := d.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+	if err != nil {
+		return err
+	}
+	if _, err = f.Write(data); err != nil {
+		f.Close()
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
 	}
 
 	return nil

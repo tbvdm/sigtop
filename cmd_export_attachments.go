@@ -36,12 +36,6 @@ const incrementalFile = ".incremental"
 
 type exportMode int
 
-const (
-	exportCopy exportMode = iota
-	exportLink
-	exportSymlink
-)
-
 type mtimeMode int
 
 const (
@@ -51,7 +45,6 @@ const (
 )
 
 type attMode struct {
-	export      exportMode
 	mtime       mtimeMode
 	incremental bool
 }
@@ -59,18 +52,17 @@ type attMode struct {
 var cmdExportAttachmentsEntry = cmdEntry{
 	name:  "export-attachments",
 	alias: "att",
-	usage: "[-iLlMm] [-c conversation] [-d signal-directory] [-p passfile] [-s interval] [directory]",
+	usage: "[-iMm] [-c conversation] [-d signal-directory] [-p passfile] [-s interval] [directory]",
 	exec:  cmdExportAttachments,
 }
 
 func cmdExportAttachments(args []string) cmdStatus {
 	mode := attMode{
-		export:      exportCopy,
 		mtime:       mtimeNone,
 		incremental: false,
 	}
 
-	getopt.ParseArgs("c:d:iLlMmp:s:", args)
+	getopt.ParseArgs("c:d:iMmp:s:", args)
 	var dArg, pArg, sArg getopt.Arg
 	var selectors []string
 	for getopt.Next() {
@@ -81,10 +73,6 @@ func cmdExportAttachments(args []string) cmdStatus {
 			dArg = getopt.OptionArg()
 		case 'i':
 			mode.incremental = true
-		case 'L':
-			mode.export = exportLink
-		case 'l':
-			mode.export = exportSymlink
 		case 'M':
 			mode.mtime = mtimeSent
 		case 'm':
@@ -156,7 +144,7 @@ func cmdExportAttachments(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	if mode.mtime == mtimeNone || mode.export == exportLink {
+	if mode.mtime == mtimeNone {
 		if err := openbsd.Pledge("stdio rpath wpath cpath flock"); err != nil {
 			log.Fatal(err)
 		}
@@ -271,32 +259,14 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 			ret = false
 			continue
 		}
-		switch mode.export {
-		case exportCopy:
-			if err := copyAttachment(src, cd, dst); err != nil {
-				log.Print(err)
-				ret = false
-				continue
-			}
-			if err := setAttachmentModTime(cd, dst, &att, mode.mtime); err != nil {
-				log.Print(err)
-				ret = false
-			}
-		case exportLink:
-			if err := cd.Link(at.CurrentDir, src, dst, 0); err != nil {
-				log.Print(err)
-				ret = false
-			}
-		case exportSymlink:
-			if err := cd.Symlink(src, dst); err != nil {
-				log.Print(err)
-				ret = false
-				continue
-			}
-			if err := setAttachmentModTime(cd, dst, &att, mode.mtime); err != nil {
-				log.Print(err)
-				ret = false
-			}
+		if err := copyAttachment(src, cd, dst); err != nil {
+			log.Print(err)
+			ret = false
+			continue
+		}
+		if err := setAttachmentModTime(cd, dst, &att, mode.mtime); err != nil {
+			log.Print(err)
+			ret = false
 		}
 		if mode.incremental {
 			exported[id] = true
