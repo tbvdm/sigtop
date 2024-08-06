@@ -15,40 +15,58 @@
 package signal
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
+const (
+	cipherKeySize = 32
+	ivSize        = aes.BlockSize
+	macKeySize    = 32
+	macSize       = sha256.Size
+)
+
+type attachmentFile struct {
+	Version int    `json:"version"`
+	Path    string `json:"path"`
+	Keys    string `json:"localKey"`
+	Size    int64  `json:"size"`
+}
+
 type attachmentJSON struct {
 	ContentType string `json:"contentType"`
 	FileName    string `json:"fileName"`
-	Size        int64  `json:"size"`
 	Pending     bool   `json:"pending"`
-	Path        string `json:"path"`
+	attachmentFile
 }
 
 type Attachment struct {
-	Path        string
 	FileName    string
 	ContentType string
-	Size        int64
 	TimeSent    int64
 	TimeRecv    int64
 	Pending     bool
+	attachmentFile
 }
 
 func (c *Context) parseAttachmentJSON(msg *Message, jatts []attachmentJSON) []Attachment {
 	atts := make([]Attachment, 0, len(jatts))
 	for _, jatt := range jatts {
 		att := Attachment{
-			Path:        jatt.Path,
-			FileName:    jatt.FileName,
-			ContentType: jatt.ContentType,
-			Size:        jatt.Size,
-			TimeSent:    msg.TimeSent,
-			TimeRecv:    msg.TimeRecv,
-			Pending:     jatt.Pending,
+			FileName:       jatt.FileName,
+			ContentType:    jatt.ContentType,
+			TimeSent:       msg.TimeSent,
+			TimeRecv:       msg.TimeRecv,
+			Pending:        jatt.Pending,
+			attachmentFile: jatt.attachmentFile,
 		}
 		atts = append(atts, att)
 	}
@@ -69,15 +87,85 @@ func (c *Context) ConversationAttachments(conv *Conversation, ival Interval) ([]
 	return atts, nil
 }
 
-func (c *Context) AttachmentPath(att *Attachment) string {
-	return c.absoluteAttachmentPath(att.Path)
+func (c *Context) WriteAttachment(att *Attachment, w io.Writer) error {
+	// XXX Don't read whole file at once
+	data, err := c.readAttachment(att)
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(data); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (c *Context) absoluteAttachmentPath(path string) string {
-	if path == "" {
-		return ""
+func (c *Context) readAttachment(att *Attachment) ([]byte, error) {
+	if att.Pending {
+		return nil, fmt.Errorf("attachment is pending")
+	}
+	return c.readAttachmentFile(&att.attachmentFile)
+}
+
+func (c *Context) readAttachmentFile(attf *attachmentFile) ([]byte, error) {
+	if attf.Path == "" {
+		return nil, fmt.Errorf("attachment without path")
+	}
+	path := c.attachmentFilePath(attf.Path)
+	if attf.Version < 2 {
+		return os.ReadFile(path)
+	}
+	return attf.decrypt(path)
+}
+
+func (a *attachmentFile) decrypt(path string) ([]byte, error) {
+	keys, err := base64.StdEncoding.DecodeString(a.Keys)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode keys: %w", err)
+	}
+	if len(keys) != cipherKeySize+macKeySize {
+		return nil, fmt.Errorf("invalid keys length")
+	}
+	cipherKey := keys[:cipherKeySize]
+	macKey := keys[cipherKeySize:]
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) < ivSize+macSize {
+		return nil, fmt.Errorf("attachment data too short")
 	}
 
+	iv := data[:ivSize]
+	theirMAC := data[len(data)-macSize : len(data)]
+	data = data[ivSize : len(data)-macSize]
+	if len(data)%aes.BlockSize != 0 {
+		return nil, fmt.Errorf("invalid attachment data length")
+	}
+
+	m := hmac.New(sha256.New, macKey)
+	m.Write(iv)
+	m.Write(data)
+	ourMAC := m.Sum(nil)
+	if !hmac.Equal(ourMAC, theirMAC) {
+		return nil, fmt.Errorf("MAC mismatch")
+	}
+
+	c, err := aes.NewCipher(cipherKey)
+	if err != nil {
+		return nil, err
+	}
+	cipher.NewCBCDecrypter(c, iv).CryptBlocks(data, data)
+
+	if int64(len(data)) < a.Size {
+		return nil, fmt.Errorf("invalid attachment data length")
+	}
+	data = data[:a.Size]
+
+	return data, nil
+}
+
+func (c *Context) attachmentFilePath(path string) string {
 	// Replace foreign path separators, if any
 	var foreignSep string
 	if os.PathSeparator == '/' {

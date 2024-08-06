@@ -18,7 +18,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"log"
 	"os"
@@ -236,8 +235,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 		if mode.incremental && exported[id] {
 			continue
 		}
-		src := ctx.AttachmentPath(&att)
-		if src == "" {
+		if att.Path == "" {
 			var msg string
 			if att.Pending {
 				msg = "skipping pending attachment"
@@ -248,23 +246,18 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 			log.Printf("%s (conversation: %q, sent: %s)", msg, conv.Recipient.DisplayName(), time.UnixMilli(att.TimeSent).Format("2006-01-02 15:04:05"))
 			continue
 		}
-		if _, err := os.Stat(src); err != nil {
-			log.Print(err)
-			ret = false
-			continue
-		}
-		dst, err := attachmentFilename(cd, &att)
+		path, err := attachmentFilename(cd, &att)
 		if err != nil {
 			log.Print(err)
 			ret = false
 			continue
 		}
-		if err := copyAttachment(src, cd, dst); err != nil {
+		if err := copyAttachment(ctx, cd, path, &att); err != nil {
 			log.Print(err)
 			ret = false
 			continue
 		}
-		if err := setAttachmentModTime(cd, dst, &att, mode.mtime); err != nil {
+		if err := setAttachmentModTime(cd, path, &att, mode.mtime); err != nil {
 			log.Print(err)
 			ret = false
 		}
@@ -327,24 +320,18 @@ func fileExists(d at.Dir, path string) (bool, error) {
 	return true, nil
 }
 
-func copyAttachment(src string, d at.Dir, dst string) error {
-	rf, err := os.Open(src)
+func copyAttachment(ctx *signal.Context, d at.Dir, path string, att *signal.Attachment) error {
+	f, err := d.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return err
 	}
-	defer rf.Close()
-
-	wf, err := d.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
-	if err != nil {
-		return err
+	if err := ctx.WriteAttachment(att, f); err != nil {
+		f.Close()
+		d.Unlink(path, 0)
+		return fmt.Errorf("cannot export %s: %w", path, err)
 	}
 
-	if _, err := io.Copy(wf, rf); err != nil {
-		wf.Close()
-		return fmt.Errorf("copy %s: %w", dst, err)
-	}
-
-	return wf.Close()
+	return f.Close()
 }
 
 func setAttachmentModTime(d at.Dir, path string, att *signal.Attachment, mode mtimeMode) error {

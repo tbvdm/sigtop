@@ -70,7 +70,7 @@ func (c *Context) fixEditedLongMessage(edit *Edit) error {
 			continue
 		}
 
-		data, err := os.ReadFile(c.AttachmentPath(&att))
+		data, err := c.readAttachment(&att)
 		if err != nil {
 			// Signal Desktop considers long-message attachments of
 			// edits to be orphaned, and eventually removes them

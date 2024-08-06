@@ -144,19 +144,16 @@ func exportAvatars(ctx *signal.Context, dir string, selectors []string) bool {
 }
 
 func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) error {
-	src := ctx.AvatarPath(rpt)
-	if src == "" {
+	if rpt.Avatar.Path == "" {
 		return nil
 	}
 
-	data, err := os.ReadFile(src)
+	data, err := ctx.ReadAvatar(&rpt.Avatar)
 	if err != nil {
 		return err
 	}
 
-	dst := avatarFilename(rpt, data)
-
-	f, err := d.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+	f, err := d.OpenFile(avatarFilename(rpt, data), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return err
 	}
@@ -164,11 +161,8 @@ func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) error {
 		f.Close()
 		return err
 	}
-	if err = f.Close(); err != nil {
-		return err
-	}
 
-	return nil
+	return f.Close()
 }
 
 func avatarFilename(rpt *signal.Recipient, data []byte) string {
