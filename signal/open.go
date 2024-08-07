@@ -68,6 +68,11 @@ func OpenWithPassword(dir string, password []byte) (*Context, error) {
 		return nil, err
 	}
 
+	if err := db.Exec("PRAGMA cipher_log = stderr"); err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	// Verify key
 	if err := db.Exec("SELECT count(*) FROM sqlite_master"); err != nil {
 		db.Close()
