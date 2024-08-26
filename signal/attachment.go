@@ -137,7 +137,7 @@ func (a *attachmentFile) decrypt(path string) ([]byte, error) {
 	}
 
 	iv := data[:ivSize]
-	theirMAC := data[len(data)-macSize : len(data)]
+	theirMAC := data[len(data)-macSize:]
 	data = data[ivSize : len(data)-macSize]
 	if len(data)%aes.BlockSize != 0 {
 		return nil, fmt.Errorf("invalid attachment data length")
