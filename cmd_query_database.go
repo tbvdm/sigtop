@@ -54,7 +54,7 @@ func cmdQueryDatabase(args []string) cmdStatus {
 
 	query := args[0]
 
-	password, err := passwordFromFile(pArg)
+	key, err := encryptionKeyFromFile(pArg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,10 +84,10 @@ func cmdQueryDatabase(args []string) cmdStatus {
 	}
 
 	var ctx *signal.Context
-	if password == nil {
+	if key == nil {
 		ctx, err = signal.Open(signalDir)
 	} else {
-		ctx, err = signal.OpenWithPassword(signalDir, password)
+		ctx, err = signal.OpenWithEncryptionKey(signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)

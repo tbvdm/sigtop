@@ -79,15 +79,15 @@ func command(name string) *cmdEntry {
 	return nil
 }
 
-func passwordFromFile(passfile getopt.Arg) ([]byte, error) {
-	if !passfile.Set() {
+func encryptionKeyFromFile(keyfile getopt.Arg) ([]byte, error) {
+	if !keyfile.Set() {
 		return nil, nil
 	}
 
 	f := os.Stdin
-	if passfile.String() != "-" {
+	if keyfile.String() != "-" {
 		var err error
-		if f, err = os.Open(passfile.String()); err != nil {
+		if f, err = os.Open(keyfile.String()); err != nil {
 			return nil, err
 		}
 		defer f.Close()
@@ -97,9 +97,9 @@ func passwordFromFile(passfile getopt.Arg) ([]byte, error) {
 	if s.Scan() == false {
 		return []byte{}, s.Err()
 	}
-	pwd := append([]byte{}, s.Bytes()...)
+	key := append([]byte{}, s.Bytes()...)
 
-	return pwd, nil
+	return key, nil
 }
 
 func unveilSignalDir(dir string) error {
