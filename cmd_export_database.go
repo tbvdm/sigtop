@@ -27,7 +27,7 @@ import (
 var cmdExportDatabaseEntry = cmdEntry{
 	name:  "export-database",
 	alias: "db",
-	usage: "[-d signal-directory] [-k keyfile] file",
+	usage: "[-d signal-directory] [-k [system:]keyfile] file",
 	exec:  cmdExportDatabase,
 }
 

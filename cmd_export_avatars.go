@@ -30,7 +30,7 @@ import (
 var cmdExportAvatarsEntry = cmdEntry{
 	name:  "export-avatars",
 	alias: "avt",
-	usage: "[-c conversation] [-d signal-directory] [-k keyfile] [directory]",
+	usage: "[-c conversation] [-d signal-directory] [-k [system:]keyfile] [directory]",
 	exec:  cmdExportAvatars,
 }
 

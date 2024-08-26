@@ -19,10 +19,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/tbvdm/go-cli"
 	"github.com/tbvdm/go-openbsd"
 	"github.com/tbvdm/sigtop/getopt"
+	"github.com/tbvdm/sigtop/safestorage"
 	"github.com/tbvdm/sigtop/signal"
 )
 
@@ -79,27 +81,37 @@ func command(name string) *cmdEntry {
 	return nil
 }
 
-func encryptionKeyFromFile(keyfile getopt.Arg) ([]byte, error) {
+func encryptionKeyFromFile(keyfile getopt.Arg) (*safestorage.RawEncryptionKey, error) {
 	if !keyfile.Set() {
 		return nil, nil
 	}
 
+	system, file, found := strings.Cut(keyfile.String(), ":")
+	if !found {
+		system, file = file, system
+	}
+
 	f := os.Stdin
-	if keyfile.String() != "-" {
+	if file != "-" {
 		var err error
-		if f, err = os.Open(keyfile.String()); err != nil {
+		if f, err = os.Open(file); err != nil {
 			return nil, err
 		}
 		defer f.Close()
 	}
 
 	s := bufio.NewScanner(f)
-	if s.Scan() == false {
-		return []byte{}, s.Err()
+	s.Scan()
+	if s.Err() != nil {
+		return nil, s.Err()
 	}
-	key := append([]byte{}, s.Bytes()...)
 
-	return key, nil
+	key := safestorage.RawEncryptionKey{
+		Key: append([]byte{}, s.Bytes()...),
+		OS:  system,
+	}
+
+	return &key, nil
 }
 
 func unveilSignalDir(dir string) error {

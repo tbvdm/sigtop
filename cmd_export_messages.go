@@ -43,7 +43,7 @@ type msgMode struct {
 var cmdExportMessagesEntry = cmdEntry{
 	name:  "export-messages",
 	alias: "msg",
-	usage: "[-i] [-c conversation] [-d signal-directory] [-f format] [-k keyfile] [-s interval] [directory]",
+	usage: "[-i] [-c conversation] [-d signal-directory] [-f format] [-k [system:]keyfile] [-s interval] [directory]",
 	exec:  cmdExportMessages,
 }
 

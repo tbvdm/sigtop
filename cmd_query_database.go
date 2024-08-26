@@ -27,7 +27,7 @@ import (
 var cmdQueryDatabaseEntry = cmdEntry{
 	name:  "query-database",
 	alias: "query",
-	usage: "[-d signal-directory] [-k keyfile] query",
+	usage: "[-d signal-directory] [-k [system:]keyfile] query",
 	exec:  cmdQueryDatabase,
 }
 

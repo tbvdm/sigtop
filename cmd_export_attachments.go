@@ -51,7 +51,7 @@ type attMode struct {
 var cmdExportAttachmentsEntry = cmdEntry{
 	name:  "export-attachments",
 	alias: "att",
-	usage: "[-iMm] [-c conversation] [-d signal-directory] [-k keyfile] [-s interval] [directory]",
+	usage: "[-iMm] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [-s interval] [directory]",
 	exec:  cmdExportAttachments,
 }
 

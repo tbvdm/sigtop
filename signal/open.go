@@ -38,7 +38,7 @@ func Open(dir string) (*Context, error) {
 	return OpenWithEncryptionKey(dir, nil)
 }
 
-func OpenWithEncryptionKey(dir string, encKey []byte) (*Context, error) {
+func OpenWithEncryptionKey(dir string, encKey *safestorage.RawEncryptionKey) (*Context, error) {
 	dbFile := filepath.Join(dir, DatabaseFile)
 
 	// SQLite/SQLCipher doesn't provide a useful error message if the
@@ -102,7 +102,7 @@ func (c *Context) Close() {
 	c.db.Close()
 }
 
-func databaseKey(dir string, encKey []byte) ([]byte, error) {
+func databaseKey(dir string, encKey *safestorage.RawEncryptionKey) ([]byte, error) {
 	configFile := filepath.Join(dir, ConfigFile)
 	data, err := os.ReadFile(configFile)
 	if err != nil {
@@ -132,7 +132,7 @@ func databaseKey(dir string, encKey []byte) ([]byte, error) {
 
 	app := safestorage.NewApp("Signal", dir)
 	if encKey != nil {
-		if err := app.SetEncryptionKey(safestorage.RawEncryptionKey{Key: encKey, OS: ""}); err != nil {
+		if err := app.SetEncryptionKey(*encKey); err != nil {
 			return nil, fmt.Errorf("cannot set encryption key: %w", err)
 		}
 	}

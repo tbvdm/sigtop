@@ -26,7 +26,7 @@ import (
 var cmdCheckDatabaseEntry = cmdEntry{
 	name:  "check-database",
 	alias: "check",
-	usage: "[-d signal-directory] [-k keyfile]",
+	usage: "[-d signal-directory] [-k [system:]keyfile]",
 	exec:  cmdCheckDatabase,
 }
 
