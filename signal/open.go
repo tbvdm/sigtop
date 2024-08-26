@@ -144,3 +144,8 @@ func databaseKey(dir string, encKey *safestorage.RawEncryptionKey) ([]byte, erro
 
 	return dbKey, nil
 }
+
+func EncryptionKey(dir string) ([]byte, error) {
+	app := safestorage.NewApp("Signal", dir)
+	return app.EncryptionKey()
+}

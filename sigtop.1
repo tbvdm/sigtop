@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd August 6, 2024
+.Dd August 26, 2024
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -162,6 +162,17 @@ section below for details.
 Decrypt and export the Signal Desktop database to
 .Ar file .
 The exported database is a regular SQLite database.
+.Tg key
+.It Ic export-key Oo Fl d Ar signal-directory Oc Oo Ar file Oc
+.D1 Pq Alias: Ic key
+.Pp
+Export the encryption key that is needed to decrypt the database encryption
+key.
+The key is written to
+.Ar file ,
+or to standard output if
+.Ar file
+is not specified.
 .Tg msg
 .It Xo
 .Ic export-messages

@@ -79,3 +79,12 @@ func (a *App) SetEncryptionKey(rawKey RawEncryptionKey) error {
 func deriveEncryptionKey(rawKey []byte, iters int) []byte {
 	return pbkdf2.Key(rawKey, []byte(salt), iters, keySize, sha1.New)
 }
+
+func (a *App) EncryptionKey() ([]byte, error) {
+	if !a.keySet {
+		if err := a.setEncryptionKeyFromSystem(); err != nil {
+			return nil, err
+		}
+	}
+	return a.rawKey.Key, nil
+}
