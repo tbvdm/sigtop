@@ -99,7 +99,7 @@ GitHub][11] or [send an email][12].
 [6]: https://github.com/tbvdm/sigtop/releases/latest/download/sigtop.exe
 [7]: https://github.com/tbvdm/sigtop/releases/latest
 [8]: https://winlibs.com/
-[9]: https://github.com/brechtsanders/winlibs_mingw/releases/download/13.1.0-16.0.5-11.0.0-ucrt-r5/winlibs-x86_64-posix-seh-gcc-13.1.0-mingw-w64ucrt-11.0.0-r5.zip
+[9]: https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-18.1.8-12.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-14.2.0-mingw-w64ucrt-12.0.0-r1.zip
 [10]: https://learn.microsoft.com/windows/wsl/
 [11]: https://github.com/tbvdm/sigtop/issues
 [12]: https://www.kariliq.nl/contact.html
