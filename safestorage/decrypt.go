@@ -18,78 +18,63 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/sha1"
-	"errors"
-	"runtime"
-
-	"golang.org/x/crypto/pbkdf2"
+	"fmt"
 )
 
-const (
-	keySize = 16 // AES-128
-	salt    = "saltysalt"
-
-	macosPrefix     = "v10"
-	macosIterations = 1003
-
-	linuxPrefixV10  = "v10"
-	linuxPrefixV11  = "v11"
-	linuxIterations = 1
-
-	windowsPrefix    = "v10"
-	windowsKeySize   = 32 // AES-256
-	windowsNonceSize = 12
-)
-
-func DecryptWithPassword(ciphertext, password []byte) ([]byte, error) {
-	switch runtime.GOOS {
-	case "darwin":
-		return decryptWithMacosPassword(ciphertext, password)
-	case "linux", "openbsd":
-		return decryptWithLinuxPassword(ciphertext, password)
+func (a *App) Decrypt(ciphertext []byte) ([]byte, error) {
+	if !a.keySet {
+		if err := a.setEncryptionKeyFromSystem(); err != nil {
+			return nil, err
+		}
+	}
+	switch a.rawKey.OS {
+	case "linux":
+		return a.decrypt(ciphertext, linuxCiphertextPrefix)
+	case "macos":
+		return a.decrypt(ciphertext, macosCiphertextPrefix)
 	case "windows":
-		return decryptWithWindowsPassword(ciphertext, password)
+		return a.decryptWindows(ciphertext)
 	default:
-		return nil, errors.New("not yet supported")
+		// Should not happen
+		return nil, fmt.Errorf("invalid operating system")
 	}
 }
 
-func decryptWithMacosPassword(ciphertext, password []byte) ([]byte, error) {
-	if !bytes.HasPrefix(ciphertext, []byte(macosPrefix)) {
-		return ciphertext, nil
+func (a *App) decrypt(ciphertext []byte, prefix string) ([]byte, error) {
+	if !hasPrefix(ciphertext, prefix) {
+		return nil, fmt.Errorf("unsupported ciphertext format")
 	}
-	ciphertext = bytes.TrimPrefix(ciphertext, []byte(macosPrefix))
-	return decryptWithPassword(ciphertext, password, macosIterations)
+	ciphertext = trimPrefix(ciphertext, prefix)
+
+	if len(ciphertext)%aes.BlockSize != 0 {
+		return nil, fmt.Errorf("invalid ciphertext length")
+	}
+
+	c, err := aes.NewCipher(a.key)
+	if err != nil {
+		return nil, err
+	}
+	iv := bytes.Repeat([]byte(" "), aes.BlockSize)
+	cbc := cipher.NewCBCDecrypter(c, iv)
+
+	plaintext := make([]byte, len(ciphertext))
+	cbc.CryptBlocks(plaintext, ciphertext)
+	return unpad(plaintext, aes.BlockSize)
 }
 
-func decryptWithLinuxPassword(ciphertext, password []byte) ([]byte, error) {
-	if bytes.HasPrefix(ciphertext, []byte(linuxPrefixV10)) {
-		return nil, errors.New("unsupported encryption version prefix")
+func (a *App) decryptWindows(ciphertext []byte) ([]byte, error) {
+	if !hasPrefix(ciphertext, windowsCiphertextPrefix) {
+		return nil, fmt.Errorf("unsupported ciphertext format")
 	}
-	if !bytes.HasPrefix(ciphertext, []byte(linuxPrefixV11)) {
-		return ciphertext, nil
-	}
-	ciphertext = bytes.TrimPrefix(ciphertext, []byte(linuxPrefixV11))
-	return decryptWithPassword(ciphertext, password, linuxIterations)
-}
-
-func decryptWithWindowsPassword(ciphertext, password []byte) ([]byte, error) {
-	if !bytes.HasPrefix(ciphertext, []byte(windowsPrefix)) {
-		return nil, errors.New("unsupported ciphertext format")
-	}
-	ciphertext = bytes.TrimPrefix(ciphertext, []byte(windowsPrefix))
+	ciphertext = trimPrefix(ciphertext, windowsCiphertextPrefix)
 
 	if len(ciphertext) < windowsNonceSize {
-		return nil, errors.New("invalid ciphertext length")
+		return nil, fmt.Errorf("invalid ciphertext length")
 	}
 	nonce := ciphertext[:windowsNonceSize]
 	ciphertext = ciphertext[windowsNonceSize:]
 
-	if len(password) != windowsKeySize {
-		return nil, errors.New("invalid password length")
-	}
-
-	c, err := aes.NewCipher(password)
+	c, err := aes.NewCipher(a.key)
 	if err != nil {
 		return nil, err
 	}
@@ -106,22 +91,12 @@ func decryptWithWindowsPassword(ciphertext, password []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func decryptWithPassword(ciphertext, password []byte, iters int) ([]byte, error) {
-	if len(ciphertext)%aes.BlockSize != 0 {
-		return nil, errors.New("invalid ciphertext length")
-	}
+func hasPrefix(b []byte, prefix string) bool {
+	return bytes.HasPrefix(b, []byte(prefix))
+}
 
-	key := pbkdf2.Key(password, []byte(salt), iters, keySize, sha1.New)
-	c, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	iv := bytes.Repeat([]byte(" "), aes.BlockSize)
-	cbc := cipher.NewCBCDecrypter(c, iv)
-
-	plaintext := make([]byte, len(ciphertext))
-	cbc.CryptBlocks(plaintext, ciphertext)
-	return unpad(plaintext, aes.BlockSize)
+func trimPrefix(b []byte, prefix string) []byte {
+	return bytes.TrimPrefix(b, []byte(prefix))
 }
 
 func unpad(data []byte, blocksize int) ([]byte, error) {
@@ -131,12 +106,12 @@ func unpad(data []byte, blocksize int) ([]byte, error) {
 
 	n := int(data[len(data)-1])
 	if n == 0 || n > blocksize || n > len(data) {
-		return nil, errors.New("invalid padding size")
+		return nil, fmt.Errorf("invalid padding size")
 	}
 
 	for i := len(data) - n; i < len(data)-1; i++ {
 		if data[i] != data[len(data)-1] {
-			return nil, errors.New("invalid byte in padding string")
+			return nil, fmt.Errorf("invalid byte in padding string")
 		}
 	}
 

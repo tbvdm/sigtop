@@ -17,10 +17,9 @@ package signal
 import "os"
 
 const (
-	DatabaseFile   = "sql" + string(os.PathSeparator) + "db.sqlite"
-	ConfigFile     = "config.json"
-	LocalStateFile = "Local State"
-	AttachmentDir  = "attachments.noindex"
+	DatabaseFile  = "sql" + string(os.PathSeparator) + "db.sqlite"
+	ConfigFile    = "config.json"
+	AttachmentDir = "attachments.noindex"
 
 	// Content type of the long-text attachment of a long message
 	LongTextType = "text/x-signal-plain"

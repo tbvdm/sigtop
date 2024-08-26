@@ -25,28 +25,14 @@ import (
 	"unsafe"
 )
 
-const keychainService = "Signal Safe Storage"
-
-func Decrypt(ciphertext []byte) ([]byte, error) {
-	key, err := encryptionKey()
-	if err != nil {
-		return nil, err
-	}
-	return decryptWithMacosPassword(ciphertext, key)
-}
-
-func DecryptWithLocalState(ciphertext []byte, localStateFile string) ([]byte, error) {
-	return nil, fmt.Errorf("not supported")
-}
-
-func encryptionKey() ([]byte, error) {
+func (a *App) setEncryptionKeyFromSystem() error {
 	query := C.CFDictionaryCreateMutable(C.kCFAllocatorDefault, 0, &C.kCFTypeDictionaryKeyCallBacks, &C.kCFTypeDictionaryValueCallBacks)
 	if query == C.CFMutableDictionaryRef(C.NULL) {
-		return nil, fmt.Errorf("cannot create dictionary")
+		return fmt.Errorf("cannot create dictionary")
 	}
 	defer C.CFRelease(C.CFTypeRef(query))
 
-	service := cfString(keychainService)
+	service := cfString(a.name + macosServiceSuffix)
 	defer C.CFRelease(C.CFTypeRef(service))
 
 	C.CFDictionaryAddValue(query, unsafe.Pointer(C.kSecClass), unsafe.Pointer(C.kSecClassGenericPassword))
@@ -56,18 +42,23 @@ func encryptionKey() ([]byte, error) {
 	var result C.CFTypeRef
 	status := C.SecItemCopyMatching(C.CFDictionaryRef(query), &result)
 	if status == C.errSecItemNotFound {
-		return nil, fmt.Errorf("cannot find encryption key")
+		return fmt.Errorf("cannot find encryption key")
 	}
 	if status != C.errSecSuccess {
-		return nil, fmt.Errorf("cannot get encryption key: error %d", status)
+		return fmt.Errorf("cannot get encryption key: error %d", status)
 	}
 	defer C.CFRelease(result)
 
 	data := C.CFDataGetBytePtr(C.CFDataRef(result))
 	dataLen := C.CFDataGetLength(C.CFDataRef(result))
-	key := C.GoBytes(unsafe.Pointer(data), C.int(dataLen))
 
-	return key, nil
+	a.rawKey = RawEncryptionKey{
+		Key: C.GoBytes(unsafe.Pointer(data), C.int(dataLen)),
+		OS:  "macos",
+	}
+	a.key = deriveEncryptionKey(a.rawKey.Key, macosIterations)
+
+	return nil
 }
 
 func cfString(s string) C.CFStringRef {

@@ -37,28 +37,14 @@ import (
 	"unsafe"
 )
 
-const libsecretApplication = "Signal"
-
-func Decrypt(ciphertext []byte) ([]byte, error) {
-	key, err := encryptionKey()
-	if err != nil {
-		return nil, err
-	}
-	return decryptWithLinuxPassword(ciphertext, key)
-}
-
-func DecryptWithLocalState(ciphertext []byte, localStateFile string) ([]byte, error) {
-	return nil, fmt.Errorf("not supported")
-}
-
-func encryptionKey() ([]byte, error) {
-	name := C.CString("chrome_libsecret_os_crypt_password_v2")
+func (a *App) setEncryptionKeyFromSystem() error {
+	name := C.CString(libsecretSchema)
 	defer C.free(unsafe.Pointer(name))
 
 	attrName := C.CString("application")
 	defer C.free(unsafe.Pointer(attrName))
 
-	attrValue := C.CString(libsecretApplication)
+	attrValue := C.CString(a.name)
 	defer C.free(unsafe.Pointer(attrValue))
 
 	schema := C.SecretSchema{
@@ -71,15 +57,21 @@ func encryptionKey() ([]byte, error) {
 	schema.attributes[1]._type = 0
 
 	gerr := (*C.GError)(C.NULL)
-	key := C.secret_password_lookup_sync_wrapper(&schema, &gerr, attrName, attrValue)
+	result := C.secret_password_lookup_sync_wrapper(&schema, &gerr, attrName, attrValue)
 	if gerr != (*C.GError)(C.NULL) {
 		defer C.g_error_free(gerr)
-		return nil, fmt.Errorf("cannot get encryption key: %s", C.GoString(gerr.message))
+		return fmt.Errorf("cannot get encryption key: %s", C.GoString(gerr.message))
 	}
-	if key == (*C.char)(C.NULL) {
-		return nil, fmt.Errorf("cannot find encryption key")
+	if result == (*C.char)(C.NULL) {
+		return fmt.Errorf("cannot find encryption key")
 	}
-	defer C.secret_password_free(key)
+	defer C.secret_password_free(result)
 
-	return C.GoBytes(unsafe.Pointer(key), C.int(C.strlen(key))), nil
+	a.rawKey = RawEncryptionKey{
+		Key: C.GoBytes(unsafe.Pointer(result), C.int(C.strlen(result))),
+		OS:  "linux",
+	}
+	a.key = deriveEncryptionKey(a.rawKey.Key, linuxIterations)
+
+	return nil
 }

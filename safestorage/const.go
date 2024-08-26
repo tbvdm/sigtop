@@ -12,12 +12,25 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-//go:build !(darwin || windows) && no_libsecret || openbsd
-
 package safestorage
 
-import "fmt"
+const (
+	keySize = 16 // AES-128
+	salt    = "saltysalt"
 
-func (a *App) setEncryptionKeyFromSystem() error {
-	return fmt.Errorf("not supported on this system")
-}
+	macosCiphertextPrefix = "v10"
+	macosIterations       = 1003
+	macosServiceSuffix    = " Safe Storage"
+
+	linuxCiphertextPrefix = "v11"
+	linuxIterations       = 1
+
+	libsecretSchema = "chrome_libsecret_os_crypt_password_v2"
+
+	windowsCiphertextPrefix = "v10"
+	windowsDPAPIKeyPrefix   = "DPAPI"
+	windowsKeySize          = 32 // AES-256
+	windowsNonceSize        = 12
+
+	localStateFile = "Local State"
+)

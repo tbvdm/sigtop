@@ -15,34 +15,21 @@
 package safestorage
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
 
-const dpapiKeyPrefix = "DPAPI"
-
-func Decrypt(ciphertext []byte) ([]byte, error) {
-	return nil, fmt.Errorf("not supported")
-}
-
-func DecryptWithLocalState(ciphertext []byte, localStateFile string) ([]byte, error) {
-	key, err := encryptionKey(localStateFile)
+func (a *App) setEncryptionKeyFromSystem() error {
+	file := filepath.Join(a.dir, localStateFile)
+	data, err := os.ReadFile(file)
 	if err != nil {
-		return nil, err
-	}
-	return decryptWithWindowsPassword(ciphertext, key)
-}
-
-func encryptionKey(localStateFile string) ([]byte, error) {
-	data, err := os.ReadFile(localStateFile)
-	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var localState struct {
@@ -51,24 +38,35 @@ func encryptionKey(localStateFile string) ([]byte, error) {
 		} `json:"os_crypt"`
 	}
 	if err := json.Unmarshal(data, &localState); err != nil {
-		return nil, fmt.Errorf("cannot parse %s: %w", localStateFile, err)
+		return fmt.Errorf("cannot parse %s: %w", file, err)
 	}
 
 	if localState.OSCrypt.EncryptedKey == nil {
-		return nil, fmt.Errorf("encryption key not found")
+		return fmt.Errorf("encryption key not found")
 	}
 
 	key, err := base64.StdEncoding.DecodeString(*localState.OSCrypt.EncryptedKey)
 	if err != nil {
-		return nil, fmt.Errorf("cannot decode encryption key: %w", err)
+		return fmt.Errorf("cannot decode encryption key: %w", err)
 	}
 
-	if !bytes.HasPrefix(key, []byte(dpapiKeyPrefix)) {
-		return nil, fmt.Errorf("invalid encryption key format")
+	if !hasPrefix(key, windowsDPAPIKeyPrefix) {
+		return fmt.Errorf("unsupported encryption key format")
 	}
-	key = bytes.TrimPrefix(key, []byte(dpapiKeyPrefix))
+	key = trimPrefix(key, windowsDPAPIKeyPrefix)
 
-	return decryptWithDPAPI(key)
+	key, err = decryptWithDPAPI(key)
+	if err != nil {
+		return err
+	}
+
+	a.rawKey = RawEncryptionKey{
+		Key: []byte(base64.StdEncoding.EncodeToString(key)),
+		OS:  "windows",
+	}
+	a.key = key
+
+	return nil
 }
 
 func decryptWithDPAPI(ciphertext []byte) ([]byte, error) {
@@ -80,10 +78,10 @@ func decryptWithDPAPI(ciphertext []byte) ([]byte, error) {
 	if err := windows.CryptUnprotectData(&in, nil, nil, 0, nil, 0, &out); err != nil {
 		return nil, err
 	}
+	defer windows.LocalFree(windows.Handle(unsafe.Pointer(out.Data)))
 
 	plaintext := make([]byte, out.Size)
 	copy(plaintext, unsafe.Slice(out.Data, out.Size))
-	windows.LocalFree(windows.Handle(unsafe.Pointer(out.Data)))
 
 	return plaintext, nil
 }
