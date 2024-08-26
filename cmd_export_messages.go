@@ -43,7 +43,7 @@ type msgMode struct {
 var cmdExportMessagesEntry = cmdEntry{
 	name:  "export-messages",
 	alias: "msg",
-	usage: "[-i] [-c conversation] [-d signal-directory] [-f format] [-p passfile] [-s interval] [directory]",
+	usage: "[-i] [-c conversation] [-d signal-directory] [-f format] [-k keyfile] [-s interval] [directory]",
 	exec:  cmdExportMessages,
 }
 
@@ -53,8 +53,8 @@ func cmdExportMessages(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("c:d:f:ip:s:", args)
-	var dArg, pArg, sArg getopt.Arg
+	getopt.ParseArgs("c:d:f:ik:p:s:", args)
+	var dArg, kArg, sArg getopt.Arg
 	var selectors []string
 	for getopt.Next() {
 		switch getopt.Option() {
@@ -76,7 +76,10 @@ func cmdExportMessages(args []string) cmdStatus {
 		case 'i':
 			mode.incremental = true
 		case 'p':
-			pArg = getopt.OptionArg()
+			log.Print("-p is deprecated; use -k instead")
+			fallthrough
+		case 'k':
+			kArg = getopt.OptionArg()
 		case 's':
 			sArg = getopt.OptionArg()
 		}
@@ -100,7 +103,7 @@ func cmdExportMessages(args []string) cmdStatus {
 		return cmdUsage
 	}
 
-	key, err := encryptionKeyFromFile(pArg)
+	key, err := encryptionKeyFromFile(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -27,19 +27,22 @@ import (
 var cmdExportDatabaseEntry = cmdEntry{
 	name:  "export-database",
 	alias: "db",
-	usage: "[-d signal-directory] [-p passfile] file",
+	usage: "[-d signal-directory] [-k keyfile] file",
 	exec:  cmdExportDatabase,
 }
 
 func cmdExportDatabase(args []string) cmdStatus {
-	getopt.ParseArgs("d:p:", args)
-	var dArg, pArg getopt.Arg
+	getopt.ParseArgs("d:k:p:", args)
+	var dArg, kArg getopt.Arg
 	for getopt.Next() {
 		switch getopt.Option() {
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'p':
-			pArg = getopt.OptionArg()
+			log.Print("-p is deprecated; use -k instead")
+			fallthrough
+		case 'k':
+			kArg = getopt.OptionArg()
 		}
 	}
 
@@ -52,7 +55,7 @@ func cmdExportDatabase(args []string) cmdStatus {
 		return cmdUsage
 	}
 
-	key, err := encryptionKeyFromFile(pArg)
+	key, err := encryptionKeyFromFile(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}

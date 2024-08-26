@@ -30,13 +30,13 @@ import (
 var cmdExportAvatarsEntry = cmdEntry{
 	name:  "export-avatars",
 	alias: "avt",
-	usage: "[-c conversation] [-d signal-directory] [-p passfile] [directory]",
+	usage: "[-c conversation] [-d signal-directory] [-k keyfile] [directory]",
 	exec:  cmdExportAvatars,
 }
 
 func cmdExportAvatars(args []string) cmdStatus {
-	getopt.ParseArgs("c:d:p:", args)
-	var dArg, pArg getopt.Arg
+	getopt.ParseArgs("c:d:k:p:", args)
+	var dArg, kArg getopt.Arg
 	var selectors []string
 	for getopt.Next() {
 		switch getopt.Option() {
@@ -45,7 +45,10 @@ func cmdExportAvatars(args []string) cmdStatus {
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'p':
-			pArg = getopt.OptionArg()
+			log.Print("-p is deprecated; use -k instead")
+			fallthrough
+		case 'k':
+			kArg = getopt.OptionArg()
 		}
 	}
 
@@ -67,7 +70,7 @@ func cmdExportAvatars(args []string) cmdStatus {
 		return cmdUsage
 	}
 
-	key, err := encryptionKeyFromFile(pArg)
+	key, err := encryptionKeyFromFile(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}

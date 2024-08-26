@@ -26,19 +26,22 @@ import (
 var cmdCheckDatabaseEntry = cmdEntry{
 	name:  "check-database",
 	alias: "check",
-	usage: "[-d signal-directory] [-p passfile]",
+	usage: "[-d signal-directory] [-k keyfile]",
 	exec:  cmdCheckDatabase,
 }
 
 func cmdCheckDatabase(args []string) cmdStatus {
-	getopt.ParseArgs("d:p:", args)
-	var dArg, pArg getopt.Arg
+	getopt.ParseArgs("d:k:p:", args)
+	var dArg, kArg getopt.Arg
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'p':
-			pArg = getopt.OptionArg()
+			log.Print("-p is deprecated; use -k instead")
+			fallthrough
+		case 'k':
+			kArg = getopt.OptionArg()
 		}
 	}
 
@@ -50,7 +53,7 @@ func cmdCheckDatabase(args []string) cmdStatus {
 		return cmdUsage
 	}
 
-	key, err := encryptionKeyFromFile(pArg)
+	key, err := encryptionKeyFromFile(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}

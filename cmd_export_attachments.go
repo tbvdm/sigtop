@@ -51,7 +51,7 @@ type attMode struct {
 var cmdExportAttachmentsEntry = cmdEntry{
 	name:  "export-attachments",
 	alias: "att",
-	usage: "[-iMm] [-c conversation] [-d signal-directory] [-p passfile] [-s interval] [directory]",
+	usage: "[-iMm] [-c conversation] [-d signal-directory] [-k keyfile] [-s interval] [directory]",
 	exec:  cmdExportAttachments,
 }
 
@@ -61,8 +61,8 @@ func cmdExportAttachments(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("c:d:iMmp:s:", args)
-	var dArg, pArg, sArg getopt.Arg
+	getopt.ParseArgs("c:d:ik:Mmp:s:", args)
+	var dArg, kArg, sArg getopt.Arg
 	var selectors []string
 	for getopt.Next() {
 		switch getopt.Option() {
@@ -77,7 +77,10 @@ func cmdExportAttachments(args []string) cmdStatus {
 		case 'm':
 			mode.mtime = mtimeRecv
 		case 'p':
-			pArg = getopt.OptionArg()
+			log.Print("-p is deprecated; use -k instead")
+			fallthrough
+		case 'k':
+			kArg = getopt.OptionArg()
 		case 's':
 			sArg = getopt.OptionArg()
 		}
@@ -101,7 +104,7 @@ func cmdExportAttachments(args []string) cmdStatus {
 		return cmdUsage
 	}
 
-	key, err := encryptionKeyFromFile(pArg)
+	key, err := encryptionKeyFromFile(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}

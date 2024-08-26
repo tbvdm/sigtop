@@ -27,19 +27,22 @@ import (
 var cmdQueryDatabaseEntry = cmdEntry{
 	name:  "query-database",
 	alias: "query",
-	usage: "[-d signal-directory] [-p passfile] query",
+	usage: "[-d signal-directory] [-k keyfile] query",
 	exec:  cmdQueryDatabase,
 }
 
 func cmdQueryDatabase(args []string) cmdStatus {
-	getopt.ParseArgs("d:p:", args)
-	var dArg, pArg getopt.Arg
+	getopt.ParseArgs("d:k:p:", args)
+	var dArg, kArg getopt.Arg
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'p':
-			pArg = getopt.OptionArg()
+			log.Print("-p is deprecated; use -k instead")
+			fallthrough
+		case 'k':
+			kArg = getopt.OptionArg()
 		}
 	}
 
@@ -54,7 +57,7 @@ func cmdQueryDatabase(args []string) cmdStatus {
 
 	query := args[0]
 
-	key, err := encryptionKeyFromFile(pArg)
+	key, err := encryptionKeyFromFile(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}
