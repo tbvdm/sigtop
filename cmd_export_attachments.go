@@ -285,9 +285,18 @@ func attachmentFilename(d at.Dir, att *signal.Attachment) (string, error) {
 	if att.FileName != "" {
 		name = sanitiseFilename(att.FileName)
 	} else {
-		ext, err := extensionFromContentType(att.ContentType)
-		if err != nil {
-			return "", err
+		var ext string
+		if att.ContentType == "" {
+			log.Printf("attachment without content type (sent: %d)", att.TimeSent)
+		} else {
+			var err error
+			ext, err = extensionFromContentType(att.ContentType)
+			if err != nil {
+				return "", err
+			}
+			if ext == "" {
+				log.Printf("no filename extension for content type %s (sent: %d)", att.ContentType, att.TimeSent)
+			}
 		}
 		name = "attachment-" + time.UnixMilli(att.TimeSent).Format("2006-01-02-15-04-05") + ext
 	}
