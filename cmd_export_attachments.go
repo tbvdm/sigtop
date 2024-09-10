@@ -156,6 +156,10 @@ func cmdExportAttachments(args []string) cmdStatus {
 		}
 	}
 
+	if err := addContentTypes(); err != nil {
+		log.Print(err)
+	}
+
 	var ctx *signal.Context
 	if key == nil {
 		ctx, err = signal.Open(signalDir)

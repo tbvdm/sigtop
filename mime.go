@@ -46,6 +46,10 @@ func unveilMimeFiles() error {
 	return nil
 }
 
+func addContentTypes() error {
+	return mime.AddExtensionType(".aac", "audio/aac")
+}
+
 func extensionFromContentType(contentType string) (string, error) {
 	// Avoid silly results, such as .jpe for image/jpeg
 	switch t, _, _ := strings.Cut(contentType, ";"); t {
