@@ -295,7 +295,7 @@ func attachmentFilename(d at.Dir, att *signal.Attachment) (string, error) {
 				return "", err
 			}
 			if ext == "" {
-				log.Printf("no filename extension for content type %s (sent: %d)", att.ContentType, att.TimeSent)
+				log.Printf("no filename extension for content type %q (sent: %d)", att.ContentType, att.TimeSent)
 			}
 		}
 		name = "attachment-" + time.UnixMilli(att.TimeSent).Format("2006-01-02-15-04-05") + ext
