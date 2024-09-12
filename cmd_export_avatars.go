@@ -136,8 +136,9 @@ func exportAvatars(ctx *signal.Context, dir string, selectors []string) bool {
 	}
 
 	ret := true
+	usedFilenames := make(map[string]bool)
 	for _, conv := range convs {
-		if err := exportAvatar(ctx, d, conv.Recipient); err != nil {
+		if err := exportAvatar(ctx, d, conv.Recipient, usedFilenames); err != nil {
 			log.Print(err)
 			ret = false
 		}
@@ -146,7 +147,7 @@ func exportAvatars(ctx *signal.Context, dir string, selectors []string) bool {
 	return ret
 }
 
-func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) error {
+func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient, usedFilenames map[string]bool) error {
 	if rpt.Avatar.Path == "" {
 		return nil
 	}
@@ -156,7 +157,7 @@ func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) error {
 		return err
 	}
 
-	f, err := d.OpenFile(avatarFilename(rpt, data), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+	f, err := d.OpenFile(avatarFilename(rpt, data, usedFilenames), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return err
 	}
@@ -168,7 +169,7 @@ func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) error {
 	return f.Close()
 }
 
-func avatarFilename(rpt *signal.Recipient, data []byte) string {
+func avatarFilename(rpt *signal.Recipient, data []byte, usedFilenames map[string]bool) string {
 	equals := func(b []byte, s string) bool { return bytes.Equal(b, []byte(s)) }
 
 	var ext string
@@ -181,5 +182,5 @@ func avatarFilename(rpt *signal.Recipient, data []byte) string {
 		ext = ".webp"
 	}
 
-	return recipientFilename(rpt, ext)
+	return recipientFilename(rpt, ext, usedFilenames)
 }

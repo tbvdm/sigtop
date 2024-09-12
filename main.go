@@ -16,6 +16,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -137,6 +138,16 @@ func unveilSignalDir(dir string) error {
 	return nil
 }
 
-func recipientFilename(rpt *signal.Recipient, ext string) string {
-	return sanitiseFilename(rpt.DetailedDisplayName() + ext)
+func recipientFilename(rpt *signal.Recipient, ext string, usedFilenames map[string]bool) string {
+	baseName := sanitiseFilename(rpt.DetailedDisplayName())
+	name := baseName + ext
+	counter := 1
+
+	for usedFilenames[name] {
+		name = fmt.Sprintf("%s (%d)%s", baseName, counter, ext)
+		counter++
+	}
+
+	usedFilenames[name] = true
+	return name
 }

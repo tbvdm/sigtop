@@ -202,9 +202,10 @@ func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors 
 	}
 
 	ret := true
+	usedFilenames := make(map[string]bool)
 	for _, conv := range convs {
 		var ok bool
-		if ok, exported = exportConversationAttachments(ctx, d, &conv, mode, exported, ival); !ok {
+		if ok, exported = exportConversationAttachments(ctx, d, &conv, mode, exported, ival, usedFilenames); !ok {
 			ret = false
 		}
 	}
@@ -219,7 +220,7 @@ func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors 
 	return ret
 }
 
-func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode attMode, exported map[string]bool, ival signal.Interval) (bool, map[string]bool) {
+func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode attMode, exported map[string]bool, ival signal.Interval, usedFilenames map[string]bool) (bool, map[string]bool) {
 	atts, err := ctx.ConversationAttachments(conv, ival)
 	if err != nil {
 		log.Print(err)
@@ -230,7 +231,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 		return true, exported
 	}
 
-	cd, err := conversationDir(d, conv)
+	cd, err := conversationDir(d, conv, usedFilenames)
 	if err != nil {
 		log.Print(err)
 		return false, exported
@@ -253,7 +254,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 			log.Printf("%s (conversation: %q, sent: %s)", msg, conv.Recipient.DisplayName(), time.UnixMilli(att.TimeSent).Format("2006-01-02 15:04:05"))
 			continue
 		}
-		path, err := attachmentFilename(cd, &att)
+		path, err := attachmentFilename(cd, &att) // Ensure unique filenames for attachments
 		if err != nil {
 			log.Print(err)
 			ret = false
@@ -276,8 +277,8 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 	return ret, exported
 }
 
-func conversationDir(d at.Dir, conv *signal.Conversation) (at.Dir, error) {
-	name := recipientFilename(conv.Recipient, "")
+func conversationDir(d at.Dir, conv *signal.Conversation, usedFilenames map[string]bool) (at.Dir, error) {
+	name := recipientFilename(conv.Recipient, "", usedFilenames)
 	if err := d.Mkdir(name, 0777); err != nil && !errors.Is(err, fs.ErrExist) {
 		return at.InvalidDir, err
 	}

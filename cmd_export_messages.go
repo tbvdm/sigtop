@@ -178,8 +178,9 @@ func exportMessages(ctx *signal.Context, dir string, mode msgMode, selectors []s
 	}
 
 	ret := true
+	usedFilenames := make(map[string]bool)
 	for _, conv := range convs {
-		if err = exportConversationMessages(ctx, d, &conv, mode, ival); err != nil {
+		if err = exportConversationMessages(ctx, d, &conv, mode, ival, usedFilenames); err != nil {
 			log.Print(err)
 			ret = false
 		}
@@ -188,7 +189,7 @@ func exportMessages(ctx *signal.Context, dir string, mode msgMode, selectors []s
 	return ret
 }
 
-func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode msgMode, ival signal.Interval) error {
+func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode msgMode, ival signal.Interval, usedFilenames map[string]bool) error {
 	msgs, err := ctx.ConversationMessages(conv, ival)
 	if err != nil {
 		return err
@@ -198,7 +199,7 @@ func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conv
 		return nil
 	}
 
-	f, err := conversationFile(d, conv, mode)
+	f, err := conversationFile(d, conv, mode, usedFilenames)
 	if err != nil {
 		return err
 	}
@@ -221,7 +222,7 @@ func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conv
 	return f.Close()
 }
 
-func conversationFile(d at.Dir, conv *signal.Conversation, mode msgMode) (*os.File, error) {
+func conversationFile(d at.Dir, conv *signal.Conversation, mode msgMode, usedFilenames map[string]bool) (*os.File, error) {
 	var ext string
 	switch mode.format {
 	case formatJSON:
@@ -235,7 +236,7 @@ func conversationFile(d at.Dir, conv *signal.Conversation, mode msgMode) (*os.Fi
 		flags |= os.O_EXCL
 	}
 
-	name := recipientFilename(conv.Recipient, ext)
+	name := recipientFilename(conv.Recipient, ext, usedFilenames)
 	f, err := d.OpenFile(name, flags, 0666)
 	if err != nil {
 		return nil, err
