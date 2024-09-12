@@ -254,7 +254,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 			log.Printf("%s (conversation: %q, sent: %s)", msg, conv.Recipient.DisplayName(), time.UnixMilli(att.TimeSent).Format("2006-01-02 15:04:05"))
 			continue
 		}
-		path, err := attachmentFilename(cd, &att) // Ensure unique filenames for attachments
+		path, err := attachmentFilename(cd, &att)
 		if err != nil {
 			log.Print(err)
 			ret = false
