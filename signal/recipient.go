@@ -87,6 +87,7 @@ type Avatar struct {
 // Based on ConversationAttributesType in ts/model-types.d.ts in the
 // Signal-Desktop repository
 type recipientJSON struct {
+	Username      string `json:"username"`
 	ProfileAvatar Avatar `json:"profileAvatar"` // For contacts
 	Avatar        Avatar `json:"avatar"`        // For groups
 }
@@ -112,6 +113,7 @@ type Contact struct {
 	ProfileFamilyName string
 	ProfileJoinedName string
 	Phone             string
+	Username          string
 }
 
 type Group struct {
@@ -166,12 +168,13 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 		r = &Recipient{
 			Type: RecipientTypeContact,
 			Contact: Contact{
+				ACI:               stmt.ColumnText(recipientColumnServiceID),
 				Name:              trimBidiChars(stmt.ColumnText(recipientColumnName)),
 				ProfileName:       stmt.ColumnText(recipientColumnProfileName),
 				ProfileFamilyName: stmt.ColumnText(recipientColumnProfileFamilyName),
 				ProfileJoinedName: stmt.ColumnText(recipientColumnProfileFullName),
 				Phone:             stmt.ColumnText(recipientColumnE164),
-				ACI:               stmt.ColumnText(recipientColumnServiceID),
+				Username:          jrpt.Username,
 			},
 			Avatar: jrpt.ProfileAvatar,
 		}
@@ -253,10 +256,19 @@ func (r *Recipient) displayNameAndDetail() (string, string) {
 				name = r.Contact.ProfileName
 			case r.Contact.Phone != "":
 				name = r.Contact.Phone
+			case r.Contact.Username != "":
+				name = r.Contact.Username
 			case r.Contact.ACI != "":
 				name = r.Contact.ACI
 			}
-			detail = r.Contact.Phone
+			switch {
+			case r.Contact.Phone != "":
+				detail = r.Contact.Phone
+			case r.Contact.Username != "":
+				detail = r.Contact.Username
+			case r.Contact.ACI != "":
+				detail = r.Contact.ACI
+			}
 		case RecipientTypeGroup:
 			switch {
 			case r.Group.Name != "":
