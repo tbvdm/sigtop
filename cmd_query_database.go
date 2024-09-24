@@ -17,6 +17,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/tbvdm/go-openbsd"
@@ -27,13 +28,13 @@ import (
 var cmdQueryDatabaseEntry = cmdEntry{
 	name:  "query-database",
 	alias: "query",
-	usage: "[-d signal-directory] [-k [system:]keyfile] query",
+	usage: "[-d signal-directory] [-k [system:]keyfile] [-o outfile] query",
 	exec:  cmdQueryDatabase,
 }
 
 func cmdQueryDatabase(args []string) cmdStatus {
-	getopt.ParseArgs("d:k:p:", args)
-	var dArg, kArg getopt.Arg
+	getopt.ParseArgs("d:k:p:o:", args)
+	var dArg, kArg, oArg getopt.Arg
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
 		case 'd':
@@ -43,6 +44,8 @@ func cmdQueryDatabase(args []string) cmdStatus {
 			fallthrough
 		case 'k':
 			kArg = getopt.OptionArg()
+		case 'o':
+			oArg = getopt.OptionArg()
 		}
 	}
 
@@ -60,6 +63,13 @@ func cmdQueryDatabase(args []string) cmdStatus {
 	key, err := encryptionKeyFromFile(kArg)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	outfile := os.Stdout
+	if oArg.Set() {
+		if outfile, err = os.OpenFile(oArg.String(), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	var signalDir string
@@ -104,7 +114,13 @@ func cmdQueryDatabase(args []string) cmdStatus {
 	}
 
 	for _, cols := range rows {
-		fmt.Println(strings.Join(cols, "|"))
+		fmt.Fprintln(outfile, strings.Join(cols, "|"))
+	}
+
+	if outfile != os.Stdout {
+		if err := outfile.Close(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return cmdOK
