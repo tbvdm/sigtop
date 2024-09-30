@@ -47,7 +47,21 @@ func unveilMimeFiles() error {
 }
 
 func addContentTypes() error {
-	return mime.AddExtensionType(".aac", "audio/aac")
+	types := [...]struct {
+		ext string
+		typ string
+	}{
+		{".aac", "audio/aac"},
+		{".m4a", "audio/x-m4a"},
+	}
+
+	for _, t := range types {
+		if err := mime.AddExtensionType(t.ext, t.typ); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func extensionFromContentType(contentType string) (string, error) {
