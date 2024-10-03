@@ -55,12 +55,12 @@ func cmdExportDatabase(args []string) cmdStatus {
 		return cmdUsage
 	}
 
+	dbFile := args[0]
+
 	key, err := encryptionKeyFromFile(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	dbFile := args[0]
 
 	var signalDir string
 	if dArg.Set() {

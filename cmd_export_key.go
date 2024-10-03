@@ -45,7 +45,17 @@ func cmdExportKey(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	if len(getopt.Args()) > 1 {
+	args = getopt.Args()
+	var outfile *os.File
+	switch len(args) {
+	case 0:
+		outfile = os.Stdout
+	case 1:
+		var err error
+		if outfile, err = os.OpenFile(args[0], os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600); err != nil {
+			log.Fatal(err)
+		}
+	default:
 		return cmdUsage
 	}
 
@@ -56,14 +66,6 @@ func cmdExportKey(args []string) cmdStatus {
 		var err error
 		signalDir, err = signal.DesktopDir()
 		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	keyfile := os.Stdout
-	if len(getopt.Args()) == 1 {
-		var err error
-		if keyfile, err = os.OpenFile(getopt.Args()[0], os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -80,10 +82,13 @@ func cmdExportKey(args []string) cmdStatus {
 	if err != nil {
 		log.Fatalf("cannot get encryption key: %v", err)
 	}
-	fmt.Fprintf(keyfile, "%s\n", string(key))
+	fmt.Fprintln(outfile, string(key))
 
-	if keyfile != os.Stdout {
-		keyfile.Close()
+	if outfile != os.Stdout {
+		if err := outfile.Close(); err != nil {
+			log.Print(err)
+			return cmdError
+		}
 	}
 
 	return cmdOK
