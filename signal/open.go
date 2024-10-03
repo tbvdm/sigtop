@@ -27,6 +27,8 @@ import (
 
 type Context struct {
 	dir                        string
+	encKey                     *safestorage.RawEncryptionKey
+	dbKey                      []byte
 	db                         *sqlcipher.DB
 	dbVersion                  int
 	recipientsByConversationID map[string]*Recipient
@@ -54,15 +56,15 @@ func OpenWithEncryptionKey(dir string, encKey *safestorage.RawEncryptionKey) (*C
 		return nil, err
 	}
 
-	dbKey, err := databaseKey(dir, encKey)
+	dbKey, encKey, err := databaseAndEncryptionKeys(dir, encKey)
 	if err != nil {
 		return nil, err
 	}
 
 	// Format the key as an SQLite blob literal
-	dbKey = []byte(fmt.Sprintf("x'%s'", string(dbKey)))
+	dbKeyBlob := []byte(fmt.Sprintf("x'%s'", string(dbKey)))
 
-	if err := db.Key(dbKey); err != nil {
+	if err := db.Key(dbKeyBlob); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -91,6 +93,8 @@ func OpenWithEncryptionKey(dir string, encKey *safestorage.RawEncryptionKey) (*C
 
 	ctx := Context{
 		dir:       dir,
+		encKey:    encKey,
+		dbKey:     dbKey,
 		db:        db,
 		dbVersion: dbVersion,
 	}
@@ -102,11 +106,11 @@ func (c *Context) Close() {
 	c.db.Close()
 }
 
-func databaseKey(dir string, encKey *safestorage.RawEncryptionKey) ([]byte, error) {
+func databaseAndEncryptionKeys(dir string, encKey *safestorage.RawEncryptionKey) ([]byte, *safestorage.RawEncryptionKey, error) {
 	configFile := filepath.Join(dir, ConfigFile)
 	data, err := os.ReadFile(configFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var config struct {
@@ -114,38 +118,52 @@ func databaseKey(dir string, encKey *safestorage.RawEncryptionKey) ([]byte, erro
 		ModernKey *string `json:"encryptedKey"`
 	}
 	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("cannot parse %s: %w", configFile, err)
+		return nil, nil, fmt.Errorf("cannot parse %s: %w", configFile, err)
 	}
 
-	if encKey == nil && config.LegacyKey != nil {
-		return []byte(*config.LegacyKey), nil
+	if config.LegacyKey != nil && encKey == nil {
+		return []byte(*config.LegacyKey), nil, nil
 	}
 
 	if config.ModernKey == nil {
-		return nil, fmt.Errorf("encrypted database key not found")
+		return nil, nil, fmt.Errorf("encrypted database key not found")
 	}
 
 	dbKey, err := hex.DecodeString(*config.ModernKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid encrypted database key: %w", err)
+		return nil, nil, fmt.Errorf("invalid encrypted database key: %w", err)
 	}
 
 	app := safestorage.NewApp("Signal", dir)
 	if encKey != nil {
 		if err := app.SetEncryptionKey(*encKey); err != nil {
-			return nil, fmt.Errorf("cannot set encryption key: %w", err)
+			return nil, nil, fmt.Errorf("cannot set encryption key: %w", err)
 		}
 	}
 
 	dbKey, err = app.Decrypt(dbKey)
 	if err != nil {
-		return nil, fmt.Errorf("cannot decrypt database key: %w", err)
+		return nil, nil, fmt.Errorf("cannot decrypt database key: %w", err)
 	}
 
-	return dbKey, nil
+	encKey, err = app.EncryptionKey()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot get encryption key: %w", err)
+	}
+
+	return dbKey, encKey, nil
 }
 
-func EncryptionKey(dir string) ([]byte, error) {
-	app := safestorage.NewApp("Signal", dir)
-	return app.EncryptionKey()
+func (c *Context) EncryptionKey() ([]byte, error) {
+	if c.encKey == nil || c.encKey.Key == nil {
+		return nil, fmt.Errorf("encryption key not available")
+	}
+	return c.encKey.Key, nil
+}
+
+func (c *Context) DatabaseKey() ([]byte, error) {
+	if c.dbKey == nil {
+		return nil, fmt.Errorf("database key not available")
+	}
+	return c.dbKey, nil
 }

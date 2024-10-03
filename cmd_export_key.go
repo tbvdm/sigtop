@@ -27,17 +27,22 @@ import (
 var cmdExportKeyEntry = cmdEntry{
 	name:  "export-key",
 	alias: "key",
-	usage: "[-d signal-directory] [file]",
+	usage: "[-D] [-d signal-directory] [-k [system:]keyfile] [file]",
 	exec:  cmdExportKey,
 }
 
 func cmdExportKey(args []string) cmdStatus {
-	getopt.ParseArgs("d:", args)
-	var dArg getopt.Arg
+	getopt.ParseArgs("Dd:k:", args)
+	var dArg, kArg getopt.Arg
+	exportDBKey := false
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
+		case 'D':
+			exportDBKey = true
 		case 'd':
 			dArg = getopt.OptionArg()
+		case 'k':
+			kArg = getopt.OptionArg()
 		}
 	}
 
@@ -59,6 +64,11 @@ func cmdExportKey(args []string) cmdStatus {
 		return cmdUsage
 	}
 
+	key, err := encryptionKeyFromFile(kArg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	var signalDir string
 	if dArg.Set() {
 		signalDir = dArg.String()
@@ -74,15 +84,39 @@ func cmdExportKey(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	if err := openbsd.Pledge("stdio rpath"); err != nil {
+	// For SQLite/SQLCipher
+	if err := openbsd.Unveil("/dev/urandom", "r"); err != nil {
 		log.Fatal(err)
 	}
 
-	key, err := signal.EncryptionKey(signalDir)
-	if err != nil {
-		log.Fatalf("cannot get encryption key: %v", err)
+	if err := openbsd.Pledge("stdio rpath wpath cpath flock"); err != nil {
+		log.Fatal(err)
 	}
-	fmt.Fprintln(outfile, string(key))
+
+	var ctx *signal.Context
+	if key == nil {
+		ctx, err = signal.Open(signalDir)
+	} else {
+		ctx, err = signal.OpenWithEncryptionKey(signalDir, key)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer ctx.Close()
+
+	var data []byte
+	if exportDBKey {
+		if data, err = ctx.DatabaseKey(); err != nil {
+			log.Printf("cannot get database key: %v", err)
+			return cmdError
+		}
+	} else {
+		if data, err = ctx.EncryptionKey(); err != nil {
+			log.Printf("cannot get encryption key: %v", err)
+			return cmdError
+		}
+	}
+	fmt.Fprintln(outfile, string(data))
 
 	if outfile != os.Stdout {
 		if err := outfile.Close(); err != nil {
