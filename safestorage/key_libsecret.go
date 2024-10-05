@@ -12,9 +12,9 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-// Don't use libsecret on OpenBSD because it requires extra pledge(2) promises.
+// Don't build on OpenBSD because libsecret requires extra pledge(2) promises
 //
-//go:build !(darwin || windows || no_libsecret || openbsd)
+//go:build !(darwin || no_libsecret || openbsd || windows)
 
 package safestorage
 
@@ -37,7 +37,7 @@ import (
 	"unsafe"
 )
 
-func (a *App) setEncryptionKeyFromSystem() error {
+func (a *App) rawEncryptionKeyFromLibsecret() ([]byte, error) {
 	name := C.CString(libsecretSchema)
 	defer C.free(unsafe.Pointer(name))
 
@@ -60,18 +60,12 @@ func (a *App) setEncryptionKeyFromSystem() error {
 	result := C.secret_password_lookup_sync_wrapper(&schema, &gerr, attrName, attrValue)
 	if gerr != (*C.GError)(C.NULL) {
 		defer C.g_error_free(gerr)
-		return fmt.Errorf("cannot get encryption key: %s", C.GoString(gerr.message))
+		return nil, fmt.Errorf("cannot get encryption key: %s", C.GoString(gerr.message))
 	}
 	if result == (*C.char)(C.NULL) {
-		return fmt.Errorf("cannot find encryption key")
+		return nil, fmt.Errorf("cannot find encryption key")
 	}
 	defer C.secret_password_free(result)
 
-	a.rawKey = RawEncryptionKey{
-		Key: C.GoBytes(unsafe.Pointer(result), C.int(C.strlen(result))),
-		OS:  "linux",
-	}
-	a.key = deriveEncryptionKey(a.rawKey.Key, linuxIterations)
-
-	return nil
+	return C.GoBytes(unsafe.Pointer(result), C.int(C.strlen(result))), nil
 }

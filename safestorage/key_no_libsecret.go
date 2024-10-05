@@ -12,19 +12,12 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-//go:build !(darwin || windows)
+//go:build no_libsecret || openbsd
 
 package safestorage
 
-func (a *App) setEncryptionKeyFromSystem() error {
-	key, err := a.rawEncryptionKeyFromLibsecret()
-	if err != nil {
-		return err
-	}
-	a.rawKey = RawEncryptionKey{
-		Key: key,
-		OS:  "linux",
-	}
-	a.key = deriveEncryptionKey(a.rawKey.Key, linuxIterations)
-	return nil
+import "fmt"
+
+func (a *App) rawEncryptionKeyFromLibsecret() ([]byte, error) {
+	return nil, fmt.Errorf("not supported on this system")
 }
