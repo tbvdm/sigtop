@@ -114,8 +114,9 @@ func databaseAndEncryptionKeys(dir string, encKey *safestorage.RawEncryptionKey)
 	}
 
 	var config struct {
-		LegacyKey *string `json:"key"`
-		ModernKey *string `json:"encryptedKey"`
+		LegacyKey          *string `json:"key"`
+		ModernKey          *string `json:"encryptedKey"`
+		SafeStorageBackend *string `json:"safeStorageBackend"`
 	}
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, nil, fmt.Errorf("cannot parse %s: %w", configFile, err)
@@ -138,6 +139,10 @@ func databaseAndEncryptionKeys(dir string, encKey *safestorage.RawEncryptionKey)
 	if encKey != nil {
 		if err := app.SetEncryptionKey(*encKey); err != nil {
 			return nil, nil, fmt.Errorf("cannot set encryption key: %w", err)
+		}
+	} else if config.SafeStorageBackend != nil {
+		if err := app.SetBackend(*config.SafeStorageBackend); err != nil {
+			return nil, nil, fmt.Errorf("cannot set safeStorage backend: %w", err)
 		}
 	}
 

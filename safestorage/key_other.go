@@ -16,8 +16,10 @@
 
 package safestorage
 
+import "fmt"
+
 func (a *App) setEncryptionKeyFromSystem() error {
-	key, err := a.rawEncryptionKeyFromLibsecret()
+	key, err := a.rawEncryptionKeyFromBackend()
 	if err != nil {
 		return err
 	}
@@ -27,4 +29,22 @@ func (a *App) setEncryptionKeyFromSystem() error {
 	}
 	a.key = deriveEncryptionKey(a.rawKey.Key, linuxIterations)
 	return nil
+}
+
+func (a *App) rawEncryptionKeyFromBackend() ([]byte, error) {
+	switch a.backend {
+	case backendGnome:
+		return a.rawEncryptionKeyFromLibsecret()
+	case backendKwallet4:
+		return a.rawEncryptionKeyFromKwallet(kwallet4Service, kwallet4Path)
+	case backendKwallet5:
+		return a.rawEncryptionKeyFromKwallet(kwallet5Service, kwallet5Path)
+	case backendKwallet6:
+		return a.rawEncryptionKeyFromKwallet(kwallet6Service, kwallet6Path)
+	case backendNone:
+		return nil, fmt.Errorf("safeStorage backend not set")
+	default:
+		// Should not happen
+		return nil, fmt.Errorf("invalid safeStorage backend")
+	}
 }

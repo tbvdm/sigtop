@@ -1,7 +1,7 @@
+github.com/godbus/dbus/v5 v5.1.0 h1:4KLkAxT3aOY8Li4FRJe/KvhoNFFxo0m6fNuFUO8QJUk=
+github.com/godbus/dbus/v5 v5.1.0/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/tbvdm/go-cli v0.1.0 h1:1BoVwYzJjjSG8cjXA2LSKvw0XaSTnjeQ99vps6GHp9s=
 github.com/tbvdm/go-cli v0.1.0/go.mod h1:vsnfU50SMtIaSWdA2Am0mTQdvFLAX/pcT4/AWCtJ1E4=
-github.com/tbvdm/go-openbsd v0.3.0 h1:TmdOzuZbpZHlEg3bJZcWCOQ8J4VMd9pJKs82tknqXhc=
-github.com/tbvdm/go-openbsd v0.3.0/go.mod h1:Ee57He/uS3JFy8zJSUaUdQIUSD/XdZD4J9rrByqVlp8=
 github.com/tbvdm/go-openbsd v0.4.0 h1:cnmL4a0fgh8GcR0p3eygVfzX3CDoBTNY4rQxNVvG5IE=
 github.com/tbvdm/go-openbsd v0.4.0/go.mod h1:ZRyvWQKIm2Iz9LycDyWyAxWDd6UPumTv4GdjHHc8jgw=
 golang.org/x/crypto v0.26.0 h1:RrRspgV4mU+YwB4FYnuBoKsUapNIL5cohGAmSH3azsw=

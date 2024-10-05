@@ -23,12 +23,23 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
+type backend int
+
+const (
+	backendNone backend = iota
+	backendGnome
+	backendKwallet4
+	backendKwallet5
+	backendKwallet6
+)
+
 type App struct {
-	name   string
-	dir    string
-	rawKey RawEncryptionKey
-	key    []byte
-	keySet bool
+	name    string
+	dir     string
+	backend backend
+	rawKey  RawEncryptionKey
+	key     []byte
+	keySet  bool
 }
 
 type RawEncryptionKey struct {
@@ -38,6 +49,22 @@ type RawEncryptionKey struct {
 
 func NewApp(name, dir string) App {
 	return App{name: name, dir: dir}
+}
+
+func (a *App) SetBackend(backend string) error {
+	switch backend {
+	case "gnome_libsecret":
+		a.backend = backendGnome
+	case "kwallet":
+		a.backend = backendKwallet4
+	case "kwallet5":
+		a.backend = backendKwallet5
+	case "kwallet6":
+		a.backend = backendKwallet6
+	default:
+		return fmt.Errorf("invalid or unsupported safeStorage backend: %q", backend)
+	}
+	return nil
 }
 
 func (a *App) SetEncryptionKey(rawKey RawEncryptionKey) error {

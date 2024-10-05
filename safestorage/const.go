@@ -27,6 +27,18 @@ const (
 
 	libsecretSchema = "chrome_libsecret_os_crypt_password_v2"
 
+	kwallet4Service          = "org.kde.kwalletd"
+	kwallet5Service          = "org.kde.kwalletd5"
+	kwallet6Service          = "org.kde.kwalletd6"
+	kwallet4Path             = "/modules/kwalletd"
+	kwallet5Path             = "/modules/kwalletd5"
+	kwallet6Path             = "/modules/kwalletd6"
+	kwalletInterface         = "org.kde.KWallet"
+	kwalletFolder            = "Chromium Keys"
+	kwalletEntry             = "Chromium Safe Storage"
+	kwalletInvalidHandle     = -1
+	kwalletEntryTypePassword = 1
+
 	windowsCiphertextPrefix = "v10"
 	windowsDPAPIKeyPrefix   = "DPAPI"
 	windowsKeySize          = 32 // AES-256
