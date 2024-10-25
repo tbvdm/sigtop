@@ -27,18 +27,20 @@ import (
 var cmdExportKeyEntry = cmdEntry{
 	name:  "export-key",
 	alias: "key",
-	usage: "[-D] [-d signal-directory] [-k [system:]keyfile] [file]",
+	usage: "[-D] [-a app-name] [-d signal-directory] [-k [system:]keyfile] [file]",
 	exec:  cmdExportKey,
 }
 
 func cmdExportKey(args []string) cmdStatus {
-	getopt.ParseArgs("Dd:k:", args)
-	var dArg, kArg getopt.Arg
+	getopt.ParseArgs("Da:d:k:", args)
+	var aArg, dArg, kArg getopt.Arg
 	exportDBKey := false
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
 		case 'D':
 			exportDBKey = true
+		case 'a':
+			aArg = getopt.OptionArg()
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'k':
@@ -69,6 +71,13 @@ func cmdExportKey(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
+	var appName string
+	if aArg.Set() {
+		appName = aArg.String()
+	} else {
+		appName = "Signal"
+	}
+
 	var signalDir string
 	if dArg.Set() {
 		signalDir = dArg.String()
@@ -95,9 +104,9 @@ func cmdExportKey(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(signalDir)
+		ctx, err = signal.Open(appName, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(appName, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)

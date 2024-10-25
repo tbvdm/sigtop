@@ -26,15 +26,17 @@ import (
 var cmdCheckDatabaseEntry = cmdEntry{
 	name:  "check-database",
 	alias: "check",
-	usage: "[-d signal-directory] [-k [system:]keyfile]",
+	usage: "[-a app-name] [-d signal-directory] [-k [system:]keyfile]",
 	exec:  cmdCheckDatabase,
 }
 
 func cmdCheckDatabase(args []string) cmdStatus {
-	getopt.ParseArgs("d:k:p:", args)
-	var dArg, kArg getopt.Arg
+	getopt.ParseArgs("a:d:k:p:", args)
+	var aArg, dArg, kArg getopt.Arg
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
+		case 'a':
+			aArg = getopt.OptionArg()
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'p':
@@ -56,6 +58,13 @@ func cmdCheckDatabase(args []string) cmdStatus {
 	key, err := encryptionKeyFromFile(kArg)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	var appName string
+	if aArg.Set() {
+		appName = aArg.String()
+	} else {
+		appName = "Signal"
 	}
 
 	var signalDir string
@@ -84,9 +93,9 @@ func cmdCheckDatabase(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(signalDir)
+		ctx, err = signal.Open(appName, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(appName, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)

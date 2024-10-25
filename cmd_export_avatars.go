@@ -30,16 +30,18 @@ import (
 var cmdExportAvatarsEntry = cmdEntry{
 	name:  "export-avatars",
 	alias: "avt",
-	usage: "[-c conversation] [-d signal-directory] [-k [system:]keyfile] [directory]",
+	usage: "[-c conversation] [-a app-name] [-d signal-directory] [-k [system:]keyfile] [directory]",
 	exec:  cmdExportAvatars,
 }
 
 func cmdExportAvatars(args []string) cmdStatus {
-	getopt.ParseArgs("c:d:k:p:", args)
-	var dArg, kArg getopt.Arg
+	getopt.ParseArgs("a:c:d:k:p:", args)
+	var aArg, dArg, kArg getopt.Arg
 	var selectors []string
 	for getopt.Next() {
 		switch getopt.Option() {
+		case 'a':
+			aArg = getopt.OptionArg()
 		case 'c':
 			selectors = append(selectors, getopt.OptionArg().String())
 		case 'd':
@@ -75,6 +77,13 @@ func cmdExportAvatars(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
+	var appName string
+	if aArg.Set() {
+		appName = aArg.String()
+	} else {
+		appName = "Signal"
+	}
+
 	var signalDir string
 	if dArg.Set() {
 		signalDir = dArg.String()
@@ -105,9 +114,9 @@ func cmdExportAvatars(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(signalDir)
+		ctx, err = signal.Open(appName, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(appName, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)
