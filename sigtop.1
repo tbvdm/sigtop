@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd December 6, 2024
+.Dd December 19, 2024
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -60,10 +60,26 @@ the
 .Fl d
 option (see below).
 .Pp
+To use
+.Nm
+with Signal Desktop Beta, use the
+.Fl B
+option (see below).
+With this option,
+.Nm
+uses the encryption key and default directory locations for Signal Desktop
+Beta.
+The directory location can still be overridden with
+.Fl d .
+.Pp
 The commands are as follows:
 .Bl -tag -width Ds
 .Tg check
-.It Ic check-database Op Fl d Ar signal-directory
+.It Xo
+.Ic check-database
+.Op Fl B
+.Op Fl d Ar signal-directory
+.Xc
 .D1 Pq Alias: Ic check
 .Pp
 Check the integrity of the encrypted Signal Desktop database.
@@ -76,7 +92,7 @@ pragmas.
 .Tg att
 .It Xo
 .Ic export-attachments
-.Op Fl iMm
+.Op Fl BiMm
 .Op Fl c Ar conversation
 .Op Fl d Ar signal-directory
 .Op Fl s Ar interval
@@ -133,6 +149,7 @@ section below for details.
 .Tg avt
 .It Xo
 .Ic export-avatars
+.Op Fl B
 .Op Fl c Ar conversation
 .Op Fl d Ar signal-directory
 .Op Ar directory
@@ -156,7 +173,12 @@ See the
 .Sx CONVERSATION SELECTORS
 section below for details.
 .Tg db
-.It Ic export-database Oo Fl d Ar signal-directory Oc Ar file
+.It Xo
+.Ic export-database
+.Op Fl B
+.Op Fl d Ar signal-directory
+.Ar file
+.Xc
 .D1 Pq Alias: Ic db
 .Pp
 Decrypt and export the Signal Desktop database to
@@ -165,7 +187,7 @@ The exported database is a regular SQLite database.
 .Tg key
 .It Xo
 .Ic export-key
-.Op Fl D
+.Op Fl BD
 .Op Fl d Ar signal-directory
 .Op Ar file
 .Xc
@@ -184,7 +206,7 @@ is specified, the database key is exported instead of the encryption key.
 .Tg msg
 .It Xo
 .Ic export-messages
-.Op Fl i
+.Op Fl Bi
 .Op Fl c Ar conversation
 .Op Fl d Ar signal-directory
 .Op Fl f Ar format
@@ -247,6 +269,7 @@ section below for details.
 .Tg query
 .It Xo
 .Ic query-database
+.Op Fl B
 .Op Fl d Ar signal-directory
 .Op Fl o Ar outfile
 .Ar sql
@@ -412,6 +435,11 @@ at
 .Pa /mnt :
 .Bd -literal -offset indent
 $ sigtop db -d /mnt/Users/Alice/AppData/Roaming/Signal signal.db
+.Ed
+.Pp
+Export the database from Signal Desktop Beta:
+.Bd -literal -offset indent
+$ sigtop db -B signal-beta.db
 .Ed
 .Sh SEE ALSO
 .Lk https://github.com/tbvdm/sigtop

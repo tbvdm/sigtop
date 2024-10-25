@@ -21,14 +21,18 @@ import (
 	"path/filepath"
 )
 
-func DesktopDir() (string, error) {
+func DesktopDir(betaApp bool) (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
+	appName := AppName
+	if betaApp {
+		appName = AppNameBeta
+	}
 
 	// Try the default directory
-	defDir := filepath.Join(configDir, "Signal")
+	defDir := filepath.Join(configDir, appName)
 	if ok, err := tryDesktopDir(defDir); ok {
 		return defDir, err
 	}

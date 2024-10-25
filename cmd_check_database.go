@@ -26,15 +26,18 @@ import (
 var cmdCheckDatabaseEntry = cmdEntry{
 	name:  "check-database",
 	alias: "check",
-	usage: "[-d signal-directory] [-k [system:]keyfile]",
+	usage: "[-B] [-d signal-directory] [-k [system:]keyfile]",
 	exec:  cmdCheckDatabase,
 }
 
 func cmdCheckDatabase(args []string) cmdStatus {
-	getopt.ParseArgs("d:k:p:", args)
+	getopt.ParseArgs("Bd:k:p:", args)
 	var dArg, kArg getopt.Arg
+	Bflag := false
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
+		case 'B':
+			Bflag = true
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'p':
@@ -63,7 +66,7 @@ func cmdCheckDatabase(args []string) cmdStatus {
 		signalDir = dArg.String()
 	} else {
 		var err error
-		signalDir, err = signal.DesktopDir()
+		signalDir, err = signal.DesktopDir(Bflag)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -84,9 +87,9 @@ func cmdCheckDatabase(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(signalDir)
+		ctx, err = signal.Open(Bflag, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(Bflag, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)
