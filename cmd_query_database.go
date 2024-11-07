@@ -28,17 +28,18 @@ import (
 var cmdQueryDatabaseEntry = cmdEntry{
 	name:  "query-database",
 	alias: "query",
-	usage: "[-a app-name] [-d signal-directory] [-k [system:]keyfile] [-o outfile] query",
+	usage: "[-B] [-d signal-directory] [-k [system:]keyfile] [-o outfile] query",
 	exec:  cmdQueryDatabase,
 }
 
 func cmdQueryDatabase(args []string) cmdStatus {
-	getopt.ParseArgs("a:d:k:p:o:", args)
-	var aArg, dArg, kArg, oArg getopt.Arg
+	getopt.ParseArgs("Bd:k:p:o:", args)
+	var dArg, kArg, oArg getopt.Arg
+	betaApp := false
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
-		case 'a':
-			aArg = getopt.OptionArg()
+		case 'B':
+			betaApp = true
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'p':
@@ -74,19 +75,12 @@ func cmdQueryDatabase(args []string) cmdStatus {
 		}
 	}
 
-	var appName string
-	if aArg.Set() {
-		appName = aArg.String()
-	} else {
-		appName = "Signal"
-	}
-
 	var signalDir string
 	if dArg.Set() {
 		signalDir = dArg.String()
 	} else {
 		var err error
-		signalDir, err = signal.DesktopDir()
+		signalDir, err = signal.DesktopDir(betaApp)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -107,9 +101,9 @@ func cmdQueryDatabase(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(appName, signalDir)
+		ctx, err = signal.Open(betaApp, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(appName, signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(betaApp, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)

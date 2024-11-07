@@ -30,18 +30,19 @@ import (
 var cmdExportAvatarsEntry = cmdEntry{
 	name:  "export-avatars",
 	alias: "avt",
-	usage: "[-c conversation] [-a app-name] [-d signal-directory] [-k [system:]keyfile] [directory]",
+	usage: "[-c conversation] [-B] [-d signal-directory] [-k [system:]keyfile] [directory]",
 	exec:  cmdExportAvatars,
 }
 
 func cmdExportAvatars(args []string) cmdStatus {
-	getopt.ParseArgs("a:c:d:k:p:", args)
-	var aArg, dArg, kArg getopt.Arg
+	getopt.ParseArgs("Bc:d:k:p:", args)
+	var dArg, kArg getopt.Arg
 	var selectors []string
+	betaApp := false
 	for getopt.Next() {
 		switch getopt.Option() {
-		case 'a':
-			aArg = getopt.OptionArg()
+		case 'B':
+			betaApp = true
 		case 'c':
 			selectors = append(selectors, getopt.OptionArg().String())
 		case 'd':
@@ -77,19 +78,12 @@ func cmdExportAvatars(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	var appName string
-	if aArg.Set() {
-		appName = aArg.String()
-	} else {
-		appName = "Signal"
-	}
-
 	var signalDir string
 	if dArg.Set() {
 		signalDir = dArg.String()
 	} else {
 		var err error
-		signalDir, err = signal.DesktopDir()
+		signalDir, err = signal.DesktopDir(betaApp)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -114,9 +108,9 @@ func cmdExportAvatars(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(appName, signalDir)
+		ctx, err = signal.Open(betaApp, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(appName, signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(betaApp, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)

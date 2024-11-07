@@ -59,15 +59,15 @@ A different location for the Signal Desktop directory can be specified using
 the
 .Fl d
 option (see below). For Signal Beta use the
-.Fl a
-option and specify a different app name (e.g. "Signal Beta") keystore.
+.Fl B
+option which will default to the Beta config directory and use the Beta keystore.
 .Pp
 The commands are as follows:
 .Bl -tag -width Ds
 .Tg check
 .It Xo
 .Ic check-database
-.Op Fl a Ar app-name
+.Op Fl B
 .Op Fl d Ar signal-directory
 .Xc
 .D1 Pq Alias: Ic check
@@ -84,7 +84,7 @@ pragmas.
 .Ic export-attachments
 .Op Fl iMm
 .Op Fl c Ar conversation
-.Op Fl a Ar app-name
+.Op Fl B
 .Op Fl d Ar signal-directory
 .Op Fl s Ar interval
 .Op Ar directory
@@ -141,7 +141,7 @@ section below for details.
 .It Xo
 .Ic export-avatars
 .Op Fl c Ar conversation
-.Op Fl a Ar app-name
+.Op Fl B
 .Op Fl d Ar signal-directory
 .Op Ar directory
 .Xc
@@ -166,7 +166,7 @@ section below for details.
 .Tg db
 .It Xo
 .Ic export-database
-.Op Fl a Ar app-name
+.Op Fl B
 .Op Fl d Ar signal-directory
 .Ar file
 .Xc
@@ -179,7 +179,7 @@ The exported database is a regular SQLite database.
 .It Xo
 .Ic export-key
 .Op Fl D
-.Op Fl a Ar app-name
+.Op Fl B
 .Op Fl d Ar signal-directory
 .Op Ar file
 .Xc
@@ -200,7 +200,7 @@ is specified, the database key is exported instead of the encryption key.
 .Ic export-messages
 .Op Fl i
 .Op Fl c Ar conversation
-.Op Fl a Ar app-name
+.Op Fl B
 .Op Fl d Ar signal-directory
 .Op Fl f Ar format
 .Op Fl s Ar interval
@@ -262,7 +262,7 @@ section below for details.
 .Tg query
 .It Xo
 .Ic query-database
-.Op Fl a Ar app-name
+.Op Fl B
 .Op Fl d Ar signal-directory
 .Op Fl o Ar outfile
 .Ar sql
@@ -422,9 +422,9 @@ at
 $ sigtop db -d /mnt/Users/Alice/AppData/Roaming/Signal signal.db
 .Ed
 .Pp
-Export the database from a backed-up Signal Desktop Beta directory:
+Export the database from Signal Desktop Beta:
 .Bd -literal -offset indent
-$ sigtop db -a "Signal Beta" -d "./Signal Beta" signal-beta.db
+$ sigtop db -B signal-beta.db
 .Ed
 .Sh SEE ALSO
 .Lk https://github.com/tbvdm/sigtop

@@ -36,11 +36,15 @@ type Context struct {
 	recipientsByACI            map[string]*Recipient
 }
 
-func Open(appName, dir string) (*Context, error) {
-	return OpenWithEncryptionKey(appName, dir, nil)
+func Open(betaApp bool, dir string) (*Context, error) {
+	return OpenWithEncryptionKey(betaApp, dir, nil)
 }
 
-func OpenWithEncryptionKey(appName, dir string, encKey *safestorage.RawEncryptionKey) (*Context, error) {
+func OpenWithEncryptionKey(betaApp bool, dir string, encKey *safestorage.RawEncryptionKey) (*Context, error) {
+	appName := AppName
+	if betaApp {
+		appName = AppNameBeta
+	}
 	dbFile := filepath.Join(dir, DatabaseFile)
 
 	// SQLite/SQLCipher doesn't provide a useful error message if the
