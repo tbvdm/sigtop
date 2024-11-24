@@ -43,7 +43,7 @@ type msgMode struct {
 var cmdExportMessagesEntry = cmdEntry{
 	name:  "export-messages",
 	alias: "msg",
-	usage: "[-i] [-c conversation] [-B] [-d signal-directory] [-f format] [-k [system:]keyfile] [-s interval] [directory]",
+	usage: "[-Bi] [-c conversation] [-d signal-directory] [-f format] [-k [system:]keyfile] [-s interval] [directory]",
 	exec:  cmdExportMessages,
 }
 
@@ -53,16 +53,16 @@ func cmdExportMessages(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("c:Bd:f:ik:p:s:", args)
+	getopt.ParseArgs("Bc:d:f:ik:p:s:", args)
 	var dArg, kArg, sArg getopt.Arg
 	var selectors []string
-	betaApp := false
+	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
+		case 'B':
+			Bflag = true
 		case 'c':
 			selectors = append(selectors, getopt.OptionArg().String())
-		case 'B':
-			betaApp = true
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'f':
@@ -116,7 +116,7 @@ func cmdExportMessages(args []string) cmdStatus {
 		signalDir = dArg.String()
 	} else {
 		var err error
-		signalDir, err = signal.DesktopDir(betaApp)
+		signalDir, err = signal.DesktopDir(Bflag)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -150,9 +150,9 @@ func cmdExportMessages(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(betaApp, signalDir)
+		ctx, err = signal.Open(Bflag, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(betaApp, signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(Bflag, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)

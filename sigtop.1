@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd October 3, 2024
+.Dd November 24, 2024
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -58,9 +58,19 @@ respectively.
 A different location for the Signal Desktop directory can be specified using
 the
 .Fl d
-option (see below). For Signal Beta use the
+option (see below).
+.Pp
+To use
+.Nm
+with Signal Desktop Beta, use the
 .Fl B
-option which will default to the Beta config directory and use the Beta keystore.
+option (see below).
+With this option,
+.Nm
+uses the encryption key and default directory locations for Signal Desktop
+Beta.
+The directory location can still be overridden with
+.Fl d .
 .Pp
 The commands are as follows:
 .Bl -tag -width Ds
@@ -82,9 +92,8 @@ pragmas.
 .Tg att
 .It Xo
 .Ic export-attachments
-.Op Fl iMm
+.Op Fl BiMm
 .Op Fl c Ar conversation
-.Op Fl B
 .Op Fl d Ar signal-directory
 .Op Fl s Ar interval
 .Op Ar directory
@@ -140,8 +149,8 @@ section below for details.
 .Tg avt
 .It Xo
 .Ic export-avatars
-.Op Fl c Ar conversation
 .Op Fl B
+.Op Fl c Ar conversation
 .Op Fl d Ar signal-directory
 .Op Ar directory
 .Xc
@@ -178,8 +187,7 @@ The exported database is a regular SQLite database.
 .Tg key
 .It Xo
 .Ic export-key
-.Op Fl D
-.Op Fl B
+.Op Fl BD
 .Op Fl d Ar signal-directory
 .Op Ar file
 .Xc
@@ -198,9 +206,8 @@ is specified, the database key is exported instead of the encryption key.
 .Tg msg
 .It Xo
 .Ic export-messages
-.Op Fl i
+.Op Fl Bi
 .Op Fl c Ar conversation
-.Op Fl B
 .Op Fl d Ar signal-directory
 .Op Fl f Ar format
 .Op Fl s Ar interval

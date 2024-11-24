@@ -34,11 +34,11 @@ var cmdExportDatabaseEntry = cmdEntry{
 func cmdExportDatabase(args []string) cmdStatus {
 	getopt.ParseArgs("Bd:k:p:", args)
 	var dArg, kArg getopt.Arg
-	betaApp := false
+	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
 		case 'B':
-			betaApp = true
+			Bflag = true
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'p':
@@ -70,7 +70,7 @@ func cmdExportDatabase(args []string) cmdStatus {
 		signalDir = dArg.String()
 	} else {
 		var err error
-		signalDir, err = signal.DesktopDir(betaApp)
+		signalDir, err = signal.DesktopDir(Bflag)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -104,9 +104,9 @@ func cmdExportDatabase(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(betaApp, signalDir)
+		ctx, err = signal.Open(Bflag, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(betaApp, signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(Bflag, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)

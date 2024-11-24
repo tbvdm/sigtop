@@ -20,6 +20,7 @@ const (
 	DatabaseFile  = "sql" + string(os.PathSeparator) + "db.sqlite"
 	ConfigFile    = "config.json"
 	AttachmentDir = "attachments.noindex"
+
 	AppName       = "Signal"
 	AppNameBeta   = "Signal Beta"
 
