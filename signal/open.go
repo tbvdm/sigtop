@@ -36,11 +36,15 @@ type Context struct {
 	recipientsByACI            map[string]*Recipient
 }
 
-func Open(dir string) (*Context, error) {
-	return OpenWithEncryptionKey(dir, nil)
+func Open(betaApp bool, dir string) (*Context, error) {
+	return OpenWithEncryptionKey(betaApp, dir, nil)
 }
 
-func OpenWithEncryptionKey(dir string, encKey *safestorage.RawEncryptionKey) (*Context, error) {
+func OpenWithEncryptionKey(betaApp bool, dir string, encKey *safestorage.RawEncryptionKey) (*Context, error) {
+	appName := AppName
+	if betaApp {
+		appName = AppNameBeta
+	}
 	dbFile := filepath.Join(dir, DatabaseFile)
 
 	// SQLite/SQLCipher doesn't provide a useful error message if the
@@ -56,7 +60,7 @@ func OpenWithEncryptionKey(dir string, encKey *safestorage.RawEncryptionKey) (*C
 		return nil, err
 	}
 
-	dbKey, encKey, err := databaseAndEncryptionKeys(dir, encKey)
+	dbKey, encKey, err := databaseAndEncryptionKeys(appName, dir, encKey)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +110,7 @@ func (c *Context) Close() {
 	c.db.Close()
 }
 
-func databaseAndEncryptionKeys(dir string, encKey *safestorage.RawEncryptionKey) ([]byte, *safestorage.RawEncryptionKey, error) {
+func databaseAndEncryptionKeys(appName, dir string, encKey *safestorage.RawEncryptionKey) ([]byte, *safestorage.RawEncryptionKey, error) {
 	configFile := filepath.Join(dir, ConfigFile)
 	data, err := os.ReadFile(configFile)
 	if err != nil {
@@ -135,7 +139,7 @@ func databaseAndEncryptionKeys(dir string, encKey *safestorage.RawEncryptionKey)
 		return nil, nil, fmt.Errorf("invalid encrypted database key: %w", err)
 	}
 
-	app := safestorage.NewApp("Signal", dir)
+	app := safestorage.NewApp(appName, dir)
 	if encKey != nil {
 		if err := app.SetEncryptionKey(*encKey); err != nil {
 			return nil, nil, fmt.Errorf("cannot set encryption key: %w", err)

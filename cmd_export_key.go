@@ -27,16 +27,19 @@ import (
 var cmdExportKeyEntry = cmdEntry{
 	name:  "export-key",
 	alias: "key",
-	usage: "[-D] [-d signal-directory] [-k [system:]keyfile] [file]",
+	usage: "[-BD] [-d signal-directory] [-k [system:]keyfile] [file]",
 	exec:  cmdExportKey,
 }
 
 func cmdExportKey(args []string) cmdStatus {
-	getopt.ParseArgs("Dd:k:", args)
+	getopt.ParseArgs("BDd:k:", args)
 	var dArg, kArg getopt.Arg
 	exportDBKey := false
+	Bflag := false
 	for getopt.Next() {
 		switch opt := getopt.Option(); opt {
+		case 'B':
+			Bflag = true
 		case 'D':
 			exportDBKey = true
 		case 'd':
@@ -74,7 +77,7 @@ func cmdExportKey(args []string) cmdStatus {
 		signalDir = dArg.String()
 	} else {
 		var err error
-		signalDir, err = signal.DesktopDir()
+		signalDir, err = signal.DesktopDir(Bflag)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -95,9 +98,9 @@ func cmdExportKey(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(signalDir)
+		ctx, err = signal.Open(Bflag, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(Bflag, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)
