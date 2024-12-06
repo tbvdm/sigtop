@@ -34,7 +34,7 @@ func selectConversations(ctx *signal.Context, selectors []string) ([]signal.Conv
 
 	var selConvs []signal.Conversation
 	for _, s := range selectors {
-		if len(s) == 0 || (len(s) == 1 && (s[0] == '+' || s[0] == '/' || s[0] == '=')) {
+		if len(s) == 0 || (len(s) == 1 && strings.IndexByte("+/=:", s[0]) >= 0) {
 			return nil, errors.New("empty conversation selector")
 		}
 		var match func(*signal.Recipient) bool
@@ -50,6 +50,10 @@ func selectConversations(ctx *signal.Context, selectors []string) ([]signal.Conv
 			}
 			match = func(r *signal.Recipient) bool {
 				return re.MatchString(r.DisplayName())
+			}
+		case ':':
+			match = func(r *signal.Recipient) bool {
+				return r.Type == signal.RecipientTypeContact && strings.EqualFold(s[1:], r.Contact.ACI)
 			}
 		case '=':
 			s = s[1:]

@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd October 3, 2024
+.Dd December 6, 2024
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -263,8 +263,10 @@ Because the Signal Desktop database is opened in read-only mode, statements
 attempting to modify the database will fail.
 .El
 .Sh CONVERSATION SELECTORS
-Conversation selectors select conversations by name or phone number.
+Conversation selectors select conversations by name, phone number or service
+ID.
 Names can be matched either literally or against a regular expression.
+A service ID is a UUID that uniquely identifies a Signal user.
 .Pp
 A conversation selector of the form
 .Sq Cm = Ns Ar name
@@ -276,9 +278,10 @@ may be omitted if
 .Ar name
 does not begin with
 .Sq = ,
-.Sq /
+.Sq / ,
+.Sq +
 or
-.Sq + .
+.Sq \&: .
 For example, the conversation selectors
 .Ql =alice
 and
@@ -297,6 +300,11 @@ selects a conversation by phone number.
 For example, the conversation selector
 .Ql +123456789
 matches the conversation with that phone number.
+.Pp
+A conversation selector of the form
+.Sq Cm \&: Ns Ar uuid
+selects the conversation with the Signal user whose service ID is
+.Ar uuid .
 .Sh TIME INTERVALS
 A time is specified as
 .So
