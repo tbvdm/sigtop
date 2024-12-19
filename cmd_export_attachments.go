@@ -51,7 +51,7 @@ type attMode struct {
 var cmdExportAttachmentsEntry = cmdEntry{
 	name:  "export-attachments",
 	alias: "att",
-	usage: "[-iMm] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [-s interval] [directory]",
+	usage: "[-BiMm] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [-s interval] [directory]",
 	exec:  cmdExportAttachments,
 }
 
@@ -61,11 +61,14 @@ func cmdExportAttachments(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("c:d:ik:Mmp:s:", args)
+	getopt.ParseArgs("Bc:d:ik:Mmp:s:", args)
 	var dArg, kArg, sArg getopt.Arg
 	var selectors []string
+	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
+		case 'B':
+			Bflag = true
 		case 'c':
 			selectors = append(selectors, getopt.OptionArg().String())
 		case 'd':
@@ -114,7 +117,7 @@ func cmdExportAttachments(args []string) cmdStatus {
 		signalDir = dArg.String()
 	} else {
 		var err error
-		signalDir, err = signal.DesktopDir()
+		signalDir, err = signal.DesktopDir(Bflag)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -162,9 +165,9 @@ func cmdExportAttachments(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(signalDir)
+		ctx, err = signal.Open(Bflag, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(Bflag, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)

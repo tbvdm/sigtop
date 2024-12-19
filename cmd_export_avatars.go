@@ -30,16 +30,19 @@ import (
 var cmdExportAvatarsEntry = cmdEntry{
 	name:  "export-avatars",
 	alias: "avt",
-	usage: "[-c conversation] [-d signal-directory] [-k [system:]keyfile] [directory]",
+	usage: "[-B] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [directory]",
 	exec:  cmdExportAvatars,
 }
 
 func cmdExportAvatars(args []string) cmdStatus {
-	getopt.ParseArgs("c:d:k:p:", args)
+	getopt.ParseArgs("Bc:d:k:p:", args)
 	var dArg, kArg getopt.Arg
 	var selectors []string
+	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
+		case 'B':
+			Bflag = true
 		case 'c':
 			selectors = append(selectors, getopt.OptionArg().String())
 		case 'd':
@@ -80,7 +83,7 @@ func cmdExportAvatars(args []string) cmdStatus {
 		signalDir = dArg.String()
 	} else {
 		var err error
-		signalDir, err = signal.DesktopDir()
+		signalDir, err = signal.DesktopDir(Bflag)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -105,9 +108,9 @@ func cmdExportAvatars(args []string) cmdStatus {
 
 	var ctx *signal.Context
 	if key == nil {
-		ctx, err = signal.Open(signalDir)
+		ctx, err = signal.Open(Bflag, signalDir)
 	} else {
-		ctx, err = signal.OpenWithEncryptionKey(signalDir, key)
+		ctx, err = signal.OpenWithEncryptionKey(Bflag, signalDir, key)
 	}
 	if err != nil {
 		log.Fatal(err)
