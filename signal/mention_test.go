@@ -21,8 +21,8 @@ func TestUpdatedBody(t *testing.T) {
 	body := MessageBody{
 		Text: part + "\ufffc" + part + "\ufffc" + part,
 		Mentions: []Mention{
-			{4, 1, contact(foo)},
-			{9, 1, contact(bar)},
+			{5, 1, contact(foo)},
+			{11, 1, contact(bar)},
 		},
 	}
 
@@ -33,6 +33,27 @@ func TestUpdatedBody(t *testing.T) {
 	testText(t, &body, part+"@"+foo+part+"@"+bar+part)
 	testMention(t, &body, 0, 10, 6, foo)
 	testMention(t, &body, 1, 26, 6, bar)
+}
+
+func TestUTF16Surrogates(t *testing.T) {
+	part1, part2, part3 := "\U00010000", "\U00010001", "\U00010002"
+	foo := "\U00010003"
+	bar := "\U00010004\U00010005"
+	body := MessageBody{
+		Text: part1 + "\ufffc" + part2 + "\ufffc" + part3,
+		Mentions: []Mention{
+			{2, 1, contact(foo)},
+			{5, 1, contact(bar)},
+		},
+	}
+
+	if err := body.insertMentions(); err != nil {
+		t.Fatal(err)
+	}
+
+	testText(t, &body, part1+"@"+foo+part2+"@"+bar+part3)
+	testMention(t, &body, 0, 4, 5, foo)
+	testMention(t, &body, 1, 13, 9, bar)
 }
 
 func TestUnsortedMentions(t *testing.T) {
@@ -58,7 +79,7 @@ func TestZeroMentionLength(t *testing.T) {
 	body := MessageBody{
 		Text: part + part,
 		Mentions: []Mention{
-			{4, 0, contact(foo)},
+			{5, 0, contact(foo)},
 		},
 	}
 
@@ -75,7 +96,7 @@ func TestLongMentionLength(t *testing.T) {
 	body := MessageBody{
 		Text: part + part + part,
 		Mentions: []Mention{
-			{4, 4, contact(foo)},
+			{5, 5, contact(foo)},
 		},
 	}
 

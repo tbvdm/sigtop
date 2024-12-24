@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
+	"unicode/utf16"
 )
 
 type mentionJSON struct {
@@ -82,17 +83,17 @@ type ErrMention struct {
 
 func (e *ErrMention) Error() string {
 	var buf strings.Builder
-	var runes = []rune(e.Body.Text)
+	var text16 = utf16.Encode([]rune(e.Body.Text))
 
-	buf.WriteString(fmt.Sprintf("%s (index: %d, body: %d %d", e.Msg, e.Index, len(runes), len(e.Body.Text)))
+	buf.WriteString(fmt.Sprintf("%s (index: %d, body: %d %d", e.Msg, e.Index, len(text16), len(e.Body.Text)))
 
 	if !utf8.ValidString(e.Body.Text) {
 		buf.WriteString(" invalid")
 	}
 
 	buf.WriteString(", placeholders:")
-	for i, r := range runes {
-		if r == '\ufffc' {
+	for i, u := range text16 {
+		if u == '\ufffc' {
 			buf.WriteString(fmt.Sprintf(" %d", i))
 		}
 	}
@@ -113,26 +114,26 @@ func (b *MessageBody) insertMentions() error {
 
 	sort.Slice(b.Mentions, func(i, j int) bool { return b.Mentions[i].Start < b.Mentions[j].Start })
 
-	var runes = []rune(b.Text)
+	var text16 = utf16.Encode([]rune(b.Text))
 	var text strings.Builder
 	var off int
 
 	for i := range b.Mentions {
 		mnt := &b.Mentions[i]
 
-		if mnt.Start < off || mnt.Length < 0 || mnt.Start+mnt.Length > len(runes) {
+		if mnt.Start < off || mnt.Length < 0 || mnt.Start+mnt.Length > len(text16) {
 			return &ErrMention{Msg: "invalid mention", Index: i, Body: b}
 		}
 
 		// Copy text preceding mention
-		text.WriteString(string(runes[off:mnt.Start]))
+		text.WriteString(string(utf16.Decode(text16[off:mnt.Start])))
 		off = mnt.Start + mnt.Length
 
 		repl := "@" + mnt.Recipient.DisplayName()
 
 		// Update mention. Note: the original start and length values
-		// were character counts, but the updated values are byte
-		// counts.
+		// were UTF-16 code unit counts, but the updated values are
+		// byte counts.
 		mnt.Start = text.Len()
 		mnt.Length = len(repl)
 
@@ -140,7 +141,7 @@ func (b *MessageBody) insertMentions() error {
 	}
 
 	// Copy text succeeding last mention
-	text.WriteString(string(runes[off:]))
+	text.WriteString(string(utf16.Decode(text16[off:])))
 	b.Text = text.String()
 
 	return nil
