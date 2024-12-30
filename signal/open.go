@@ -78,10 +78,9 @@ func OpenWithEncryptionKey(betaApp bool, dir string, encKey *safestorage.RawEncr
 		return nil, err
 	}
 
-	// Verify key
 	if err := db.Exec("SELECT count(*) FROM sqlite_master"); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("cannot verify key: %w", err)
+		return nil, fmt.Errorf("cannot verify database key: %w", err)
 	}
 
 	dbVersion, err := databaseVersion(db)

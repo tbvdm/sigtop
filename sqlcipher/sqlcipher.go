@@ -121,7 +121,7 @@ func (db *DB) Exec(sql string) error {
 	defer C.free(unsafe.Pointer(sqlCS))
 
 	var errMsgCS *C.char
-	if C.sqlite3_exec(db.db, sqlCS, (C.exec_callback)(C.NULL), C.NULL, &errMsgCS) != C.SQLITE_OK {
+	if C.sqlite3_exec(db.db, sqlCS, C.exec_callback(C.NULL), C.NULL, &errMsgCS) != C.SQLITE_OK {
 		defer C.sqlite3_free(unsafe.Pointer(errMsgCS))
 		errMsg := C.GoString(errMsgCS)
 		return errors.New("cannot execute SQL statement: " + errMsg)
