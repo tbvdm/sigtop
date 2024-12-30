@@ -102,12 +102,7 @@ func cmdExportDatabase(args []string) cmdStatus {
 	}
 	f.Close()
 
-	var ctx *signal.Context
-	if key == nil {
-		ctx, err = signal.Open(Bflag, signalDir)
-	} else {
-		ctx, err = signal.OpenWithEncryptionKey(Bflag, signalDir, key)
-	}
+	ctx, err := signal.Open(Bflag, signalDir, key)
 	if err != nil {
 		log.Fatal(err)
 	}

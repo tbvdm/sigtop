@@ -96,12 +96,7 @@ func cmdExportKey(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	var ctx *signal.Context
-	if key == nil {
-		ctx, err = signal.Open(Bflag, signalDir)
-	} else {
-		ctx, err = signal.OpenWithEncryptionKey(Bflag, signalDir, key)
-	}
+	ctx, err := signal.Open(Bflag, signalDir, key)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -36,11 +36,7 @@ type Context struct {
 	recipientsByACI            map[string]*Recipient
 }
 
-func Open(betaApp bool, dir string) (*Context, error) {
-	return OpenWithEncryptionKey(betaApp, dir, nil)
-}
-
-func OpenWithEncryptionKey(betaApp bool, dir string, encKey *safestorage.RawEncryptionKey) (*Context, error) {
+func Open(betaApp bool, dir string, encKey *safestorage.RawEncryptionKey) (*Context, error) {
 	appName := AppName
 	if betaApp {
 		appName = AppNameBeta
