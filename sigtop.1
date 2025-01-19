@@ -438,9 +438,11 @@ $ sigtop att -c +123456789
 .Pp
 Export the database from a Signal Desktop directory on a Windows disk mounted
 at
-.Pa /mnt :
+.Pa /mnt .
+Use the encryption key from
+.Pa keyfile :
 .Bd -literal -offset indent
-$ sigtop db -d /mnt/Users/Alice/AppData/Roaming/Signal signal.db
+$ sigtop db -d /mnt/Users/Alice/AppData/Roaming/Signal -k windows:keyfile signal.db
 .Ed
 .Pp
 Export the database from Signal Desktop Beta:
