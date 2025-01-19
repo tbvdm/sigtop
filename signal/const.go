@@ -21,8 +21,8 @@ const (
 	ConfigFile    = "config.json"
 	AttachmentDir = "attachments.noindex"
 
-	AppName       = "Signal"
-	AppNameBeta   = "Signal Beta"
+	AppName     = "Signal"
+	AppNameBeta = "Signal Beta"
 
 	// Content type of the long-text attachment of a long message
 	LongTextType = "text/x-signal-plain"

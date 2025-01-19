@@ -19,8 +19,8 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"unicode/utf8"
 	"unicode/utf16"
+	"unicode/utf8"
 )
 
 type mentionJSON struct {

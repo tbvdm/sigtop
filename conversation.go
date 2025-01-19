@@ -54,7 +54,7 @@ func selectConversations(ctx *signal.Context, selectors []string) ([]signal.Conv
 		case ':':
 			id := s[1:]
 			match = func(r *signal.Recipient) bool {
-				switch (r.Type) {
+				switch r.Type {
 				case signal.RecipientTypeContact:
 					return strings.EqualFold(id, r.Contact.ACI)
 				case signal.RecipientTypeGroup:
