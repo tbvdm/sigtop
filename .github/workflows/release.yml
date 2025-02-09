@@ -2,15 +2,38 @@ name: release
 
 on:
   push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+  #   tags:
+  #     - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   release:
     permissions:
       contents: write
 
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        - os: macos-15
+          APP_NAME: sigtop
+          GOOS: darwin
+          GOARCH: amd64
+        - os: macos-15
+          APP_SUFFIX:
+          GOOS: darwin
+          GOARCH: arm64
+        - os: ubuntu-24.04
+          APP_SUFFIX:
+          GOOS: linux
+          GOARCH: amd64
+        - os: ubuntu-24.04
+          APP_SUFFIX:
+          GOOS: linux
+          GOARCH: arm64
+        - os: windows-latest
+          APP_SUFFIX: .exe
+          GOOS: windows
+          GOARCH: amd64
+
+    runs-on: ${{matrix.os}}
 
     steps:
       - name: checkout
@@ -22,10 +45,13 @@ jobs:
           go-version: stable
 
       - name: build
-        run: go build -ldflags='-s -w' -trimpath
+        run: env GOOS=${{ GOOS }} GOARCH=${{ GOARCH }} go build -ldflags='-s -w' -trimpath -o release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }}
+
+      - name: Generate hash
+        run: sha256sum release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }} > release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }}.sha256
 
       - name: release
         uses: ncipollo/release-action@v1
         with:
           artifactErrorsFailBuild: true
-          artifacts: sigtop.exe
+          artifacts: release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }},release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }}.sha256
