@@ -14,7 +14,7 @@ jobs:
       matrix:
         include:
           - os: macos-15
-            APP_NAME: sigtop
+            APP_SUFFIX:
             GOOS: darwin
             GOARCH: amd64
           - os: macos-15
@@ -46,13 +46,13 @@ jobs:
           go-version: stable
 
       - name: build
-        run: env GOOS=${{ GOOS }} GOARCH=${{ GOARCH }} go build -ldflags='-s -w' -trimpath -o release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }}
+        run: env GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -ldflags='-s -w' -trimpath -o release/sigtop-${{ matrix.GOOS }}-${{ matrix.GOARCH }}${{ matrix.APP_SUFFIX }}
 
       - name: Generate hash
-        run: sha256sum release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }} > release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }}.sha256
+        run: sha256sum release/sigtop-${{ matrix.GOOS }}-${{ matrix.GOARCH }}${{ matrix.APP_SUFFIX }} > release/sigtop-${{ matrix.GOOS }}-${{ matrix.GOARCH }}${{ matrix.APP_SUFFIX }}.sha256
 
       - name: release
         uses: ncipollo/release-action@v1
         with:
           artifactErrorsFailBuild: true
-          artifacts: release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }},release/sigtop-${{ GOOS }}-${{ GOARCH }}${{ APP_SUFFIX }}.sha256
+          artifacts: release/sigtop-${{ matrix.GOOS }}-${{ matrix.GOARCH }}${{ matrix.APP_SUFFIX }},release/sigtop-${{ matrix.GOOS }}-${{ matrix.GOARCH }}${{ matrix.APP_SUFFIX }}.sha256
