@@ -19,6 +19,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"fmt"
+	"log"
 )
 
 func (a *App) Decrypt(ciphertext []byte) ([]byte, error) {
@@ -106,6 +107,8 @@ func unpad(data []byte, blocksize int) ([]byte, error) {
 
 	n := int(data[len(data)-1])
 	if n == 0 || n > blocksize || n > len(data) {
+		log.Println(n, blocksize, len(data))
+		log.Println(string(data))
 		return nil, fmt.Errorf("invalid padding size")
 	}
 
