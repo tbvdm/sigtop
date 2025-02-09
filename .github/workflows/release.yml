@@ -11,6 +11,8 @@ jobs:
       contents: write
 
     strategy:
+      fail-fast: false
+      max-parallel: 4
       matrix:
         include:
           - os: macos-15
@@ -44,6 +46,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
+
+      - name: Linux dependency
+        run: sudo apt-get install -y libsecret-1-dev
+        if: matrix.GOOS == 'linux'
 
       - name: build
         run: env GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -ldflags='-s -w' -trimpath -o release/sigtop-${{ matrix.GOOS }}-${{ matrix.GOARCH }}${{ matrix.APP_SUFFIX }}
