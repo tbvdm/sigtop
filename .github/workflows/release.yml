@@ -12,26 +12,27 @@ jobs:
 
     strategy:
       matrix:
-        - os: macos-15
-          APP_NAME: sigtop
-          GOOS: darwin
-          GOARCH: amd64
-        - os: macos-15
-          APP_SUFFIX:
-          GOOS: darwin
-          GOARCH: arm64
-        - os: ubuntu-24.04
-          APP_SUFFIX:
-          GOOS: linux
-          GOARCH: amd64
-        - os: ubuntu-24.04
-          APP_SUFFIX:
-          GOOS: linux
-          GOARCH: arm64
-        - os: windows-latest
-          APP_SUFFIX: .exe
-          GOOS: windows
-          GOARCH: amd64
+        include:
+          - os: macos-15
+            APP_NAME: sigtop
+            GOOS: darwin
+            GOARCH: amd64
+          - os: macos-15
+            APP_SUFFIX:
+            GOOS: darwin
+            GOARCH: arm64
+          - os: ubuntu-24.04
+            APP_SUFFIX:
+            GOOS: linux
+            GOARCH: amd64
+          - os: ubuntu-24.04
+            APP_SUFFIX:
+            GOOS: linux
+            GOARCH: arm64
+          - os: windows-latest
+            APP_SUFFIX: .exe
+            GOOS: windows
+            GOARCH: amd64
 
     runs-on: ${{matrix.os}}
 
