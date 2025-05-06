@@ -79,7 +79,11 @@ func textWriteRecipientField(ew *errio.Writer, prefix, field string, rpt *signal
 }
 
 func textWriteTimeField(ew *errio.Writer, prefix, field string, msec int64) {
-	textWriteField(ew, prefix, field, time.UnixMilli(msec).Format("Mon, 2 Jan 2006 15:04:05 -0700"))
+	s := "unknown"
+	if msec >= 0 {
+		s = time.UnixMilli(msec).Format("Mon, 2 Jan 2006 15:04:05 -0700")
+	}
+	textWriteField(ew, prefix, field, s);
 }
 
 func textWriteAttachmentFields(ew *errio.Writer, prefix string, atts []signal.Attachment) {

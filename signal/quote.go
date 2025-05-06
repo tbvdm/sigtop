@@ -32,7 +32,9 @@ type quoteJSON struct {
 	// number encoded as a JSON string. See sigtop GitHub issue 9 and
 	// Signal-Desktop commit ddbbe3a6b1b725007597536a39651ae845366920.
 	// Using a json.Number allows us to handle both cases.
-	ID          json.Number           `json:"id"`
+	// The "id" field may be null if the referenced message was not found.
+	// See Signal-Desktop commit 541ba6c9deb8c05e80da963a0f88c6033f480a19.
+	ID          *json.Number          `json:"id"`
 	Text        string                `json:"text"`
 }
 
@@ -61,10 +63,9 @@ func (c *Context) parseQuoteJSON(jqte *quoteJSON) (*Quote, error) {
 	var qte Quote
 	var err error
 
-	if jqte.ID.String() == "" {
-		return nil, fmt.Errorf("quote without ID")
-	}
-	if qte.ID, err = jqte.ID.Int64(); err != nil {
+	if jqte.ID == nil {
+		qte.ID = -1
+	} else if qte.ID, err = jqte.ID.Int64(); err != nil {
 		return nil, fmt.Errorf("cannot parse quote ID: %w", err)
 	}
 

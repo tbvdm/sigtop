@@ -64,5 +64,8 @@ func textShortWriteMessage(ew *errio.Writer, msg *signal.Message) {
 }
 
 func textShortFormatTime(msec int64) string {
+	if msec < 0 {
+		return "unknown"
+	}
 	return time.UnixMilli(msec).Format("2006-01-02 15:04")
 }
