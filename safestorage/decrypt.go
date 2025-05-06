@@ -78,7 +78,7 @@ func (a *App) decryptWindows(ciphertext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	gcm, err := cipher.NewGCMWithNonceSize(c, windowsNonceSize)
+	gcm, err := cipher.NewGCMWithNonceSize(c, len(nonce))
 	if err != nil {
 		return nil, err
 	}
