@@ -119,7 +119,7 @@ func textWriteQuote(ew *errio.Writer, prefix string, qte *signal.Quote) {
 	}
 	prefix += ">"
 	textWriteRecipientField(ew, prefix, "From", qte.Recipient)
-	textWriteTimeField(ew, prefix, "Sent", qte.ID)
+	textWriteTimeField(ew, prefix, "Sent", qte.TimeSent)
 	textWriteQuoteAttachmentFields(ew, prefix, qte.Attachments)
 	textWriteBody(ew, prefix, &qte.Body)
 }

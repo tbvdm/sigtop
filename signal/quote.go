@@ -44,8 +44,8 @@ type quoteAttachmentJSON struct {
 }
 
 type Quote struct {
-	ID          int64
 	Recipient   *Recipient
+	TimeSent     int64
 	Body        MessageBody
 	Attachments []QuoteAttachment
 }
@@ -64,8 +64,8 @@ func (c *Context) parseQuoteJSON(jqte *quoteJSON) (*Quote, error) {
 	var err error
 
 	if jqte.ID == nil {
-		qte.ID = -1
-	} else if qte.ID, err = jqte.ID.Int64(); err != nil {
+		qte.TimeSent = -1
+	} else if qte.TimeSent, err = jqte.ID.Int64(); err != nil {
 		return nil, fmt.Errorf("cannot parse quote ID: %w", err)
 	}
 
