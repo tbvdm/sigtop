@@ -14,6 +14,7 @@
 
 package sqlcipher
 
+// #cgo CPPFLAGS: -DHAVE_STDINT_H
 // #cgo CPPFLAGS: -DSQLCIPHER_CRYPTO_GO
 // #cgo CPPFLAGS: -DSQLITE_EXTRA_INIT=sqlcipher_extra_init
 // #cgo CPPFLAGS: -DSQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown
