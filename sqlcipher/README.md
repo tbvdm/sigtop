@@ -3,9 +3,9 @@
 The `sqlite3.c` and `sqlite3.h` files were generated from the SQLCipher source
 using the following procedure.
 
-Clone the SQLCipher repository and check out the `v4.6.1` tag:
+Clone the SQLCipher repository and check out the `v4.9.0` tag:
 
-	git clone -b v4.6.1 https://github.com/sqlcipher/sqlcipher.git
+	git clone -b v4.9.0 https://github.com/sqlcipher/sqlcipher.git
 	cd sqlcipher
 
 Apply `sqlcipher.diff`:
@@ -14,7 +14,7 @@ Apply `sqlcipher.diff`:
 
 Generate `sqlite3.c` and `sqlite3.h`:
 
-	./configure --enable-tempstore=yes CFLAGS=-DSQLITE_HAS_CODEC
+	./configure --with-tempstore=yes CFLAGS="-DSQLITE_HAS_CODEC -DSQLITE_EXTRA_INIT=sqlcipher_extra_init -DSQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown"
 	make sqlite3.c
 
 Move `sqlite3.c` and `sqlite3.h` into place:

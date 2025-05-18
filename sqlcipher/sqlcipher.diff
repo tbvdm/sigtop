@@ -1,21 +1,21 @@
-diff --git Makefile.in Makefile.in
-index 8431c25a..e111c1c1 100644
---- Makefile.in
-+++ Makefile.in
-@@ -154,6 +154,7 @@ CRYPTOLIBOBJ = \
- CRYPTOSRC = \
+diff --git main.mk main.mk
+index 6d07489f..3175ccad 100644
+--- main.mk
++++ main.mk
+@@ -500,6 +500,7 @@ SQLCIPHER_OBJ = \
+ SQLCIPHER_SRC = \
    $(TOP)/src/sqlcipher.h \
    $(TOP)/src/sqlcipher.c \
-+	$(TOP)/src/crypto_go.c \
- 	$(TOP)/src/crypto_libtomcrypt.c \
- 	$(TOP)/src/crypto_nss.c \
- 	$(TOP)/src/crypto_openssl.c \
++  $(TOP)/src/crypto_go.c \
+   $(TOP)/src/crypto_libtomcrypt.c \
+   $(TOP)/src/crypto_nss.c \
+   $(TOP)/src/crypto_openssl.c \
 diff --git src/crypto_go.c src/crypto_go.c
 new file mode 100644
-index 00000000..e7c54ce7
+index 00000000..720feba9
 --- /dev/null
 +++ src/crypto_go.c
-@@ -0,0 +1,187 @@
+@@ -0,0 +1,201 @@
 +/*
 + * Copyright (c) 2023 Tim van der Molen <tim@kariliq.nl>
 + *
@@ -37,18 +37,6 @@ index 00000000..e7c54ce7
 +#include "sqlcipher.h"
 +
 +#include "_cgo_export.h"
-+
-+static int
-+sqlcipher_go_activate(void *ctx)
-+{
-+	return SQLITE_OK;
-+}
-+
-+static int
-+sqlcipher_go_deactivate(void *ctx)
-+{
-+	return SQLITE_OK;
-+}
 +
 +static int
 +sqlcipher_go_ctx_init(void **ctx)
@@ -75,8 +63,13 @@ index 00000000..e7c54ce7
 +}
 +
 +static int
-+sqlcipher_go_add_random(void *ctx, void *buf, int buf_sz)
++sqlcipher_go_add_random(void *ctx, const void *const_buf, int buf_sz)
 +{
++	void *buf;
++
++	/* Unconstify for Go */
++	buf = (void *)const_buf;
++
 +	return sqlcipherGoAddRandom(buf, buf_sz);
 +}
 +
@@ -87,10 +80,17 @@ index 00000000..e7c54ce7
 +}
 +
 +static int
-+sqlcipher_go_hmac(void *ctx, int alg, unsigned char *key, int key_sz,
-+    unsigned char *in, int in_sz, unsigned char *in2, int in2_sz,
-+    unsigned char *out)
++sqlcipher_go_hmac(void *ctx, int alg, const unsigned char *const_key,
++    int key_sz, const unsigned char *const_in, int in_sz,
++    const unsigned char *const_in2, int in2_sz, unsigned char *out)
 +{
++	unsigned char *key, *in, *in2;
++
++	/* Unconstify for Go */
++	key = (unsigned char *)const_key;
++	in = (unsigned char *)const_in;
++	in2 = (unsigned char *)const_in2;
++
 +	switch (alg) {
 +	case SQLCIPHER_HMAC_SHA1:
 +		return sqlcipherGoHMACSHA1(key, key_sz, in, in_sz, in2,
@@ -107,29 +107,43 @@ index 00000000..e7c54ce7
 +}
 +
 +static int
-+sqlcipher_go_kdf(void *ctx, int alg, const unsigned char *pass, int pass_sz,
-+    unsigned char *salt, int salt_sz, int workfactor, int key_sz,
-+    unsigned char *key)
++sqlcipher_go_kdf(void *ctx, int alg, const unsigned char *const_pass,
++    int pass_sz, const unsigned char *const_salt, int salt_sz, int workfactor,
++    int key_sz, unsigned char *key)
 +{
++	unsigned char *pass, *salt;
++
++	/* Unconstify for Go */
++	pass = (unsigned char *)const_pass;
++	salt = (unsigned char *)const_salt;
++
 +	switch (alg) {
 +	case SQLCIPHER_HMAC_SHA1:
-+		return sqlcipherGoKDFSHA1((unsigned char *)pass, pass_sz,
-+		    salt, salt_sz, workfactor, key, key_sz);
++		return sqlcipherGoKDFSHA1(pass, pass_sz, salt, salt_sz,
++		    workfactor, key, key_sz);
 +	case SQLCIPHER_HMAC_SHA256:
-+		return sqlcipherGoKDFSHA256((unsigned char *)pass, pass_sz,
-+		    salt, salt_sz, workfactor, key, key_sz);
++		return sqlcipherGoKDFSHA256(pass, pass_sz, salt, salt_sz,
++		    workfactor, key, key_sz);
 +	case SQLCIPHER_HMAC_SHA512:
-+		return sqlcipherGoKDFSHA512((unsigned char *)pass, pass_sz,
-+		    salt, salt_sz, workfactor, key, key_sz);
++		return sqlcipherGoKDFSHA512(pass, pass_sz, salt, salt_sz,
++		    workfactor, key, key_sz);
 +	default:
 +		return SQLITE_ERROR;
 +	}
 +}
 +
 +static int
-+sqlcipher_go_cipher(void *ctx, int mode, unsigned char *key, int key_sz,
-+    unsigned char *iv, unsigned char *in, int in_sz, unsigned char *out)
++sqlcipher_go_cipher(void *ctx, int mode, const unsigned char *const_key,
++    int key_sz, const unsigned char *const_iv, const unsigned char *const_in,
++    int in_sz, unsigned char *out)
 +{
++	unsigned char *key, *iv, *in;
++
++	/* Unconstify for Go */
++	key = (unsigned char *)const_key;
++	iv = (unsigned char *)const_iv;
++	in = (unsigned char *)const_in;
++
 +	return sqlcipherGoCipher(key, key_sz, iv, in, in_sz, out,
 +	    mode == CIPHER_ENCRYPT);
 +}
@@ -182,8 +196,8 @@ index 00000000..e7c54ce7
 +int
 +sqlcipher_go_setup(sqlcipher_provider *p)
 +{
-+	p->activate = sqlcipher_go_activate;
-+	p->deactivate = sqlcipher_go_deactivate;
++	p->init = NULL;
++	p->shutdown = NULL;
 +	p->get_provider_name = sqlcipher_go_get_provider_name;
 +	p->add_random = sqlcipher_go_add_random;
 +	p->random = sqlcipher_go_random;
@@ -204,18 +218,18 @@ index 00000000..e7c54ce7
 +
 +#endif
 diff --git src/sqlcipher.c src/sqlcipher.c
-index 8be4bc92..fa0bb490 100644
+index bd346e5b..c25b6ffc 100644
 --- src/sqlcipher.c
 +++ src/sqlcipher.c
-@@ -74,6 +74,7 @@ void sqlite3pager_reset(Pager *pPager);
+@@ -86,6 +86,7 @@ void sqlite3pager_reset(Pager *pPager);
  /* end extensions defined in pager.c */
  
  #if !defined (SQLCIPHER_CRYPTO_CC) \
 +   && !defined (SQLCIPHER_CRYPTO_GO) \
     && !defined (SQLCIPHER_CRYPTO_LIBTOMCRYPT) \
     && !defined (SQLCIPHER_CRYPTO_NSS) \
-    && !defined (SQLCIPHER_CRYPTO_OPENSSL)
-@@ -528,6 +529,9 @@ static void sqlcipher_activate() {
+    && !defined (SQLCIPHER_CRYPTO_OPENSSL) \
+@@ -498,6 +499,9 @@ int sqlcipher_extra_init(const char* arg) {
  #if defined (SQLCIPHER_CRYPTO_CC)
      extern int sqlcipher_cc_setup(sqlcipher_provider *p);
      sqlcipher_cc_setup(p);
@@ -226,10 +240,10 @@ index 8be4bc92..fa0bb490 100644
      extern int sqlcipher_ltc_setup(sqlcipher_provider *p);
      sqlcipher_ltc_setup(p);
 diff --git tool/mksqlite3c.tcl tool/mksqlite3c.tcl
-index 5cfcd6f0..3ba73490 100644
+index 5ba67c3c..dce592b7 100644
 --- tool/mksqlite3c.tcl
 +++ tool/mksqlite3c.tcl
-@@ -430,6 +430,7 @@ set flist {
+@@ -436,6 +436,7 @@ set flist {
     memjournal.c
  
     sqlcipher.c
