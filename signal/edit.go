@@ -38,13 +38,15 @@ type Edit struct {
 }
 
 func (c *Context) parseEditJSON(msg *Message, jmsg *messageJSON) error {
-	for _, jedit := range jmsg.Edits {
+	for editHistoryIndex, jedit := range jmsg.Edits {
 		edit := Edit{
-			Body:        MessageBody{Text: jedit.Body},
-			Attachments: c.parseAttachmentJSON(msg, jedit.Attachments),
-			TimeEdit:    jedit.Timestamp,
+			Body:     MessageBody{Text: jedit.Body},
+			TimeEdit: jedit.Timestamp,
 		}
 		var err error
+		if edit.Attachments, err = c.attachmentsForEdit(msg, editHistoryIndex, jedit.Attachments); err != nil {
+			return err
+		}
 		if edit.Body.Mentions, err = c.parseMentionJSON(jedit.Mentions); err != nil {
 			return err
 		}

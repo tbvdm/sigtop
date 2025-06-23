@@ -28,6 +28,31 @@ import (
 )
 
 const (
+	// For database versions >= 1360
+	attachmentQuery1360 = "SELECT "                                                          +
+		"size, "                                                                         +
+		"contentType, "                                                                  +
+		"path, "                                                                         +
+		"fileName, "                                                                     +
+		"localKey, "                                                                     +
+		"version, "                                                                      +
+		"pending "                                                                       +
+		"FROM message_attachments "                                                      +
+		"WHERE messageId = ? AND editHistoryIndex = ? AND attachmentType = 'attachment'" +
+		"ORDER BY orderInMessage"
+)
+
+const (
+	attachmentColumnSize = iota
+	attachmentColumnContentType
+	attachmentColumnPath
+	attachmentColumnFileName
+	attachmentColumnLocalKey
+	attachmentColumnVersion
+	attachmentColumnPending
+)
+
+const (
 	cipherKeySize = 32
 	ivSize        = aes.BlockSize
 	macKeySize    = 32
@@ -57,7 +82,60 @@ type Attachment struct {
 	attachmentFile
 }
 
-func (c *Context) parseAttachmentJSON(msg *Message, jatts []attachmentJSON) []Attachment {
+func (c *Context) attachmentsForMessage(msg *Message, jatts []attachmentJSON) ([]Attachment, error) {
+	return c.attachmentsForMessageWithEditHistoryIndex(msg, -1, jatts)
+}
+
+func (c *Context) attachmentsForEdit(msg *Message, editHistoryIndex int, jatts []attachmentJSON) ([]Attachment, error) {
+	return c.attachmentsForMessageWithEditHistoryIndex(msg, editHistoryIndex, jatts)
+}
+
+func (c *Context) attachmentsForMessageWithEditHistoryIndex(msg *Message, editHistoryIndex int, jatts []attachmentJSON) ([]Attachment, error) {
+	switch {
+	case c.dbVersion >= 1360:
+		return c.attachmentsFromDatabase(msg, editHistoryIndex)
+	default:
+		return c.attachmentsFromJSON(msg, jatts), nil
+	}
+}
+
+func (c *Context) attachmentsFromDatabase(msg *Message, editHistoryIndex int) ([]Attachment, error) {
+	stmt, _, err := c.db.Prepare(attachmentQuery1360)
+	if err != nil {
+		return nil, err
+	}
+	if err := stmt.BindText(1, msg.ID); err != nil {
+		stmt.Finalize()
+		return nil, err
+	}
+	if err := stmt.BindInt(2, editHistoryIndex); err != nil {
+		stmt.Finalize()
+		return nil, err
+	}
+
+	var atts []Attachment
+	for stmt.Step() {
+		att := Attachment{
+			FileName:    stmt.ColumnText(attachmentColumnFileName),
+			ContentType: stmt.ColumnText(attachmentColumnContentType),
+			TimeSent:    msg.TimeSent,
+			TimeRecv:    msg.TimeRecv,
+			Pending:     stmt.ColumnInt(attachmentColumnPending) != 0,
+			attachmentFile: attachmentFile{
+				Version: stmt.ColumnInt(attachmentColumnVersion),
+				Path:    stmt.ColumnText(attachmentColumnPath),
+				Keys:    stmt.ColumnText(attachmentColumnLocalKey),
+				Size:    stmt.ColumnInt64(attachmentColumnSize),
+			},
+		}
+
+		atts = append(atts, att)
+	}
+
+	return atts, stmt.Finalize()
+}
+
+func (c *Context) attachmentsFromJSON(msg *Message, jatts []attachmentJSON) []Attachment {
 	atts := make([]Attachment, 0, len(jatts))
 	for _, jatt := range jatts {
 		att := Attachment{

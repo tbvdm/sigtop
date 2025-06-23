@@ -27,6 +27,7 @@ import (
 const (
 	// For database versions [8, 19]
 	messageSelect8 = "SELECT "              +
+		"m.id, "                        +
 		"m.conversationId, "            +
 		"m.source, "                    +
 		"m.type, "                      +
@@ -37,6 +38,7 @@ const (
 
 	// For database versions [20, 87]
 	messageSelect20 = "SELECT "             +
+		"m.id, "                        +
 		"m.conversationId, "            +
 		"c.id, "                        +
 		"m.type, "                      +
@@ -49,6 +51,7 @@ const (
 
 	// For database versions >= 88
 	messageSelect88 = "SELECT "             +
+		"m.id, "                        +
 		"m.conversationId, "            +
 		"c.id, "                        +
 		"m.type, "                      +
@@ -83,8 +86,9 @@ const (
 )
 
 const (
-	messageColumnConversationID = iota
-	messageColumnID
+	messageColumnID = iota
+	messageColumnConversationID
+	messageColumnSourceID
 	messageColumnType
 	messageColumnBody
 	messageColumnJSON
@@ -102,6 +106,7 @@ type messageJSON struct {
 }
 
 type Message struct {
+	ID           string
 	Conversation *Recipient
 	Source       *Recipient
 	TimeSent     int64
@@ -267,8 +272,8 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 			msg.Conversation = rpt
 		}
 
-		if stmt.ColumnType(messageColumnID) != sqlcipher.ColumnTypeNull {
-			id := stmt.ColumnText(messageColumnID)
+		if stmt.ColumnType(messageColumnSourceID) != sqlcipher.ColumnTypeNull {
+			id := stmt.ColumnText(messageColumnSourceID)
 			rpt, err := c.recipientFromConversationID(id)
 			if err != nil {
 				stmt.Finalize()
@@ -280,12 +285,20 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 			msg.Source = rpt
 		}
 
+		msg.ID = stmt.ColumnText(messageColumnID)
 		msg.Type = stmt.ColumnText(messageColumnType)
 		msg.Body.Text = stmt.ColumnText(messageColumnBody)
 		msg.JSON = stmt.ColumnText(messageColumnJSON)
 		msg.TimeSent = stmt.ColumnInt64(messageColumnSentAt)
 
-		if err := c.parseMessageJSON(&msg); err != nil {
+		jmsg, err := c.parseMessageJSON(&msg)
+		if err != nil {
+			stmt.Finalize()
+			return nil, err
+		}
+
+		msg.Attachments, err = c.attachmentsForMessage(&msg, jmsg.Attachments)
+		if err != nil {
 			stmt.Finalize()
 			return nil, err
 		}
@@ -321,11 +334,11 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 	return msgs, stmt.Finalize()
 }
 
-func (c *Context) parseMessageJSON(msg *Message) error {
+func (c *Context) parseMessageJSON(msg *Message) (messageJSON, error) {
 	var jmsg messageJSON
 	var err error
 	if err = json.Unmarshal([]byte(msg.JSON), &jmsg); err != nil {
-		return fmt.Errorf("cannot parse message JSON data: %w", err)
+		return jmsg, fmt.Errorf("cannot parse message JSON data: %w", err)
 	}
 	// For older messages, the received time is stored in the "received_at"
 	// attribute. For newer messages, it is in the new "received_at_ms"
@@ -337,20 +350,19 @@ func (c *Context) parseMessageJSON(msg *Message) error {
 	} else {
 		msg.TimeRecv = jmsg.ReceivedAt
 	}
-	msg.Attachments = c.parseAttachmentJSON(msg, jmsg.Attachments)
 	if msg.Body.Mentions, err = c.parseMentionJSON(jmsg.Mentions); err != nil {
-		return err
+		return jmsg, err
 	}
 	if msg.Quote, err = c.parseQuoteJSON(jmsg.Quote); err != nil {
-		return err
+		return jmsg, err
 	}
 	if err = c.parseReactionJSON(msg, &jmsg); err != nil {
-		return err
+		return jmsg, err
 	}
 	if err = c.parseEditJSON(msg, &jmsg); err != nil {
-		return err
+		return jmsg, err
 	}
-	return nil
+	return jmsg, nil
 }
 
 func (m *Message) logError(err error, format string, a ...any) {
