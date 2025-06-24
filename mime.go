@@ -53,6 +53,7 @@ func addContentTypes() error {
 	}{
 		{".aac", "audio/aac"},
 		{".m4a", "audio/x-m4a"},
+		{".wav", "audio/x-wav"},
 	}
 
 	for _, t := range types {
