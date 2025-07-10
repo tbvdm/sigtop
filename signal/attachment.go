@@ -91,12 +91,13 @@ func (c *Context) attachmentsForEdit(msg *Message, editHistoryIndex int, jatts [
 }
 
 func (c *Context) attachmentsForMessageWithEditHistoryIndex(msg *Message, editHistoryIndex int, jatts []attachmentJSON) ([]Attachment, error) {
-	switch {
-	case c.dbVersion >= 1360:
-		return c.attachmentsFromDatabase(msg, editHistoryIndex)
-	default:
-		return c.attachmentsFromJSON(msg, jatts), nil
+	if c.dbVersion >= 1360 {
+		atts, err := c.attachmentsFromDatabase(msg, editHistoryIndex)
+		if len(atts) > 0 || err != nil {
+			return atts, err
+		}
 	}
+	return c.attachmentsFromJSON(msg, jatts), nil
 }
 
 func (c *Context) attachmentsFromDatabase(msg *Message, editHistoryIndex int) ([]Attachment, error) {
