@@ -24,12 +24,12 @@ import (
 )
 
 type mentionJSON struct {
-	Start  int    `json:"start"`
-	Length int    `json:"length"`
+	Start  int `json:"start"`
+	Length int `json:"length"`
 	// The "mentionUuid" field was renamed to "mentionAci" in database
 	// version 88
-	UUID   string `json:"mentionUuid"`
-	ACI    string `json:"mentionAci"`
+	UUID string `json:"mentionUuid"`
+	ACI  string `json:"mentionAci"`
 }
 
 type Mention struct {

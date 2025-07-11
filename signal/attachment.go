@@ -29,15 +29,15 @@ import (
 
 const (
 	// For database versions >= 1360
-	attachmentQuery1360 = "SELECT "                                                          +
-		"size, "                                                                         +
-		"contentType, "                                                                  +
-		"path, "                                                                         +
-		"fileName, "                                                                     +
-		"localKey, "                                                                     +
-		"version, "                                                                      +
-		"pending "                                                                       +
-		"FROM message_attachments "                                                      +
+	attachmentQuery1360 = "SELECT " +
+		"size, " +
+		"contentType, " +
+		"path, " +
+		"fileName, " +
+		"localKey, " +
+		"version, " +
+		"pending " +
+		"FROM message_attachments " +
 		"WHERE messageId = ? AND editHistoryIndex = ? AND attachmentType = 'attachment'" +
 		"ORDER BY orderInMessage"
 )

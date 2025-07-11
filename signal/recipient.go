@@ -24,45 +24,45 @@ import (
 
 const (
 	// For database version 19
-	recipientQuery19 = "SELECT "                       +
-		"id, "                                     +
-		"json, "                                   +
-		"type, "                                   +
-		"name, "                                   +
-		"profileName, "                            +
-		"profileFamilyName, "                      +
-		"profileFullName, "                        +
+	recipientQuery19 = "SELECT " +
+		"id, " +
+		"json, " +
+		"type, " +
+		"name, " +
+		"profileName, " +
+		"profileFamilyName, " +
+		"profileFullName, " +
 		"iif(type = 'private', '+' || id, NULL), " + // e164
-		"NULL, "                                   + // serviceId
-		"iif(type = 'group', id, NULL) "           + // groupId
+		"NULL, " + // serviceId
+		"iif(type = 'group', id, NULL) " + // groupId
 		"FROM conversations"
 
 	// For database versions [20, 87]
-	recipientQuery20 = "SELECT "                       +
-		"id, "                                     +
-		"json, "                                   +
-		"type, "                                   +
-		"name, "                                   +
-		"profileName, "                            +
-		"profileFamilyName, "                      +
-		"profileFullName, "                        +
-		"e164, "                                   +
-		"uuid, "                                   + // serviceId
-		"groupId "                                 +
+	recipientQuery20 = "SELECT " +
+		"id, " +
+		"json, " +
+		"type, " +
+		"name, " +
+		"profileName, " +
+		"profileFamilyName, " +
+		"profileFullName, " +
+		"e164, " +
+		"uuid, " + // serviceId
+		"groupId " +
 		"FROM conversations"
 
 	// For database versions >= 88
-	recipientQuery88 = "SELECT "                       +
-		"id, "                                     +
-		"json, "                                   +
-		"type, "                                   +
-		"name, "                                   +
-		"profileName, "                            +
-		"profileFamilyName, "                      +
-		"profileFullName, "                        +
-		"e164, "                                   +
-		"serviceId, "                              +
-		"groupId "                                 +
+	recipientQuery88 = "SELECT " +
+		"id, " +
+		"json, " +
+		"type, " +
+		"name, " +
+		"profileName, " +
+		"profileFamilyName, " +
+		"profileFullName, " +
+		"e164, " +
+		"serviceId, " +
+		"groupId " +
 		"FROM conversations"
 )
 
