@@ -111,24 +111,14 @@ func cmdExportMessages(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	var signalDir string
-	if dArg.Set() {
-		signalDir = dArg.String()
-	} else {
-		var err error
-		signalDir, err = signal.DesktopDir(Bflag)
-		if err != nil {
-			log.Fatal(err)
-		}
+	signalDir, err := signalDirFromArgument(dArg, Bflag)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	var ival signal.Interval
-	if sArg.Set() {
-		var err error
-		ival, err = parseInterval(sArg.String())
-		if err != nil {
-			log.Fatal(err)
-		}
+	ival, err := intervalFromArgument(sArg)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	if err := unveilSignalDir(signalDir); err != nil {

@@ -115,6 +115,20 @@ func encryptionKeyFromFile(keyfile getopt.Arg) (*safestorage.RawEncryptionKey, e
 	return &key, nil
 }
 
+func signalDirFromArgument(dir getopt.Arg, beta bool) (string, error) {
+	if dir.Set() {
+		return dir.String(), nil
+	}
+	return signal.DesktopDir(beta)
+}
+
+func intervalFromArgument(ival getopt.Arg) (signal.Interval, error) {
+	if !ival.Set() {
+		return signal.Interval{}, nil
+	}
+	return parseInterval(ival.String())
+}
+
 func unveilSignalDir(dir string) error {
 	if err := openbsd.Unveil(dir, "r"); err != nil {
 		return err
