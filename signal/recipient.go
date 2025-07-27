@@ -15,6 +15,8 @@
 package signal
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -277,7 +279,14 @@ func (r *Recipient) displayNameAndDetail() (string, string) {
 			case r.Group.Name != "":
 				name = r.Group.Name
 			}
-			detail = "group"
+			// Newer group IDs are 32 bytes long and
+			// base64-encoded, older ones are raw byte strings
+			id, err := base64.StdEncoding.DecodeString(r.Group.ID)
+			if err == nil && len(id) == 32 {
+				detail = r.Group.ID
+			} else {
+				detail = hex.EncodeToString([]byte(r.Group.ID))
+			}
 		}
 	}
 	return name, detail
