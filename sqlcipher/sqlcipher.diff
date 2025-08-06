@@ -1,8 +1,8 @@
 diff --git main.mk main.mk
-index 6d07489f..3175ccad 100644
+index 450b235b..62bec431 100644
 --- main.mk
 +++ main.mk
-@@ -500,6 +500,7 @@ SQLCIPHER_OBJ = \
+@@ -540,6 +540,7 @@ SQLCIPHER_OBJ = \
  SQLCIPHER_SRC = \
    $(TOP)/src/sqlcipher.h \
    $(TOP)/src/sqlcipher.c \
@@ -218,7 +218,7 @@ index 00000000..720feba9
 +
 +#endif
 diff --git src/sqlcipher.c src/sqlcipher.c
-index bd346e5b..c25b6ffc 100644
+index 884f7bb4..e3b6df0d 100644
 --- src/sqlcipher.c
 +++ src/sqlcipher.c
 @@ -86,6 +86,7 @@ void sqlite3pager_reset(Pager *pPager);
@@ -229,7 +229,7 @@ index bd346e5b..c25b6ffc 100644
     && !defined (SQLCIPHER_CRYPTO_LIBTOMCRYPT) \
     && !defined (SQLCIPHER_CRYPTO_NSS) \
     && !defined (SQLCIPHER_CRYPTO_OPENSSL) \
-@@ -498,6 +499,9 @@ int sqlcipher_extra_init(const char* arg) {
+@@ -507,6 +508,9 @@ int sqlcipher_extra_init(const char* arg) {
  #if defined (SQLCIPHER_CRYPTO_CC)
      extern int sqlcipher_cc_setup(sqlcipher_provider *p);
      sqlcipher_cc_setup(p);
@@ -240,7 +240,7 @@ index bd346e5b..c25b6ffc 100644
      extern int sqlcipher_ltc_setup(sqlcipher_provider *p);
      sqlcipher_ltc_setup(p);
 diff --git tool/mksqlite3c.tcl tool/mksqlite3c.tcl
-index 5ba67c3c..dce592b7 100644
+index b8aa2879..ffa72b8a 100644
 --- tool/mksqlite3c.tcl
 +++ tool/mksqlite3c.tcl
 @@ -436,6 +436,7 @@ set flist {

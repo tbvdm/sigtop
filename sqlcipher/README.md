@@ -3,9 +3,9 @@
 The `sqlite3.c` and `sqlite3.h` files were generated from the SQLCipher source
 using the following procedure.
 
-Clone the SQLCipher repository and check out the `v4.9.0` tag:
+Clone the SQLCipher repository and check out the `v4.10.0` tag:
 
-	git clone -b v4.9.0 https://github.com/sqlcipher/sqlcipher.git
+	git clone -b v4.10.0 https://github.com/sqlcipher/sqlcipher.git
 	cd sqlcipher
 
 Apply `sqlcipher.diff`:
