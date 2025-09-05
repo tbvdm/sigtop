@@ -8,13 +8,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-13, macos-14, macos-15, ubuntu-22.04, ubuntu-24.04, windows-latest]
-        go: ['1.18', '1.19', '1.20', '1.21', '1.22', '1.23', '1.24']
+        go: ['1.21', '1.22', '1.23', '1.24', '1.25']
 
     runs-on: ${{matrix.os}}
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: setup-go
         uses: actions/setup-go@v5
@@ -27,12 +27,6 @@ jobs:
           sudo apt update
           sudo apt install libsecret-1-dev pkg-config
 
-        # Work around a problem in GitHub Actions
-      - name: set-cc
-        if: startsWith(matrix.os, 'windows') && (matrix.go == '1.18' || matrix.go == '1.19')
-        run: |
-          'CC=c:\mingw64\bin\gcc' | Out-File -FilePath $env:GITHUB_ENV -Append
-
       - name: build
         run: go build
 
@@ -41,7 +35,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: dragonfly-vm
         uses: vmactions/dragonflybsd-vm@v1
@@ -58,7 +52,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: freebsd-vm
         uses: vmactions/freebsd-vm@v1
@@ -75,7 +69,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: netbsd-vm
         uses: vmactions/netbsd-vm@v1
@@ -91,7 +85,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: openbsd-vm
         uses: vmactions/openbsd-vm@v1
