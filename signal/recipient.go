@@ -259,12 +259,6 @@ func (r *Recipient) displayNameAndDetail() (string, string) {
 				name = r.Contact.ProfileJoinedName
 			case r.Contact.ProfileName != "":
 				name = r.Contact.ProfileName
-			case r.Contact.Phone != "":
-				name = r.Contact.Phone
-			case r.Contact.Username != "":
-				name = r.Contact.Username
-			case r.Contact.ACI != "":
-				name = r.Contact.ACI
 			}
 			switch {
 			case r.Contact.Phone != "":
