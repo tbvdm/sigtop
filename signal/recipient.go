@@ -283,7 +283,19 @@ func (r *Recipient) displayNameAndDetail() (string, string) {
 			// base64-encoded, older ones are raw byte strings
 			id, err := base64.StdEncoding.DecodeString(r.Group.ID)
 			if err == nil && len(id) == 32 {
-				detail = r.Group.ID
+				// Convert to base64url without padding
+				detail = strings.Map(func(r rune) rune {
+					switch r {
+					case '+':
+						return '-'
+					case '/':
+						return '_'
+					case '=':
+						return -1
+					default:
+						return r
+					}
+				}, r.Group.ID)
 			} else {
 				detail = hex.EncodeToString([]byte(r.Group.ID))
 			}
