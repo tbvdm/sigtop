@@ -60,7 +60,7 @@ func cmdExportDatabase(args []string) cmdStatus {
 
 	dbFile := args[0]
 
-	key, err := encryptionKeyFromFile(kArg)
+	key, err := encryptionKeyFromArgument(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}

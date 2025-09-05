@@ -82,7 +82,7 @@ func command(name string) *cmdEntry {
 	return nil
 }
 
-func encryptionKeyFromFile(keyfile getopt.Arg) (*safestorage.RawEncryptionKey, error) {
+func encryptionKeyFromArgument(keyfile getopt.Arg) (*safestorage.RawEncryptionKey, error) {
 	if !keyfile.Set() {
 		return nil, nil
 	}

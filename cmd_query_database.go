@@ -63,7 +63,7 @@ func cmdQueryDatabase(args []string) cmdStatus {
 
 	query := args[0]
 
-	key, err := encryptionKeyFromFile(kArg)
+	key, err := encryptionKeyFromArgument(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}

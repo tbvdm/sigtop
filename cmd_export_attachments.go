@@ -107,7 +107,7 @@ func cmdExportAttachments(args []string) cmdStatus {
 		return cmdUsage
 	}
 
-	key, err := encryptionKeyFromFile(kArg)
+	key, err := encryptionKeyFromArgument(kArg)
 	if err != nil {
 		log.Fatal(err)
 	}
