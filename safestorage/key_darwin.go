@@ -61,6 +61,10 @@ func (a *App) setEncryptionKeyFromSystem() error {
 	return nil
 }
 
+func (a *App) StoreEncryptionKey(key []byte) error {
+	return fmt.Errorf("not yet supported")
+}
+
 func cfString(s string) C.CFStringRef {
 	b := []byte(s)
 	cfs := C.CFStringCreateWithBytes(C.kCFAllocatorDefault, (*C.UInt8)(&b[0]), C.CFIndex(len(b)), C.kCFStringEncodingUTF8, C.false)

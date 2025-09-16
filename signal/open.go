@@ -171,3 +171,18 @@ func (c *Context) DatabaseKey() ([]byte, error) {
 	}
 	return c.dbKey, nil
 }
+
+func ImportEncryptionKey(betaApp bool, dir string, key []byte) error {
+	appName := AppName
+	if betaApp {
+		appName = AppNameBeta
+	}
+
+	app := safestorage.NewApp(appName, dir)
+
+	if err := app.StoreEncryptionKey(key); err != nil {
+		return fmt.Errorf("cannot import encryption key: %w", err)
+	}
+
+	return nil
+}

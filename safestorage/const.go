@@ -41,6 +41,7 @@ const (
 
 	windowsCiphertextPrefix = "v10"
 	windowsDPAPIKeyPrefix   = "DPAPI"
+	windowsDPAPIDescription = "Chromium"
 	windowsKeySize          = 32 // AES-256
 	windowsNonceSize        = 12
 

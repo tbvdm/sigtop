@@ -48,3 +48,7 @@ func (a *App) rawEncryptionKeyFromBackend() ([]byte, error) {
 		return nil, fmt.Errorf("invalid safeStorage backend")
 	}
 }
+
+func (a *App) StoreEncryptionKey(key []byte) error {
+	return fmt.Errorf("not yet supported")
+}

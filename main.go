@@ -50,6 +50,7 @@ var cmdEntries = []cmdEntry{
 	cmdExportDatabaseEntry,
 	cmdExportKeyEntry,
 	cmdExportMessagesEntry,
+	cmdImportKeyEntry,
 	cmdQueryDatabaseEntry,
 }
 
@@ -75,7 +76,7 @@ func main() {
 
 func command(name string) *cmdEntry {
 	for _, cmd := range cmdEntries {
-		if name == cmd.name || name == cmd.alias {
+		if cmd.name == name || (cmd.alias != "" && cmd.alias == name) {
 			return &cmd
 		}
 	}

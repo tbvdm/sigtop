@@ -69,6 +69,119 @@ func (a *App) setEncryptionKeyFromSystem() error {
 	return nil
 }
 
+func (a *App) StoreEncryptionKey(key []byte) error {
+	localStateFile := filepath.Join(a.dir, localStateFile)
+
+	rawLocalState, rawOSCrypt, err := readRawLocalState(localStateFile)
+	if err != nil {
+		return err
+	}
+
+	key, err = base64.StdEncoding.DecodeString(string(key))
+	if err != nil {
+		return fmt.Errorf("cannot decode encryption key")
+	}
+
+	key, err = encryptWithDPAPI(key)
+	if err != nil {
+		return err
+	}
+	key = append([]byte(windowsDPAPIKeyPrefix), key...)
+
+	err = writeRawLocalState(localStateFile, rawLocalState, rawOSCrypt, key)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readRawLocalState(file string) (map[string]json.RawMessage, map[string]json.RawMessage, error) {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var rawLocalState map[string]json.RawMessage
+	if err := json.Unmarshal(data, &rawLocalState); err != nil {
+		return nil, nil, fmt.Errorf("cannot parse %s: %w", file, err)
+	}
+
+	osCryptJSON, ok := rawLocalState["os_crypt"]
+	if !ok {
+		return nil, nil, fmt.Errorf("cannot find os_crypt in %s", file)
+	}
+
+	var rawOSCrypt map[string]json.RawMessage
+	if err := json.Unmarshal(osCryptJSON, &rawOSCrypt); err != nil {
+		return nil, nil, fmt.Errorf("cannot parse os_crypt in %s: %w", file, err)
+	}
+
+	if _, ok := rawOSCrypt["audit_enabled"]; !ok {
+		return nil, nil, fmt.Errorf("cannot find os_crypt.audit_enabled in %s", file)
+	}
+
+	if _, ok := rawOSCrypt["encrypted_key"]; !ok {
+		return nil, nil, fmt.Errorf("cannot find os_crypt.encrypted_key in %s", file)
+	}
+
+	return rawLocalState, rawOSCrypt, nil
+}
+
+func writeRawLocalState(file string, rawLocalState, rawOSCrypt map[string]json.RawMessage, encryptedKey []byte) error {
+	auditEnabledJSON, err := json.Marshal(true)
+	if err != nil {
+		return fmt.Errorf("cannot marshal audit_enabled")
+	}
+	rawOSCrypt["audit_enabled"] = auditEnabledJSON
+
+	encryptedKeyJSON, err := json.Marshal(encryptedKey)
+	if err != nil {
+		return fmt.Errorf("cannot marshal encrypted_key")
+	}
+	rawOSCrypt["encrypted_key"] = encryptedKeyJSON
+
+	osCryptJSON, err := json.Marshal(rawOSCrypt)
+	if err != nil {
+		return fmt.Errorf("cannot marshal os_crypt")
+	}
+	rawLocalState["os_crypt"] = osCryptJSON
+
+	localStateJSON, err := json.Marshal(rawLocalState)
+	if err != nil {
+		return fmt.Errorf("cannot marshal local state")
+	}
+
+	if err := os.WriteFile(file, localStateJSON, 0600); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func encryptWithDPAPI(plaintext []byte) ([]byte, error) {
+	in := windows.DataBlob{
+		Data: &plaintext[0],
+		Size: uint32(len(plaintext)),
+	}
+	var out windows.DataBlob
+
+	description, err := windows.UTF16FromString(windowsDPAPIDescription)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := windows.CryptProtectData(&in, &description[0], nil, 0, nil, windows.CRYPTPROTECT_AUDIT, &out); err != nil {
+		return nil, err
+	}
+	defer windows.LocalFree(windows.Handle(unsafe.Pointer(out.Data)))
+
+	ciphertext := make([]byte, out.Size)
+	copy(ciphertext, unsafe.Slice(out.Data, out.Size))
+
+	return ciphertext, nil
+}
+
 func decryptWithDPAPI(ciphertext []byte) ([]byte, error) {
 	in := windows.DataBlob{
 		Data: &ciphertext[0],
