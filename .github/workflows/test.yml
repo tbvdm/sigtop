@@ -45,6 +45,7 @@ jobs:
           run: |
             uname -a
             go version
+            git config --add --global safe.directory "$PWD"
             go build
 
   test-freebsd:
