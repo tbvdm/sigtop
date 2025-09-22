@@ -51,7 +51,7 @@ func textWriteMessage(ew *errio.Writer, msg *signal.Message) {
 	}
 	textWriteAttachmentFields(ew, "", msg.Attachments)
 	for _, rct := range msg.Reactions {
-		textWriteFieldf(ew, "", "Reaction", "%s from %s", rct.Emoji, rct.Recipient.DisplayName())
+		textWriteFieldf(ew, "", "Reaction", "%s from %s", rct.Emoji, rct.Recipient.DetailedDisplayName())
 	}
 	if len(msg.Edits) == 0 {
 		textWriteQuote(ew, "", msg.Quote)
