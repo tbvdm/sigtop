@@ -169,6 +169,13 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 
 	switch t := stmt.ColumnText(recipientColumnType); t {
 	case "private":
+		// For private contacts, prefer profileAvatar but fall back to avatar
+		// if profileAvatar is empty. Some contacts store avatar data in the
+		// avatar field instead of profileAvatar.
+		avatar := jrpt.ProfileAvatar
+		if avatar.Path == "" {
+			avatar = jrpt.Avatar
+		}
 		r = &Recipient{
 			Type: RecipientTypeContact,
 			Contact: Contact{
@@ -180,7 +187,7 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 				Phone:             stmt.ColumnText(recipientColumnE164),
 				Username:          jrpt.Username,
 			},
-			Avatar: jrpt.ProfileAvatar,
+			Avatar: avatar,
 		}
 	case "group":
 		r = &Recipient{
