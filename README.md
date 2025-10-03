@@ -40,6 +40,12 @@ the `no_libsecret` build tag:
 If you are running Ubuntu 18.04, 20.04 or 22.04, you will have to install a
 newer version of Go. See the [Go wiki][5] for more information.
 
+### Build the binary with docker
+If you already have docker installed you can simply build the binary using the Dockerfile which exports it in the current directory
+```sh
+docker build --target export --output . .
+```
+
 ## Installing on macOS
 
 First install [Homebrew][6]. Then, to install sigtop, run:
