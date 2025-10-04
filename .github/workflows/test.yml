@@ -100,3 +100,23 @@ jobs:
             uname -a
             go version
             go build
+
+  test-wsl:
+    runs-on: windows-latest
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v5
+
+    - name: setup-wsl
+      uses: Vampire/setup-wsl@v6
+      with:
+        distribution: Ubuntu-24.04
+        additional-packages: gcc-mingw-w64-x86-64 golang
+
+    - name: build
+      shell: wsl-bash {0}
+      run: |
+        uname -a
+        go version
+        GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build
