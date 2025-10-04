@@ -153,5 +153,12 @@ func unveilSignalDir(dir string) error {
 }
 
 func recipientFilename(rpt *signal.Recipient, ext string) string {
-	return sanitiseFilename(rpt.DetailedDisplayName() + ext)
+	return recipientFilenameWithDetail(rpt, "", ext)
+}
+
+func recipientFilenameWithDetail(rpt *signal.Recipient, detail, ext string) string {
+	if detail != "" {
+		detail = " (" + detail + ")"
+	}
+	return sanitiseFilename(rpt.DetailedDisplayName() + detail + ext)
 }

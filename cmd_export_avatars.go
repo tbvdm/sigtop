@@ -129,7 +129,31 @@ func exportAvatars(ctx *signal.Context, dir string, selectors []string) bool {
 
 	ret := true
 	for _, conv := range convs {
-		if err := exportAvatar(ctx, d, conv.Recipient); err != nil {
+		if !exportRecipientAvatars(ctx, d, conv.Recipient) {
+			ret = false
+		}
+	}
+
+	return ret
+}
+
+func exportRecipientAvatars(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) bool {
+	ret := true
+
+	detail := ""
+	if rpt.ProfileAvatar.Path != "" && rpt.Avatar.Path != "" {
+		detail = "profile"
+	}
+
+	if rpt.ProfileAvatar.Path != "" {
+		if err := exportRecipientAvatar(ctx, d, rpt, &rpt.ProfileAvatar, detail); err != nil {
+			log.Print(err)
+			ret = false
+		}
+	}
+
+	if rpt.Avatar.Path != "" {
+		if err := exportRecipientAvatar(ctx, d, rpt, &rpt.Avatar, ""); err != nil {
 			log.Print(err)
 			ret = false
 		}
@@ -138,17 +162,13 @@ func exportAvatars(ctx *signal.Context, dir string, selectors []string) bool {
 	return ret
 }
 
-func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) error {
-	if rpt.Avatar.Path == "" {
-		return nil
-	}
-
-	data, err := ctx.ReadAvatar(&rpt.Avatar)
+func exportRecipientAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient, avt *signal.Avatar, detail string) error {
+	data, err := ctx.ReadAvatar(avt)
 	if err != nil {
 		return err
 	}
 
-	f, err := d.OpenFile(avatarFilename(rpt, data), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+	f, err := d.OpenFile(avatarFilename(rpt, detail, data), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return err
 	}
@@ -160,7 +180,7 @@ func exportAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) error {
 	return f.Close()
 }
 
-func avatarFilename(rpt *signal.Recipient, data []byte) string {
+func avatarFilename(rpt *signal.Recipient, detail string, data []byte) string {
 	equals := func(b []byte, s string) bool { return bytes.Equal(b, []byte(s)) }
 
 	var ext string
@@ -173,5 +193,5 @@ func avatarFilename(rpt *signal.Recipient, data []byte) string {
 		ext = ".webp"
 	}
 
-	return recipientFilename(rpt, ext)
+	return recipientFilenameWithDetail(rpt, detail, ext)
 }

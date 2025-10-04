@@ -91,15 +91,16 @@ type Avatar struct {
 // Signal-Desktop repository
 type recipientJSON struct {
 	Username      string `json:"username"`
-	ProfileAvatar Avatar `json:"profileAvatar"` // For contacts
-	Avatar        Avatar `json:"avatar"`        // For groups
+	ProfileAvatar Avatar `json:"profileAvatar"`
+	Avatar        Avatar `json:"avatar"`
 }
 
 type Recipient struct {
-	Type    RecipientType
-	Contact Contact
-	Group   Group
-	Avatar  Avatar
+	Type          RecipientType
+	Contact       Contact
+	Group         Group
+	ProfileAvatar Avatar
+	Avatar        Avatar
 }
 
 type RecipientType int
@@ -180,7 +181,6 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 				Phone:             stmt.ColumnText(recipientColumnE164),
 				Username:          jrpt.Username,
 			},
-			Avatar: jrpt.ProfileAvatar,
 		}
 	case "group":
 		r = &Recipient{
@@ -189,16 +189,18 @@ func (c *Context) addRecipient(stmt *sqlcipher.Stmt) error {
 				ID:   stmt.ColumnText(recipientColumnGroupID),
 				Name: stmt.ColumnText(recipientColumnName),
 			},
-			Avatar: jrpt.Avatar,
 		}
 	default:
 		return fmt.Errorf("unknown recipient type: %q", t)
 	}
 
-	if r.Avatar.Path == SignalAvatarPath {
+	r.ProfileAvatar = jrpt.ProfileAvatar
+	r.Avatar = jrpt.Avatar
+
+	if r.ProfileAvatar.Path == SignalAvatarPath {
 		// Ignore the avatar for the Signal release chat. It does not
 		// exist in the Signal Desktop directory.
-		r.Avatar.Path = ""
+		r.ProfileAvatar.Path = ""
 	}
 
 	id := stmt.ColumnText(recipientColumnID)
