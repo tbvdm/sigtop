@@ -220,7 +220,7 @@ func (c *Context) allAttachmentsFromDatabase(convs []Signal.Conversation, ival s
 						Keys:    stmt.ColumnText(attachmentColumnLocalKey),
 						Size:    stmt.ColumnInt64(attachmentColumnSize),
 					},
-				}
+				},
 			}
 			atts = append(atts, att)
 		}
@@ -272,7 +272,7 @@ func (c *Context) allAttachmentsFromDatabase(convs []Signal.Conversation, ival s
 						Keys:    stmt.ColumnText(attachmentColumnLocalKey),
 						Size:    stmt.ColumnInt64(attachmentColumnSize),
 					},
-				}
+				},
 			}
 			atts2 = append(atts2, att2)
 		}
