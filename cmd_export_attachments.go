@@ -51,7 +51,7 @@ type attMode struct {
 var cmdExportAttachmentsEntry = cmdEntry{
 	name:  "export-attachments",
 	alias: "att",
-	usage: "[-BiMm] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [-s interval] [directory]",
+	usage: "[-BiMmA] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [-s interval] [directory]",
 	exec:  cmdExportAttachments,
 }
 
@@ -61,8 +61,10 @@ func cmdExportAttachments(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("Bc:d:ik:Mmp:s:", args)
+	getopt.ParseArgs("Bc:d:ik:Mmp:s:aA", args)
 	var dArg, kArg, sArg getopt.Arg
+	all := false
+	allVerbose := false
 	var selectors []string
 	Bflag := false
 	for getopt.Next() {
@@ -86,6 +88,11 @@ func cmdExportAttachments(args []string) cmdStatus {
 			kArg = getopt.OptionArg()
 		case 's':
 			sArg = getopt.OptionArg()
+		case 'A':
+			all = true
+			allVerbose = true
+		case 'a':
+			all = true
 		}
 	}
 
@@ -159,6 +166,13 @@ func cmdExportAttachments(args []string) cmdStatus {
 	}
 	defer ctx.Close()
 
+	if(all) {
+		if !exportAllAttachments(ctx, exportDir, mode, selectors, ival, allVerbose){
+			return cmdError
+		}
+		return cmdOK
+	}
+	
 	if !exportAttachments(ctx, exportDir, mode, selectors, ival) {
 		return cmdError
 	}
@@ -205,6 +219,175 @@ func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors 
 	}
 
 	return ret
+}
+
+func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selectors []string, ival signal.Interval, verbose bool) bool {
+	d, err := at.Open(dir)
+	if err != nil {
+		log.Print(err)
+		return false
+	}
+	defer d.Close()
+
+	var exported map[string]bool
+	if mode.incremental {
+		var err error
+		if exported, err = readIncrementalFile(d); err != nil {
+			log.Print(err)
+			return false
+		}
+	}
+
+	convs, err := selectConversations(ctx, selectors)
+	if err != nil {
+		log.Print(err)
+		return false
+	}
+	convs_ = convs
+	if len(selector) == 0 {
+		convs_ = nil
+	}
+
+	// if ok, exported = exportConversationAttachments(ctx, d, &conv, mode, exported, ival); !ok {
+	// 	ret = false
+	// }
+	/*
+		func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode attMode, exported map[string]bool, ival signal.Interval) (bool, map[string]bool)
+		atts, err := ctx.ConversationAttachments(conv, ival)
+		if err != nil {
+			log.Print(err)
+			return false, exported
+		}
+
+		if len(atts) == 0 {
+			return true, exported
+		}
+
+		cd, err := conversationDir(d, conv)
+		if err != nil {
+			log.Print(err)
+			return false, exported
+		}
+
+		ret := true
+		for _, att := range atts {
+		id := filepath.Base(att.Path)
+		if mode.incremental && exported[id] {
+			continue
+		}
+		if att.Path == "" {
+			var msg string
+			if att.Pending {
+				msg = "skipping pending attachment"
+			} else {
+				msg = "skipping attachment without path"
+				ret = false
+			}
+			log.Printf("%s (conversation: %q, sent: %s)", msg, conv.Recipient.DisplayName(), time.UnixMilli(att.TimeSent).Format("2006-01-02 15:04:05"))
+			continue
+		}
+		path, err := attachmentFilename(cd, &att)
+		if err != nil {
+			log.Print(err)
+			ret = false
+			continue
+		}
+		if err := copyAttachment(ctx, cd, path, &att); err != nil {
+			log.Print(err)
+			ret = false
+			continue
+		}
+		if err := setAttachmentModTime(cd, path, &att, mode.mtime); err != nil {
+			log.Print(err)
+			ret = false
+		}
+		if mode.incremental {
+			exported[id] = true
+		}
+		}
+
+		return ret, exported
+	*/
+
+	atts2, err := ctx.allAttachmentsFromDatabase(convs_, ival)
+	if err != nil {
+		log.Print(err)
+		return false, exported
+	}
+
+	if len(atts2) == 0 {
+		ret = false
+	}
+
+	cd, err := conversationDir(d, conv)
+	if err != nil {
+		log.Print(err)
+		ret = false
+	}
+
+	var data []string
+	reti := true
+	for _, att2 := range atts2 {
+		att := att2.Attachment
+		id := filepath.Base(att.Path)
+		if mode.incremental && exported[id] {
+			continue
+		}
+		if att.Path == "" {
+			var msg string
+			if att.Pending {
+				msg = "skipping pending attachment"
+			} else {
+				msg = "skipping attachment without path"
+				reti = false
+			}
+			log.Printf("%s (conversation: %q, sent: %s)", msg, conv.Recipient.DisplayName(), time.UnixMilli(att.TimeSent).Format("2006-01-02 15:04:05"))
+			continue
+		}
+		path, err := attachmentFilename(cd, &att)
+		if err != nil {
+			log.Print(err)
+			reti = false
+			continue
+		}
+		//data = append(data, fmt.Sprintf())
+		if verbose {
+			humanName = getConvName(convs, att2.ConvId)
+			log.Printf("# %s(%s),%s,%s,",humanName,att2.ConvId,att2.MsgId,att2.Attachment.TimeSent,path)
+		}
+		if err := copyAttachment(ctx, cd, path, &att); err != nil {
+			log.Print(err)
+			reti = false
+			continue
+		}
+		if err := setAttachmentModTime(cd, path, &att, mode.mtime); err != nil {
+			log.Print(err)
+			reti = false
+		}
+		if mode.incremental {
+			exported[id] = true
+		}
+	}
+
+	return ret
+	
+}
+
+func getConvName(convs []Signal.Conversation, convId string) (string) {
+	for _, conv := range convs {
+		if(conv.ID == convId){
+			type := conv.Recipient.Type
+			if type == 1 {
+				// private
+				name := conv.Recipient.Contact.Name
+				if(len(name)<1) name = conv.Recipient.Username
+				if(len(name)<1) name = conv.Recipient.ProfileJoinedName
+				return name
+			}else{
+				return conv.Group.name
+			}
+		}
+	}
 }
 
 func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode attMode, exported map[string]bool, ival signal.Interval) (bool, map[string]bool) {

@@ -122,15 +122,10 @@ type Attachment struct {
 }
 
 type Attachment2 struct {
-	FileName    string
-	ContentType string
-	TimeSent    int64
-	TimeRecv    int64
-	Pending     bool
 	ConvId		string
 	MsgId		string
 	Flags		int
-	attachmentFile
+	Attachment
 }
 
 func (c *Context) attachmentsForMessage(msg *Message, jatts []attachmentJSON) ([]Attachment, error) {
@@ -187,7 +182,7 @@ func (c *Context) attachmentsFromDatabase(msg *Message, editHistoryIndex int) ([
 	return atts, stmt.Finalize()
 }
 
-func (c *Context) allAttachmentsFromDatabase(convs []string, ival signal.Interval) ([]Attachment2, error) {
+func (c *Context) allAttachmentsFromDatabase(convs []Signal.Conversation, ival signal.Interval) ([]Attachment2, error) {
 	if len(convs) == 0 {
 		// export independently from convID
 		//var timeFilter = !(ival.Min.isZero() && ival.Max.isZero())
@@ -210,27 +205,29 @@ func (c *Context) allAttachmentsFromDatabase(convs []string, ival signal.Interva
 		// conversationId messageId flags
 		for stmt.Step() {
 			att := Attachment2{
-				FileName:    stmt.ColumnText(attachmentColumnFileName),
-				ContentType: stmt.ColumnText(attachmentColumnContentType),
-				TimeSent:    stmt.ColumnInt64(attachmentColumnSentAt),
-				TimeRecv:    stmt.ColumnInt64(attachmentColumnSentAt),
-				Pending:     stmt.ColumnInt(attachmentColumnPending) != 0,
 				ConvId:		 stmt.ColumnText(attachmentColumnConvId),
 				MsgId:		 stmt.ColumnText(attachmentColumnMsgId),
 				Flags:		 stmt.ColumnInt(attachmentColumnFlags),
-				attachmentFile: attachmentFile{
-					Version: stmt.ColumnInt(attachmentColumnVersion),
-					Path:    stmt.ColumnText(attachmentColumnPath),
-					Keys:    stmt.ColumnText(attachmentColumnLocalKey),
-					Size:    stmt.ColumnInt64(attachmentColumnSize),
-				},
+				Attachment: Attachment{
+					FileName:    stmt.ColumnText(attachmentColumnFileName),
+					ContentType: stmt.ColumnText(attachmentColumnContentType),
+					TimeSent:    stmt.ColumnInt64(attachmentColumnSentAt),
+					TimeRecv:    stmt.ColumnInt64(attachmentColumnSentAt),
+					Pending:     stmt.ColumnInt(attachmentColumnPending) != 0,
+					attachmentFile: attachmentFile{
+						Version: stmt.ColumnInt(attachmentColumnVersion),
+						Path:    stmt.ColumnText(attachmentColumnPath),
+						Keys:    stmt.ColumnText(attachmentColumnLocalKey),
+						Size:    stmt.ColumnInt64(attachmentColumnSize),
+					},
+				}
 			}
 			atts = append(atts, att)
 		}
 		return atts, stmt.Finalize()
 	}
 
-	var atts []Attachment2
+	var atts2 []Attachment2
 	for _, conv := range convs {
 		var query = allAttachmentQuery1360
 		var checkTime = !(ival.Min.IsZero() && ival.Max.IsZero())
@@ -259,28 +256,30 @@ func (c *Context) allAttachmentsFromDatabase(convs []string, ival signal.Interva
 			}
 		}
 		for stmt.Step() {
-			att := Attachment2{
-				FileName:    stmt.ColumnText(attachmentColumnFileName),
-				ContentType: stmt.ColumnText(attachmentColumnContentType),
-				TimeSent:    stmt.ColumnInt64(attachmentColumnSentAt),
-				TimeRecv:    stmt.ColumnInt64(attachmentColumnSentAt),
-				Pending:     stmt.ColumnInt(attachmentColumnPending) != 0,
+			att2 := Attachment2{
 				ConvId:		 stmt.ColumnText(attachmentColumnConvId),
 				MsgId:		 stmt.ColumnText(attachmentColumnMsgId),
 				Flags:		 stmt.ColumnInt(attachmentColumnFlags),
-				attachmentFile: attachmentFile{
-					Version: stmt.ColumnInt(attachmentColumnVersion),
-					Path:    stmt.ColumnText(attachmentColumnPath),
-					Keys:    stmt.ColumnText(attachmentColumnLocalKey),
-					Size:    stmt.ColumnInt64(attachmentColumnSize),
-				},
+				Attachment: Attachment{
+					FileName:    stmt.ColumnText(attachmentColumnFileName),
+					ContentType: stmt.ColumnText(attachmentColumnContentType),
+					TimeSent:    stmt.ColumnInt64(attachmentColumnSentAt),
+					TimeRecv:    stmt.ColumnInt64(attachmentColumnSentAt),
+					Pending:     stmt.ColumnInt(attachmentColumnPending) != 0,
+					attachmentFile: attachmentFile{
+						Version: stmt.ColumnInt(attachmentColumnVersion),
+						Path:    stmt.ColumnText(attachmentColumnPath),
+						Keys:    stmt.ColumnText(attachmentColumnLocalKey),
+						Size:    stmt.ColumnInt64(attachmentColumnSize),
+					},
+				}
 			}
-			atts = append(atts, att)
+			atts2 = append(atts2, att2)
 		}
 		stmt.Finalize()
 	}
 
-	return atts, nil
+	return atts2, nil
 }
 
 func (c *Context) attachmentsFromJSON(msg *Message, jatts []attachmentJSON) []Attachment {
