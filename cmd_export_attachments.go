@@ -166,13 +166,13 @@ func cmdExportAttachments(args []string) cmdStatus {
 	}
 	defer ctx.Close()
 
-	if(all) {
-		if !exportAllAttachments(ctx, exportDir, mode, selectors, ival, allVerbose){
+	if all {
+		if !exportAllAttachments(ctx, exportDir, mode, selectors, ival, allVerbose) {
 			return cmdError
 		}
 		return cmdOK
 	}
-	
+
 	if !exportAttachments(ctx, exportDir, mode, selectors, ival) {
 		return cmdError
 	}
@@ -243,8 +243,8 @@ func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selecto
 		log.Print(err)
 		return false
 	}
-	convs_ = convs
-	if len(selector) == 0 {
+	convs_ := convs
+	if len(selectors) == 0 {
 		convs_ = nil
 	}
 
@@ -308,61 +308,74 @@ func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selecto
 
 		return ret, exported
 	*/
+	ret := true
 
-	atts2, err := ctx.allAttachmentsFromDatabase(convs_, ival)
+	atts2, err := ctx.AllAttachmentsFromDatabase(convs_, ival)
 	if err != nil {
 		log.Print(err)
-		return false, exported
+		return false
 	}
 
 	if len(atts2) == 0 {
 		ret = false
 	}
 
-	cd, err := conversationDir(d, conv)
+	// TODO: add option to merge all attachments irrespective of conversation ID
+	/*cd, err := conversationDir(d, conv)
 	if err != nil {
 		log.Print(err)
 		ret = false
-	}
+	}*/
 
-	var data []string
-	reti := true
+	var convDirs map[string]at.Dir
+
 	for _, att2 := range atts2 {
 		att := att2.Attachment
 		id := filepath.Base(att.Path)
 		if mode.incremental && exported[id] {
 			continue
 		}
+		conv := getConvById(convs, att2.ConvId)
 		if att.Path == "" {
 			var msg string
 			if att.Pending {
 				msg = "skipping pending attachment"
 			} else {
 				msg = "skipping attachment without path"
-				reti = false
+				ret = false
 			}
 			log.Printf("%s (conversation: %q, sent: %s)", msg, conv.Recipient.DisplayName(), time.UnixMilli(att.TimeSent).Format("2006-01-02 15:04:05"))
 			continue
 		}
+		var cd at.Dir
+		var ok bool
+		if cd, ok = convDirs[att2.ConvId]; !ok {
+			cd, err := conversationDir(d, &conv)
+			if err != nil {
+				log.Print(err)
+				ret = false
+			}
+			convDirs[att2.ConvId] = cd
+		}
 		path, err := attachmentFilename(cd, &att)
 		if err != nil {
 			log.Print(err)
-			reti = false
+			ret = false
 			continue
 		}
 		//data = append(data, fmt.Sprintf())
 		if verbose {
-			humanName = getConvName(convs, att2.ConvId)
-			log.Printf("# %s(%s),%s,%s,",humanName,att2.ConvId,att2.MsgId,att2.Attachment.TimeSent,path)
+			humanName := conv.Recipient.DetailedDisplayName()
+			log.Printf("# %s(%s),%s,%s,", humanName, att2.ConvId, att2.MsgId, att2.Attachment.TimeSent, path)
 		}
 		if err := copyAttachment(ctx, cd, path, &att); err != nil {
 			log.Print(err)
-			reti = false
+			ret = false
 			continue
 		}
 		if err := setAttachmentModTime(cd, path, &att, mode.mtime); err != nil {
 			log.Print(err)
-			reti = false
+			ret = false
 		}
 		if mode.incremental {
 			exported[id] = true
@@ -370,24 +383,26 @@ func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selecto
 	}
 
 	return ret
-	
+
 }
 
-func getConvName(convs []Signal.Conversation, convId string) (string) {
+func getConvById(convs []signal.Conversation, convId string) signal.Conversation {
 	for _, conv := range convs {
-		if(conv.ID == convId){
-			type := conv.Recipient.Type
-			if type == 1 {
+		if conv.ID == convId {
+			/*tp := conv.Recipient.Type
+			if tp == 1 {
 				// private
 				name := conv.Recipient.Contact.Name
-				if(len(name)<1) name = conv.Recipient.Username
-				if(len(name)<1) name = conv.Recipient.ProfileJoinedName
+				if(len(name)<1){ name = conv.Recipient.Contact.Username }
+				if(len(name)<1){ name = conv.Recipient.Contact.ProfileJoinedName }
 				return name
 			}else{
-				return conv.Group.name
-			}
+				return conv.Recipient.Group.Name
+			}*/
+			return conv
 		}
 	}
+	return signal.Conversation{}
 }
 
 func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode attMode, exported map[string]bool, ival signal.Interval) (bool, map[string]bool) {
