@@ -61,9 +61,10 @@ func cmdExportAttachments(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("Bc:d:ik:Mmp:s:", args)
+	getopt.ParseArgs("Bc:d:ik:Mmp:s:aA", args)
 	var dArg, kArg, sArg getopt.Arg
 	all := false
+	allVerbose := false
 	var selectors []string
 	Bflag := false
 	for getopt.Next() {
@@ -88,6 +89,9 @@ func cmdExportAttachments(args []string) cmdStatus {
 		case 's':
 			sArg = getopt.OptionArg()
 		case 'A':
+			all = true
+			allVerbose = true
+		case 'a':
 			all = true
 		}
 	}
@@ -163,7 +167,7 @@ func cmdExportAttachments(args []string) cmdStatus {
 	defer ctx.Close()
 
 	if(all) {
-		if !exportAllAttachments(ctx, exportDir, mode, selectors, ival){
+		if !exportAllAttachments(ctx, exportDir, mode, selectors, ival, allVerbose){
 			return cmdError
 		}
 		return cmdOK
@@ -217,7 +221,7 @@ func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors 
 	return ret
 }
 
-func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selectors []string, ival signal.Interval) bool {
+func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selectors []string, ival signal.Interval, verbose bool) bool {
 	d, err := at.Open(dir)
 	if err != nil {
 		log.Print(err)
@@ -347,7 +351,10 @@ func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selecto
 			continue
 		}
 		//data = append(data, fmt.Sprintf())
-		log.Printf("# ")
+		if verbose {
+			humanName = getConvName(convs, att2.ConvId)
+			log.Printf("# %s(%s),%s,%s,",humanName,att2.ConvId,att2.MsgId,att2.Attachment.TimeSent,path)
+		}
 		if err := copyAttachment(ctx, cd, path, &att); err != nil {
 			log.Print(err)
 			reti = false
@@ -362,21 +369,25 @@ func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selecto
 		}
 	}
 
-	// again - to tell what happens with the retvals
-	// exportConversationAttachments: return ret, exported
-	//if ok, exported = exportConversationAttachments(ctx, d, &conv, mode, exported, ival); !ok {
-	//	ret = false
-	//}
-
-	// if mode.incremental {
-	// 	if err := writeIncrementalFile(d, exported); err != nil {
-	// 		log.Print(err)
-	// 		return false
-	// 	}
-	// }
-	// 
-	// return ret
+	return ret
 	
+}
+
+func getConvName(convs []Signal.Conversation, convId string) (string) {
+	for _, conv := range convs {
+		if(conv.ID == convId){
+			type := conv.Recipient.Type
+			if type == 1 {
+				// private
+				name := conv.Recipient.Contact.Name
+				if(len(name)<1) name = conv.Recipient.Username
+				if(len(name)<1) name = conv.Recipient.ProfileJoinedName
+				return name
+			}else{
+				return conv.Group.name
+			}
+		}
+	}
 }
 
 func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode attMode, exported map[string]bool, ival signal.Interval) (bool, map[string]bool) {
