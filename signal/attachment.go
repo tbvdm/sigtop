@@ -200,11 +200,11 @@ func (c *Context) AllAttachmentsFromDatabase(convs []Conversation, ival Interval
 			return nil, err
 		}
 
-		if err := stmt.BindInt64(1, (map[bool]int64{true: 0, false: ival.Min.UnixMilli()})[ival.Min.IsZero()]); err != nil {
+		if err := stmt.BindInt64(1, func()int64{if ival.Min.IsZero(){return 0};return ival.Min.UnixMilli()}()); err != nil {
 			stmt.Finalize()
 			return nil, err
 		}
-		if err := stmt.BindInt64(2, (map[bool]int64{true: 9223372036854775807, false: ival.Max.UnixMilli()})[ival.Max.IsZero()]); err != nil {
+		if err := stmt.BindInt64(2, func()int64{if ival.Max.IsZero(){return 9223372036854775807};return ival.Max.UnixMilli()}()); err != nil {
 			stmt.Finalize()
 			return nil, err
 		}
@@ -254,11 +254,13 @@ func (c *Context) AllAttachmentsFromDatabase(convs []Conversation, ival Interval
 			return nil, err
 		}
 		if checkTime {
-			if err := stmt.BindInt64(2, ((map[bool]int64{true: 0, false: ival.Min.UnixMilli()})[ival.Min.IsZero()])); err != nil {
+			//if err := stmt.BindInt64(2, ((map[bool]int64{true: 0, false: ival.Min.UnixMilli()})[ival.Min.IsZero()])); err != nil {
+			if err := stmt.BindInt64(2, func()int64{if ival.Min.IsZero(){return 0};return ival.Min.UnixMilli()}()); err != nil {
 				stmt.Finalize()
 				return nil, err
 			}
-			if err := stmt.BindInt64(3, ((map[bool]int64{true: 9223372036854775807, false: ival.Max.UnixMilli()})[ival.Max.IsZero()])); err != nil {
+			//if err := stmt.BindInt64(3, ((map[bool]int64{true: 9223372036854775807, false: ival.Max.UnixMilli()})[ival.Max.IsZero()])); err != nil {
+				if err := stmt.BindInt64(3, func()int64{if ival.Max.IsZero(){return 9223372036854775807};return ival.Max.UnixMilli()}()); err != nil {
 				stmt.Finalize()
 				return nil, err
 			}
