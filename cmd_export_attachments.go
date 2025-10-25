@@ -350,7 +350,8 @@ func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selecto
 		var cd at.Dir
 		var ok bool
 		if cd, ok = convDirs[att2.ConvId]; !ok {
-			cd, err := conversationDir(d, &conv)
+			var err error
+			cd, err = conversationDir(d, &conv)
 			if err != nil {
 				log.Print(err)
 				ret = false
