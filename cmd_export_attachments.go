@@ -366,7 +366,7 @@ func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selecto
 		//data = append(data, fmt.Sprintf())
 		if verbose {
 			humanName := conv.Recipient.DetailedDisplayName()
-			log.Printf("# %s(%s),%s,%s,", humanName, att2.ConvId, att2.MsgId, att2.Attachment.TimeSent, path)
+			log.Printf("# %s(%s),%s,%d,%s", humanName, att2.ConvId, att2.MsgId, att2.Attachment.TimeSent, path)
 		}
 		if err := copyAttachment(ctx, cd, path, &att); err != nil {
 			log.Print(err)
