@@ -327,7 +327,7 @@ func exportAllAttachments(ctx *signal.Context, dir string, mode attMode, selecto
 		ret = false
 	}*/
 
-	var convDirs map[string]at.Dir
+	convDirs := make(map[string]at.Dir)
 
 	for _, att2 := range atts2 {
 		att := att2.Attachment
