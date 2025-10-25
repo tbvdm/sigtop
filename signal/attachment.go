@@ -76,10 +76,10 @@ const (
 	byConv = "WHERE conversationId = ? "
 )
 const (
-	byTime = "WHERE sendAt BETWEEN ? AND ? OR sentAt IS NULL "
+	byTime = "WHERE sentAt BETWEEN ? AND ? OR sentAt IS NULL "
 )
 const (
-	byConvAndTime = "WHERE conversationId = ? AND (sendAt BETWEEN ? AND ? OR sentAt IS NULL) "
+	byConvAndTime = "WHERE conversationId = ? AND (sentAt BETWEEN ? AND ? OR sentAt IS NULL) "
 )
 const (
 	orderString = "ORDER BY sentAt, orderInMessage"
