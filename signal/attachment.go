@@ -43,21 +43,6 @@ const (
 )
 
 const (
-	// when exporting attachments by used
-	convAttachmentQuery1360 = "SELECT " +
-		"size, " +
-		"contentType, " +
-		"path, " +
-		"fileName, " +
-		"localKey, " +
-		"version, " +
-		"pending " +
-		"FROM message_attachments " +
-		"WHERE conversationId = ? " +
-		"ORDER BY sentAt, orderInMessage"
-)
-
-const (
 	allAttachmentQuery1360 = "SELECT " +
 		"size, " +
 		"contentType, " +
@@ -70,7 +55,7 @@ const (
 		"conversationId, " +
 		"messageId, " +
 		"flags " +
-		"FROM message_attachments " // +		"ORDER BY sentAt, orderInMessage"
+		"FROM message_attachments "
 )
 const (
 	byConv = "WHERE conversationId = ? "
@@ -96,7 +81,7 @@ const (
 	attachmentColumnSentAt
 	attachmentColumnConvId
 	attachmentColumnMsgId
-	attachmentColumnFlags
+	attachmentColumnFlags // probably unnecessary?
 )
 
 const (
@@ -132,7 +117,7 @@ type Attachment struct {
 type Attachment2 struct {
 	ConvId string
 	MsgId  string
-	Flags  int
+	Flags  int // probably unnecessary?
 	Attachment
 }
 
@@ -193,7 +178,6 @@ func (c *Context) attachmentsFromDatabase(msg *Message, editHistoryIndex int) ([
 func (c *Context) AllAttachmentsFromDatabase(convs []Conversation, ival Interval) ([]Attachment2, error) {
 	if len(convs) == 0 {
 		// export independently from convID
-		//var timeFilter = !(ival.Min.isZero() && ival.Max.isZero())
 		var query = allAttachmentQuery1360 + byTime + orderString
 		stmt, _, err := c.db.Prepare(query)
 		if err != nil {
