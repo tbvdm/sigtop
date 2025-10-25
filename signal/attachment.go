@@ -44,7 +44,7 @@ const (
 
 const (
 	// when exporting attachments by used
-	convAttachmentQuery1360 = "SELECT" +
+	convAttachmentQuery1360 = "SELECT " +
 		"size, " +
 		"contentType, " +
 		"path, " +
@@ -58,7 +58,7 @@ const (
 )
 
 const (
-	allAttachmentQuery1360 = "SELECT" +
+	allAttachmentQuery1360 = "SELECT " +
 		"size, " +
 		"contentType, " +
 		"path, " +
