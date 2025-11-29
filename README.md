@@ -62,10 +62,23 @@ Command Prompt window.
 You can download a [pre-compiled Windows binary][7] from the [latest
 release][8].
 
+> [!IMPORTANT]
+> Virus scanners may warn about the sigtop binary. As pointed out by the [Go
+> FAQ][9], warnings from virus scanners about Go programs often are false
+> positives.
+>
+> Please do not open an issue only to report a warning from a virus scanner.
+> There is nothing I can do about it.
+>
+> (Of course, if you can produce *proof* of actual malicious behaviour of the
+> sigtop binary, then please do let me know.)
+>
+> If you don't trust the binary, consider building from source.
+
 ### Building from source
 
-First install [Go][4]. Next, install the C compiler from [WinLibs][9]: download
-[this Zip archive][10] and unzip it to `C:\winlibs`.
+First install [Go][4]. Next, install the C compiler from [WinLibs][10]:
+download [this Zip archive][11] and unzip it to `C:\winlibs`.
 
 Then, to install sigtop, open a PowerShell window and run:
 
@@ -78,7 +91,7 @@ PowerShell to run sigtop.
 
 ### Cross-compiling in WSL
 
-If you have installed [WSL][11], you may find it simpler to cross-compile. For
+If you have installed [WSL][12], you may find it simpler to cross-compile. For
 example, if you are running Ubuntu (24.04 or later) in WSL:
 
 	sudo apt install golang gcc-mingw-w64-x86-64
@@ -92,7 +105,7 @@ the binary to another location if you wish. For example:
 ## Reporting problems
 
 Please report bugs and other problems with sigtop. You can [open an issue on
-GitHub][12] or [send an email][13].
+GitHub][13] or [send an email][14].
 
 [1]: https://github.com/tbvdm/sigtop
 [2]: https://github.com/signalapp/Signal-Desktop
@@ -102,8 +115,9 @@ GitHub][12] or [send an email][13].
 [6]: https://brew.sh/
 [7]: https://github.com/tbvdm/sigtop/releases/latest/download/sigtop.exe
 [8]: https://github.com/tbvdm/sigtop/releases/latest
-[9]: https://winlibs.com/
-[10]: https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-18.1.8-12.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-14.2.0-mingw-w64ucrt-12.0.0-r1.zip
-[11]: https://learn.microsoft.com/windows/wsl/
-[12]: https://github.com/tbvdm/sigtop/issues
-[13]: https://www.kariliq.nl/contact.html
+[9]: https://go.dev/doc/faq#virus
+[10]: https://winlibs.com/
+[11]: https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-18.1.8-12.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-14.2.0-mingw-w64ucrt-12.0.0-r1.zip
+[12]: https://learn.microsoft.com/windows/wsl/
+[13]: https://github.com/tbvdm/sigtop/issues
+[14]: https://www.kariliq.nl/contact.html
