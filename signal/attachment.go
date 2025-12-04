@@ -43,6 +43,34 @@ const (
 )
 
 const (
+	allAttachmentQuery1360 = "SELECT " +
+		"size, " +
+		"contentType, " +
+		"path, " +
+		"fileName, " +
+		"localKey, " +
+		"version, " +
+		"pending, " +
+		"sentAt, " +
+		"conversationId, " +
+		"messageId, " +
+		"flags " +
+		"FROM message_attachments "
+)
+const (
+	byConv = "WHERE conversationId = ? "
+)
+const (
+	byTime = "WHERE sentAt BETWEEN ? AND ? OR sentAt IS NULL "
+)
+const (
+	byConvAndTime = "WHERE conversationId = ? AND (sentAt BETWEEN ? AND ? OR sentAt IS NULL) "
+)
+const (
+	orderString = "ORDER BY sentAt, orderInMessage"
+)
+
+const (
 	attachmentColumnSize = iota
 	attachmentColumnContentType
 	attachmentColumnPath
@@ -50,6 +78,10 @@ const (
 	attachmentColumnLocalKey
 	attachmentColumnVersion
 	attachmentColumnPending
+	attachmentColumnSentAt
+	attachmentColumnConvId
+	attachmentColumnMsgId
+	attachmentColumnFlags // probably unnecessary?
 )
 
 const (
@@ -80,6 +112,13 @@ type Attachment struct {
 	TimeRecv    int64
 	Pending     bool
 	attachmentFile
+}
+
+type Attachment2 struct {
+	ConvId string
+	MsgId  string
+	Flags  int // probably unnecessary?
+	Attachment
 }
 
 func (c *Context) attachmentsForMessage(msg *Message, jatts []attachmentJSON) ([]Attachment, error) {
@@ -134,6 +173,107 @@ func (c *Context) attachmentsFromDatabase(msg *Message, editHistoryIndex int) ([
 	}
 
 	return atts, stmt.Finalize()
+}
+
+func (c *Context) AllAttachmentsFromDatabase(convs []Conversation, ival Interval) ([]Attachment2, error) {
+	if len(convs) == 0 {
+		// export independently from convID
+		var query = allAttachmentQuery1360 + byTime + orderString
+		stmt, _, err := c.db.Prepare(query)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := stmt.BindInt64(1, func()int64{if ival.Min.IsZero(){return 0};return ival.Min.UnixMilli()}()); err != nil {
+			stmt.Finalize()
+			return nil, err
+		}
+		if err := stmt.BindInt64(2, func()int64{if ival.Max.IsZero(){return 9223372036854775807};return ival.Max.UnixMilli()}()); err != nil {
+			stmt.Finalize()
+			return nil, err
+		}
+
+		var atts []Attachment2
+		// conversationId messageId flags
+		for stmt.Step() {
+			att := Attachment2{
+				ConvId: stmt.ColumnText(attachmentColumnConvId),
+				MsgId:  stmt.ColumnText(attachmentColumnMsgId),
+				Flags:  stmt.ColumnInt(attachmentColumnFlags),
+				Attachment: Attachment{
+					FileName:    stmt.ColumnText(attachmentColumnFileName),
+					ContentType: stmt.ColumnText(attachmentColumnContentType),
+					TimeSent:    stmt.ColumnInt64(attachmentColumnSentAt),
+					TimeRecv:    stmt.ColumnInt64(attachmentColumnSentAt),
+					Pending:     stmt.ColumnInt(attachmentColumnPending) != 0,
+					attachmentFile: attachmentFile{
+						Version: stmt.ColumnInt(attachmentColumnVersion),
+						Path:    stmt.ColumnText(attachmentColumnPath),
+						Keys:    stmt.ColumnText(attachmentColumnLocalKey),
+						Size:    stmt.ColumnInt64(attachmentColumnSize),
+					},
+				},
+			}
+			atts = append(atts, att)
+		}
+		return atts, stmt.Finalize()
+	}
+
+	var atts2 []Attachment2
+	for _, conv := range convs {
+		var query = allAttachmentQuery1360
+		var checkTime = !(ival.Min.IsZero() && ival.Max.IsZero())
+		if checkTime {
+			query = query + byConvAndTime
+		} else {
+			query = query + byConv
+		}
+		query = query + orderString
+		stmt, _, err := c.db.Prepare(query)
+		if err != nil {
+			return nil, err
+		}
+		if err := stmt.BindText(1, conv.ID); err != nil {
+			stmt.Finalize()
+			return nil, err
+		}
+		if checkTime {
+			//if err := stmt.BindInt64(2, ((map[bool]int64{true: 0, false: ival.Min.UnixMilli()})[ival.Min.IsZero()])); err != nil {
+			if err := stmt.BindInt64(2, func()int64{if ival.Min.IsZero(){return 0};return ival.Min.UnixMilli()}()); err != nil {
+				stmt.Finalize()
+				return nil, err
+			}
+			//if err := stmt.BindInt64(3, ((map[bool]int64{true: 9223372036854775807, false: ival.Max.UnixMilli()})[ival.Max.IsZero()])); err != nil {
+				if err := stmt.BindInt64(3, func()int64{if ival.Max.IsZero(){return 9223372036854775807};return ival.Max.UnixMilli()}()); err != nil {
+				stmt.Finalize()
+				return nil, err
+			}
+		}
+		for stmt.Step() {
+			att2 := Attachment2{
+				ConvId: stmt.ColumnText(attachmentColumnConvId),
+				MsgId:  stmt.ColumnText(attachmentColumnMsgId),
+				Flags:  stmt.ColumnInt(attachmentColumnFlags),
+				Attachment: Attachment{
+					FileName:    stmt.ColumnText(attachmentColumnFileName),
+					ContentType: stmt.ColumnText(attachmentColumnContentType),
+					TimeSent:    stmt.ColumnInt64(attachmentColumnSentAt),
+					TimeRecv:    stmt.ColumnInt64(attachmentColumnSentAt),
+					Pending:     stmt.ColumnInt(attachmentColumnPending) != 0,
+					attachmentFile: attachmentFile{
+						Version: stmt.ColumnInt(attachmentColumnVersion),
+						Path:    stmt.ColumnText(attachmentColumnPath),
+						Keys:    stmt.ColumnText(attachmentColumnLocalKey),
+						Size:    stmt.ColumnInt64(attachmentColumnSize),
+					},
+				},
+			}
+			atts2 = append(atts2, att2)
+		}
+		stmt.Finalize()
+	}
+
+	return atts2, nil
 }
 
 func (c *Context) attachmentsFromJSON(msg *Message, jatts []attachmentJSON) []Attachment {
