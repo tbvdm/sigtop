@@ -275,7 +275,7 @@ func conversationDir(d at.Dir, conv *signal.Conversation) (at.Dir, error) {
 func attachmentFilename(d at.Dir, att *signal.Attachment) (string, error) {
 	var name string
 	if att.FileName != "" {
-		name = sanitiseFilename(att.FileName)
+		name = time.UnixMilli(att.TimeSent).Format("2006-01-02-15-04-05") + "-" + sanitiseFilename(att.FileName)
 	} else {
 		var ext string
 		if att.ContentType == "" {
@@ -290,7 +290,7 @@ func attachmentFilename(d at.Dir, att *signal.Attachment) (string, error) {
 				log.Printf("no filename extension for content type %q (sent: %d)", att.ContentType, att.TimeSent)
 			}
 		}
-		name = "attachment-" + time.UnixMilli(att.TimeSent).Format("2006-01-02-15-04-05") + ext
+		name = time.UnixMilli(att.TimeSent).Format("2006-01-02-15-04-05") + "-attachment" + ext
 	}
 
 	return uniqueFilename(d, name)
