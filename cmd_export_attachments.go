@@ -27,6 +27,7 @@ import (
 
 	"github.com/tbvdm/go-openbsd"
 	"github.com/tbvdm/sigtop/at"
+	"github.com/tbvdm/sigtop/filename"
 	"github.com/tbvdm/sigtop/getopt"
 	"github.com/tbvdm/sigtop/signal"
 )
@@ -47,6 +48,7 @@ type attachmentExportOptions struct {
 	exportDir   string
 	selectors   []string
 	interval    signal.Interval
+	sanitiser   *filename.Sanitiser
 	mtime       mtimeMode
 	incremental bool
 }
@@ -54,7 +56,7 @@ type attachmentExportOptions struct {
 var cmdExportAttachmentsEntry = cmdEntry{
 	name:  "export-attachments",
 	alias: "att",
-	usage: "[-BiMm] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [-s interval] [directory]",
+	usage: "[-BiMm] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [-S sanitiser] [-s interval] [directory]",
 	exec:  cmdExportAttachments,
 }
 
@@ -64,8 +66,8 @@ func cmdExportAttachments(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("Bc:d:ik:Mmp:s:", args)
-	var dArg, kArg, sArg getopt.Arg
+	getopt.ParseArgs("Bc:d:ik:Mmp:S:s:", args)
+	var dArg, kArg, SArg, sArg getopt.Arg
 	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
@@ -86,6 +88,8 @@ func cmdExportAttachments(args []string) cmdStatus {
 			fallthrough
 		case 'k':
 			kArg = getopt.OptionArg()
+		case 'S':
+			SArg = getopt.OptionArg()
 		case 's':
 			sArg = getopt.OptionArg()
 		}
@@ -119,6 +123,11 @@ func cmdExportAttachments(args []string) cmdStatus {
 	}
 
 	opts.interval, err = intervalFromArgument(sArg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opts.sanitiser, err = filenameSanitiserFromArgument(SArg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -219,7 +228,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 		return true, exported
 	}
 
-	cd, err := conversationDir(d, conv)
+	cd, err := conversationDir(d, conv, opts)
 	if err != nil {
 		log.Print(err)
 		return false, exported
@@ -242,7 +251,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 			log.Printf("%s (conversation: %q, sent: %s)", msg, conv.Recipient.DisplayName(), time.UnixMilli(att.TimeSent).Format("2006-01-02 15:04:05"))
 			continue
 		}
-		path, err := attachmentFilename(cd, &att)
+		path, err := attachmentFilename(cd, &att, opts)
 		if err != nil {
 			log.Print(err)
 			ret = false
@@ -265,18 +274,18 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 	return ret, exported
 }
 
-func conversationDir(d at.Dir, conv *signal.Conversation) (at.Dir, error) {
-	name := recipientFilename(conv.Recipient, "")
+func conversationDir(d at.Dir, conv *signal.Conversation, opts *attachmentExportOptions) (at.Dir, error) {
+	name := recipientFilename(conv.Recipient, "", opts.sanitiser)
 	if err := d.Mkdir(name, 0777); err != nil && !errors.Is(err, fs.ErrExist) {
 		return at.InvalidDir, err
 	}
 	return d.OpenDir(name)
 }
 
-func attachmentFilename(d at.Dir, att *signal.Attachment) (string, error) {
+func attachmentFilename(d at.Dir, att *signal.Attachment, opts *attachmentExportOptions) (string, error) {
 	var name string
 	if att.FileName != "" {
-		name = sanitiseFilename(att.FileName)
+		name = opts.sanitiser.Sanitise(att.FileName)
 	} else {
 		var ext string
 		if att.ContentType == "" {

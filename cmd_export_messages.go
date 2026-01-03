@@ -23,6 +23,7 @@ import (
 	"github.com/tbvdm/go-openbsd"
 	"github.com/tbvdm/sigtop/at"
 	"github.com/tbvdm/sigtop/errio"
+	"github.com/tbvdm/sigtop/filename"
 	"github.com/tbvdm/sigtop/getopt"
 	"github.com/tbvdm/sigtop/signal"
 )
@@ -39,6 +40,7 @@ type messageExportOptions struct {
 	exportDir   string
 	selectors   []string
 	interval    signal.Interval
+	sanitiser   *filename.Sanitiser
 	format      formatMode
 	incremental bool
 }
@@ -46,7 +48,7 @@ type messageExportOptions struct {
 var cmdExportMessagesEntry = cmdEntry{
 	name:  "export-messages",
 	alias: "msg",
-	usage: "[-Bi] [-c conversation] [-d signal-directory] [-f format] [-k [system:]keyfile] [-s interval] [directory]",
+	usage: "[-Bi] [-c conversation] [-d signal-directory] [-f format] [-k [system:]keyfile] [-S sanitiser] [-s interval] [directory]",
 	exec:  cmdExportMessages,
 }
 
@@ -56,8 +58,8 @@ func cmdExportMessages(args []string) cmdStatus {
 		incremental: false,
 	}
 
-	getopt.ParseArgs("Bc:d:f:ik:p:s:", args)
-	var dArg, kArg, sArg getopt.Arg
+	getopt.ParseArgs("Bc:d:f:ik:p:S:s:", args)
+	var dArg, kArg, SArg, sArg getopt.Arg
 	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
@@ -85,6 +87,8 @@ func cmdExportMessages(args []string) cmdStatus {
 			fallthrough
 		case 'k':
 			kArg = getopt.OptionArg()
+		case 'S':
+			SArg = getopt.OptionArg()
 		case 's':
 			sArg = getopt.OptionArg()
 		}
@@ -118,6 +122,11 @@ func cmdExportMessages(args []string) cmdStatus {
 	}
 
 	opts.interval, err = intervalFromArgument(sArg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opts.sanitiser, err = filenameSanitiserFromArgument(SArg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -224,7 +233,7 @@ func conversationFile(d at.Dir, conv *signal.Conversation, opts *messageExportOp
 		flags |= os.O_EXCL
 	}
 
-	name := recipientFilename(conv.Recipient, ext)
+	name := recipientFilename(conv.Recipient, ext, opts.sanitiser)
 	f, err := d.OpenFile(name, flags, 0666)
 	if err != nil {
 		return nil, err

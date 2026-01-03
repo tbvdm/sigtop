@@ -23,6 +23,7 @@ import (
 
 	"github.com/tbvdm/go-openbsd"
 	"github.com/tbvdm/sigtop/at"
+	"github.com/tbvdm/sigtop/filename"
 	"github.com/tbvdm/sigtop/getopt"
 	"github.com/tbvdm/sigtop/signal"
 )
@@ -30,20 +31,21 @@ import (
 type avatarExportOptions struct {
 	exportDir string
 	selectors []string
+	sanitiser *filename.Sanitiser
 }
 
 var cmdExportAvatarsEntry = cmdEntry{
 	name:  "export-avatars",
 	alias: "avt",
-	usage: "[-B] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [directory]",
+	usage: "[-B] [-c conversation] [-d signal-directory] [-k [system:]keyfile] [-S sanitiser] [directory]",
 	exec:  cmdExportAvatars,
 }
 
 func cmdExportAvatars(args []string) cmdStatus {
 	opts := avatarExportOptions{}
 
-	getopt.ParseArgs("Bc:d:k:p:", args)
-	var dArg, kArg getopt.Arg
+	getopt.ParseArgs("Bc:d:k:p:S:", args)
+	var dArg, kArg, SArg getopt.Arg
 	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
@@ -58,6 +60,8 @@ func cmdExportAvatars(args []string) cmdStatus {
 			fallthrough
 		case 'k':
 			kArg = getopt.OptionArg()
+		case 'S':
+			SArg = getopt.OptionArg()
 		}
 	}
 
@@ -84,6 +88,11 @@ func cmdExportAvatars(args []string) cmdStatus {
 	}
 
 	signalDir, err := signalDirFromArgument(dArg, Bflag)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opts.sanitiser, err = filenameSanitiserFromArgument(SArg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,7 +143,7 @@ func exportAvatars(ctx *signal.Context, opts *avatarExportOptions) bool {
 
 	ret := true
 	for _, conv := range convs {
-		if !exportRecipientAvatars(ctx, d, conv.Recipient) {
+		if !exportRecipientAvatars(ctx, d, conv.Recipient, opts) {
 			ret = false
 		}
 	}
@@ -142,7 +151,7 @@ func exportAvatars(ctx *signal.Context, opts *avatarExportOptions) bool {
 	return ret
 }
 
-func exportRecipientAvatars(ctx *signal.Context, d at.Dir, rpt *signal.Recipient) bool {
+func exportRecipientAvatars(ctx *signal.Context, d at.Dir, rpt *signal.Recipient, opts *avatarExportOptions) bool {
 	ret := true
 
 	detail := ""
@@ -151,14 +160,14 @@ func exportRecipientAvatars(ctx *signal.Context, d at.Dir, rpt *signal.Recipient
 	}
 
 	if rpt.ProfileAvatar.Path != "" {
-		if err := exportRecipientAvatar(ctx, d, rpt, &rpt.ProfileAvatar, detail); err != nil {
+		if err := exportRecipientAvatar(ctx, d, rpt, &rpt.ProfileAvatar, detail, opts); err != nil {
 			log.Print(err)
 			ret = false
 		}
 	}
 
 	if rpt.Avatar.Path != "" {
-		if err := exportRecipientAvatar(ctx, d, rpt, &rpt.Avatar, ""); err != nil {
+		if err := exportRecipientAvatar(ctx, d, rpt, &rpt.Avatar, "", opts); err != nil {
 			log.Print(err)
 			ret = false
 		}
@@ -167,13 +176,13 @@ func exportRecipientAvatars(ctx *signal.Context, d at.Dir, rpt *signal.Recipient
 	return ret
 }
 
-func exportRecipientAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient, avt *signal.Avatar, detail string) error {
+func exportRecipientAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient, avt *signal.Avatar, detail string, opts *avatarExportOptions) error {
 	data, err := ctx.ReadAvatar(avt)
 	if err != nil {
 		return err
 	}
 
-	f, err := d.OpenFile(avatarFilename(rpt, detail, data), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+	f, err := d.OpenFile(avatarFilename(rpt, detail, data, opts), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return err
 	}
@@ -185,7 +194,7 @@ func exportRecipientAvatar(ctx *signal.Context, d at.Dir, rpt *signal.Recipient,
 	return f.Close()
 }
 
-func avatarFilename(rpt *signal.Recipient, detail string, data []byte) string {
+func avatarFilename(rpt *signal.Recipient, detail string, data []byte, opts *avatarExportOptions) string {
 	equals := func(b []byte, s string) bool { return bytes.Equal(b, []byte(s)) }
 
 	var ext string
@@ -198,5 +207,5 @@ func avatarFilename(rpt *signal.Recipient, detail string, data []byte) string {
 		ext = ".webp"
 	}
 
-	return recipientFilenameWithDetail(rpt, detail, ext)
+	return recipientFilenameWithDetail(rpt, detail, ext, opts.sanitiser)
 }

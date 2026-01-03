@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd January 19, 2025
+.Dd January 3, 2026
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -95,6 +95,7 @@ pragmas.
 .Op Fl BiMm
 .Op Fl c Ar conversation
 .Op Fl d Ar signal-directory
+.Op Fl S Ar sanitiser
 .Op Fl s Ar interval
 .Op Ar directory
 .Xc
@@ -146,12 +147,35 @@ interval are exported.
 See the
 .Sx TIME INTERVALS
 section below for details.
+.Pp
+The
+.Fl S
+option may be used to specify how filenames are sanitised.
+The
+.Ar sanitiser
+value should be one of
+.Cm macos ,
+.Cm native ,
+.Cm unix
+or
+.Cm windows .
+The
+.Cm native
+value is equivalent
+to
+.Cm macos
+on macOS, to
+.Cm windows
+on Windows, and to
+.Cm unix
+on other systems.
 .Tg avt
 .It Xo
 .Ic export-avatars
 .Op Fl B
 .Op Fl c Ar conversation
 .Op Fl d Ar signal-directory
+.Op Fl S Ar sanitiser
 .Op Ar directory
 .Xc
 .D1 Pq Alias: Ic avt
@@ -172,6 +196,28 @@ option can be specified multiple times to specify multiple conversations.
 See the
 .Sx CONVERSATION SELECTORS
 section below for details.
+.Pp
+The
+.Fl S
+option may be used to specify how filenames are sanitised.
+The
+.Ar sanitiser
+value should be one of
+.Cm macos ,
+.Cm native ,
+.Cm unix
+or
+.Cm windows .
+The
+.Cm native
+value is equivalent
+to
+.Cm macos
+on macOS, to
+.Cm windows
+on Windows, and to
+.Cm unix
+on other systems.
 .Tg db
 .It Xo
 .Ic export-database
@@ -210,6 +256,7 @@ is specified, the database key is exported instead of the encryption key.
 .Op Fl c Ar conversation
 .Op Fl d Ar signal-directory
 .Op Fl f Ar format
+.Op Fl S Ar sanitiser
 .Op Fl s Ar interval
 .Op Ar directory
 .Xc
@@ -266,6 +313,28 @@ are exported.
 See the
 .Sx TIME INTERVALS
 section below for details.
+.Pp
+The
+.Fl S
+option may be used to specify how filenames are sanitised.
+The
+.Ar sanitiser
+value should be one of
+.Cm macos ,
+.Cm native ,
+.Cm unix
+or
+.Cm windows .
+The
+.Cm native
+value is equivalent
+to
+.Cm macos
+on macOS, to
+.Cm windows
+on Windows, and to
+.Cm unix
+on other systems.
 .Tg query
 .It Xo
 .Ic query-database

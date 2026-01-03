@@ -23,6 +23,7 @@ import (
 
 	"github.com/tbvdm/go-cli"
 	"github.com/tbvdm/go-openbsd"
+	"github.com/tbvdm/sigtop/filename"
 	"github.com/tbvdm/sigtop/getopt"
 	"github.com/tbvdm/sigtop/safestorage"
 	"github.com/tbvdm/sigtop/signal"
@@ -130,6 +131,17 @@ func intervalFromArgument(ival getopt.Arg) (signal.Interval, error) {
 	return parseInterval(ival.String())
 }
 
+func filenameSanitiserFromArgument(arg getopt.Arg) (*filename.Sanitiser, error) {
+	if !arg.Set() {
+		return filename.NewSanitiser(filename.Native), nil
+	}
+	os, err := filename.ParseOS(arg.String())
+	if err != nil {
+		return nil, err
+	}
+	return filename.NewSanitiser(os), nil
+}
+
 func unveilSignalDir(dir string) error {
 	if err := openbsd.Unveil(dir, "r"); err != nil {
 		return err
@@ -152,13 +164,13 @@ func unveilSignalDir(dir string) error {
 	return nil
 }
 
-func recipientFilename(rpt *signal.Recipient, ext string) string {
-	return recipientFilenameWithDetail(rpt, "", ext)
+func recipientFilename(rpt *signal.Recipient, ext string, sanitiser *filename.Sanitiser) string {
+	return recipientFilenameWithDetail(rpt, "", ext, sanitiser)
 }
 
-func recipientFilenameWithDetail(rpt *signal.Recipient, detail, ext string) string {
+func recipientFilenameWithDetail(rpt *signal.Recipient, detail, ext string, sanitiser *filename.Sanitiser) string {
 	if detail != "" {
 		detail = " (" + detail + ")"
 	}
-	return sanitiseFilename(rpt.DetailedDisplayName() + detail + ext)
+	return sanitiser.Sanitise(rpt.DetailedDisplayName() + detail + ext)
 }
