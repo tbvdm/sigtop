@@ -27,6 +27,11 @@ import (
 	"github.com/tbvdm/sigtop/signal"
 )
 
+type avatarExportOptions struct {
+	exportDir string
+	selectors []string
+}
+
 var cmdExportAvatarsEntry = cmdEntry{
 	name:  "export-avatars",
 	alias: "avt",
@@ -35,16 +40,17 @@ var cmdExportAvatarsEntry = cmdEntry{
 }
 
 func cmdExportAvatars(args []string) cmdStatus {
+	opts := avatarExportOptions{}
+
 	getopt.ParseArgs("Bc:d:k:p:", args)
 	var dArg, kArg getopt.Arg
-	var selectors []string
 	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
 		case 'B':
 			Bflag = true
 		case 'c':
-			selectors = append(selectors, getopt.OptionArg().String())
+			opts.selectors = append(opts.selectors, getopt.OptionArg().String())
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'p':
@@ -60,13 +66,12 @@ func cmdExportAvatars(args []string) cmdStatus {
 	}
 
 	args = getopt.Args()
-	var exportDir string
 	switch len(args) {
 	case 0:
-		exportDir = "."
+		opts.exportDir = "."
 	case 1:
-		exportDir = args[0]
-		if err := os.Mkdir(exportDir, 0777); err != nil && !errors.Is(err, fs.ErrExist) {
+		opts.exportDir = args[0]
+		if err := os.Mkdir(opts.exportDir, 0777); err != nil && !errors.Is(err, fs.ErrExist) {
 			log.Fatal(err)
 		}
 	default:
@@ -87,7 +92,7 @@ func cmdExportAvatars(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	if err := openbsd.Unveil(exportDir, "rwc"); err != nil {
+	if err := openbsd.Unveil(opts.exportDir, "rwc"); err != nil {
 		log.Fatal(err)
 	}
 
@@ -106,22 +111,22 @@ func cmdExportAvatars(args []string) cmdStatus {
 	}
 	defer ctx.Close()
 
-	if !exportAvatars(ctx, exportDir, selectors) {
+	if !exportAvatars(ctx, &opts) {
 		return cmdError
 	}
 
 	return cmdOK
 }
 
-func exportAvatars(ctx *signal.Context, dir string, selectors []string) bool {
-	d, err := at.Open(dir)
+func exportAvatars(ctx *signal.Context, opts *avatarExportOptions) bool {
+	d, err := at.Open(opts.exportDir)
 	if err != nil {
 		log.Print(err)
 		return false
 	}
 	defer d.Close()
 
-	convs, err := selectConversations(ctx, selectors)
+	convs, err := selectConversations(ctx, opts.selectors)
 	if err != nil {
 		log.Print(err)
 		return false

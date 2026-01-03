@@ -43,7 +43,10 @@ const (
 	mtimeRecv
 )
 
-type attMode struct {
+type attachmentExportOptions struct {
+	exportDir   string
+	selectors   []string
+	interval    signal.Interval
 	mtime       mtimeMode
 	incremental bool
 }
@@ -56,29 +59,28 @@ var cmdExportAttachmentsEntry = cmdEntry{
 }
 
 func cmdExportAttachments(args []string) cmdStatus {
-	mode := attMode{
+	opts := attachmentExportOptions{
 		mtime:       mtimeNone,
 		incremental: false,
 	}
 
 	getopt.ParseArgs("Bc:d:ik:Mmp:s:", args)
 	var dArg, kArg, sArg getopt.Arg
-	var selectors []string
 	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
 		case 'B':
 			Bflag = true
 		case 'c':
-			selectors = append(selectors, getopt.OptionArg().String())
+			opts.selectors = append(opts.selectors, getopt.OptionArg().String())
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'i':
-			mode.incremental = true
+			opts.incremental = true
 		case 'M':
-			mode.mtime = mtimeSent
+			opts.mtime = mtimeSent
 		case 'm':
-			mode.mtime = mtimeRecv
+			opts.mtime = mtimeRecv
 		case 'p':
 			log.Print("-p is deprecated; use -k instead")
 			fallthrough
@@ -94,13 +96,12 @@ func cmdExportAttachments(args []string) cmdStatus {
 	}
 
 	args = getopt.Args()
-	var exportDir string
 	switch len(args) {
 	case 0:
-		exportDir = "."
+		opts.exportDir = "."
 	case 1:
-		exportDir = args[0]
-		if err := os.Mkdir(exportDir, 0777); err != nil && !errors.Is(err, fs.ErrExist) {
+		opts.exportDir = args[0]
+		if err := os.Mkdir(opts.exportDir, 0777); err != nil && !errors.Is(err, fs.ErrExist) {
 			log.Fatal(err)
 		}
 	default:
@@ -117,7 +118,7 @@ func cmdExportAttachments(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	ival, err := intervalFromArgument(sArg)
+	opts.interval, err = intervalFromArgument(sArg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -126,7 +127,7 @@ func cmdExportAttachments(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	if err := openbsd.Unveil(exportDir, "rwc"); err != nil {
+	if err := openbsd.Unveil(opts.exportDir, "rwc"); err != nil {
 		log.Fatal(err)
 	}
 
@@ -139,7 +140,7 @@ func cmdExportAttachments(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	if mode.mtime == mtimeNone {
+	if opts.mtime == mtimeNone {
 		if err := openbsd.Pledge("stdio rpath wpath cpath flock"); err != nil {
 			log.Fatal(err)
 		}
@@ -159,15 +160,15 @@ func cmdExportAttachments(args []string) cmdStatus {
 	}
 	defer ctx.Close()
 
-	if !exportAttachments(ctx, exportDir, mode, selectors, ival) {
+	if !exportAttachments(ctx, &opts) {
 		return cmdError
 	}
 
 	return cmdOK
 }
 
-func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors []string, ival signal.Interval) bool {
-	d, err := at.Open(dir)
+func exportAttachments(ctx *signal.Context, opts *attachmentExportOptions) bool {
+	d, err := at.Open(opts.exportDir)
 	if err != nil {
 		log.Print(err)
 		return false
@@ -175,7 +176,7 @@ func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors 
 	defer d.Close()
 
 	var exported map[string]bool
-	if mode.incremental {
+	if opts.incremental {
 		var err error
 		if exported, err = readIncrementalFile(d); err != nil {
 			log.Print(err)
@@ -183,7 +184,7 @@ func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors 
 		}
 	}
 
-	convs, err := selectConversations(ctx, selectors)
+	convs, err := selectConversations(ctx, opts.selectors)
 	if err != nil {
 		log.Print(err)
 		return false
@@ -192,12 +193,12 @@ func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors 
 	ret := true
 	for _, conv := range convs {
 		var ok bool
-		if ok, exported = exportConversationAttachments(ctx, d, &conv, mode, exported, ival); !ok {
+		if ok, exported = exportConversationAttachments(ctx, d, &conv, exported, opts); !ok {
 			ret = false
 		}
 	}
 
-	if mode.incremental {
+	if opts.incremental {
 		if err := writeIncrementalFile(d, exported); err != nil {
 			log.Print(err)
 			return false
@@ -207,8 +208,8 @@ func exportAttachments(ctx *signal.Context, dir string, mode attMode, selectors 
 	return ret
 }
 
-func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode attMode, exported map[string]bool, ival signal.Interval) (bool, map[string]bool) {
-	atts, err := ctx.ConversationAttachments(conv, ival)
+func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.Conversation, exported map[string]bool, opts *attachmentExportOptions) (bool, map[string]bool) {
+	atts, err := ctx.ConversationAttachments(conv, opts.interval)
 	if err != nil {
 		log.Print(err)
 		return false, exported
@@ -227,7 +228,7 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 	ret := true
 	for _, att := range atts {
 		id := filepath.Base(att.Path)
-		if mode.incremental && exported[id] {
+		if opts.incremental && exported[id] {
 			continue
 		}
 		if att.Path == "" {
@@ -252,11 +253,11 @@ func exportConversationAttachments(ctx *signal.Context, d at.Dir, conv *signal.C
 			ret = false
 			continue
 		}
-		if err := setAttachmentModTime(cd, path, &att, mode.mtime); err != nil {
+		if err := setAttachmentModTime(cd, path, &att, opts.mtime); err != nil {
 			log.Print(err)
 			ret = false
 		}
-		if mode.incremental {
+		if opts.incremental {
 			exported[id] = true
 		}
 	}

@@ -35,7 +35,10 @@ const (
 	formatTextShort
 )
 
-type msgMode struct {
+type messageExportOptions struct {
+	exportDir   string
+	selectors   []string
+	interval    signal.Interval
 	format      formatMode
 	incremental bool
 }
@@ -48,36 +51,35 @@ var cmdExportMessagesEntry = cmdEntry{
 }
 
 func cmdExportMessages(args []string) cmdStatus {
-	mode := msgMode{
+	opts := messageExportOptions{
 		format:      formatText,
 		incremental: false,
 	}
 
 	getopt.ParseArgs("Bc:d:f:ik:p:s:", args)
 	var dArg, kArg, sArg getopt.Arg
-	var selectors []string
 	Bflag := false
 	for getopt.Next() {
 		switch getopt.Option() {
 		case 'B':
 			Bflag = true
 		case 'c':
-			selectors = append(selectors, getopt.OptionArg().String())
+			opts.selectors = append(opts.selectors, getopt.OptionArg().String())
 		case 'd':
 			dArg = getopt.OptionArg()
 		case 'f':
 			switch arg := getopt.OptionArg().String(); arg {
 			case "json":
-				mode.format = formatJSON
+				opts.format = formatJSON
 			case "text":
-				mode.format = formatText
+				opts.format = formatText
 			case "text-short":
-				mode.format = formatTextShort
+				opts.format = formatTextShort
 			default:
 				log.Fatalf("invalid format: %s", arg)
 			}
 		case 'i':
-			mode.incremental = true
+			opts.incremental = true
 		case 'p':
 			log.Print("-p is deprecated; use -k instead")
 			fallthrough
@@ -93,13 +95,12 @@ func cmdExportMessages(args []string) cmdStatus {
 	}
 
 	args = getopt.Args()
-	var exportDir string
 	switch len(args) {
 	case 0:
-		exportDir = "."
+		opts.exportDir = "."
 	case 1:
-		exportDir = args[0]
-		if err := os.Mkdir(exportDir, 0777); err != nil && !errors.Is(err, fs.ErrExist) {
+		opts.exportDir = args[0]
+		if err := os.Mkdir(opts.exportDir, 0777); err != nil && !errors.Is(err, fs.ErrExist) {
 			log.Fatal(err)
 		}
 	default:
@@ -116,7 +117,7 @@ func cmdExportMessages(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	ival, err := intervalFromArgument(sArg)
+	opts.interval, err = intervalFromArgument(sArg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -125,7 +126,7 @@ func cmdExportMessages(args []string) cmdStatus {
 		log.Fatal(err)
 	}
 
-	if err := openbsd.Unveil(exportDir, "rwc"); err != nil {
+	if err := openbsd.Unveil(opts.exportDir, "rwc"); err != nil {
 		log.Fatal(err)
 	}
 
@@ -144,22 +145,22 @@ func cmdExportMessages(args []string) cmdStatus {
 	}
 	defer ctx.Close()
 
-	if !exportMessages(ctx, exportDir, mode, selectors, ival) {
+	if !exportMessages(ctx, &opts) {
 		return cmdError
 	}
 
 	return cmdOK
 }
 
-func exportMessages(ctx *signal.Context, dir string, mode msgMode, selectors []string, ival signal.Interval) bool {
-	d, err := at.Open(dir)
+func exportMessages(ctx *signal.Context, opts *messageExportOptions) bool {
+	d, err := at.Open(opts.exportDir)
 	if err != nil {
 		log.Print(err)
 		return false
 	}
 	defer d.Close()
 
-	convs, err := selectConversations(ctx, selectors)
+	convs, err := selectConversations(ctx, opts.selectors)
 	if err != nil {
 		log.Print(err)
 		return false
@@ -167,7 +168,7 @@ func exportMessages(ctx *signal.Context, dir string, mode msgMode, selectors []s
 
 	ret := true
 	for _, conv := range convs {
-		if err = exportConversationMessages(ctx, d, &conv, mode, ival); err != nil {
+		if err = exportConversationMessages(ctx, d, &conv, opts); err != nil {
 			log.Print(err)
 			ret = false
 		}
@@ -176,8 +177,8 @@ func exportMessages(ctx *signal.Context, dir string, mode msgMode, selectors []s
 	return ret
 }
 
-func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conversation, mode msgMode, ival signal.Interval) error {
-	msgs, err := ctx.ConversationMessages(conv, ival)
+func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conversation, opts *messageExportOptions) error {
+	msgs, err := ctx.ConversationMessages(conv, opts.interval)
 	if err != nil {
 		return err
 	}
@@ -186,13 +187,13 @@ func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conv
 		return nil
 	}
 
-	f, err := conversationFile(d, conv, mode)
+	f, err := conversationFile(d, conv, opts)
 	if err != nil {
 		return err
 	}
 	ew := errio.NewWriter(f)
 
-	switch mode.format {
+	switch opts.format {
 	case formatJSON:
 		err = jsonWriteMessages(ew, msgs)
 	case formatText:
@@ -209,9 +210,9 @@ func exportConversationMessages(ctx *signal.Context, d at.Dir, conv *signal.Conv
 	return f.Close()
 }
 
-func conversationFile(d at.Dir, conv *signal.Conversation, mode msgMode) (*os.File, error) {
+func conversationFile(d at.Dir, conv *signal.Conversation, opts *messageExportOptions) (*os.File, error) {
 	var ext string
-	switch mode.format {
+	switch opts.format {
 	case formatJSON:
 		ext = ".json"
 	case formatText, formatTextShort:
@@ -219,7 +220,7 @@ func conversationFile(d at.Dir, conv *signal.Conversation, mode msgMode) (*os.Fi
 	}
 
 	flags := os.O_WRONLY | os.O_CREATE
-	if !mode.incremental {
+	if !opts.incremental {
 		flags |= os.O_EXCL
 	}
 
