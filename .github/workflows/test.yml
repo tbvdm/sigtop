@@ -75,7 +75,11 @@ jobs:
       - name: netbsd-vm
         uses: vmactions/netbsd-vm@v1
         with:
-          prepare: pkg_add go libsecret pkg-config pkg_alternatives
+          prepare: |
+            pkg_add pkgin
+            pkgin update
+            pkgin -y upgrade
+            pkgin -y install go libsecret pkg-config pkg_alternatives
           run: |
             uname -a
             go version
