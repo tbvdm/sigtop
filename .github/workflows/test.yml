@@ -7,17 +7,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, macos-15, ubuntu-22.04, ubuntu-24.04, windows-latest]
+        os: [macos-14, macos-15, macos-26, ubuntu-22.04, ubuntu-24.04, windows-latest]
         go: ['1.21', '1.22', '1.23', '1.24', '1.25']
 
     runs-on: ${{matrix.os}}
 
     steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: setup-go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{matrix.go}}
 
@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: dragonfly-vm
         uses: vmactions/dragonflybsd-vm@v1
@@ -53,7 +53,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: freebsd-vm
         uses: vmactions/freebsd-vm@v1
@@ -70,7 +70,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: netbsd-vm
         uses: vmactions/netbsd-vm@v1
@@ -86,7 +86,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: openbsd-vm
         uses: vmactions/openbsd-vm@v1
@@ -106,7 +106,7 @@ jobs:
 
     steps:
     - name: checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: setup-wsl
       uses: Vampire/setup-wsl@v6
