@@ -12,7 +12,7 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd January 3, 2026
+.Dd January 5, 2026
 .Dt SIGTOP 1
 .Os
 .Sh NAME
@@ -155,10 +155,11 @@ The
 .Ar sanitiser
 value should be one of
 .Cm macos ,
-.Cm native ,
-.Cm unix
+.Cm unix ,
+.Cm windows
 or
-.Cm windows .
+.Cm native
+(default).
 The
 .Cm native
 value is equivalent
@@ -200,24 +201,8 @@ section below for details.
 The
 .Fl S
 option may be used to specify how filenames are sanitised.
-The
-.Ar sanitiser
-value should be one of
-.Cm macos ,
-.Cm native ,
-.Cm unix
-or
-.Cm windows .
-The
-.Cm native
-value is equivalent
-to
-.Cm macos
-on macOS, to
-.Cm windows
-on Windows, and to
-.Cm unix
-on other systems.
+See
+.Ic export-attachments .
 .Tg db
 .It Xo
 .Ic export-database
@@ -317,24 +302,8 @@ section below for details.
 The
 .Fl S
 option may be used to specify how filenames are sanitised.
-The
-.Ar sanitiser
-value should be one of
-.Cm macos ,
-.Cm native ,
-.Cm unix
-or
-.Cm windows .
-The
-.Cm native
-value is equivalent
-to
-.Cm macos
-on macOS, to
-.Cm windows
-on Windows, and to
-.Cm unix
-on other systems.
+See
+.Ic export-attachments .
 .Tg query
 .It Xo
 .Ic query-database
