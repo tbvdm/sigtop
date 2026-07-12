@@ -52,6 +52,7 @@ func addContentTypes() error {
 		typ string
 	}{
 		{".aac", "audio/aac"},
+		{".csv", "text/comma-separated-values"},
 		{".m4a", "audio/x-m4a"},
 		{".wav", "audio/x-wav"},
 	}
