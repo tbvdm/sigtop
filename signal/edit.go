@@ -16,6 +16,7 @@ package signal
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -45,13 +46,13 @@ func (c *Context) parseEditJSON(msg *Message, jmsg *messageJSON) error {
 		}
 		var err error
 		if edit.Attachments, err = c.attachmentsForEdit(msg, editHistoryIndex, jedit.Attachments); err != nil {
-			return err
+			return &EditError{Index: editHistoryIndex, Err: err}
 		}
 		if edit.Body.Mentions, err = c.parseMentionJSON(jedit.Mentions); err != nil {
-			return err
+			return &EditError{Index: editHistoryIndex, Err: err}
 		}
 		if edit.Quote, err = c.parseQuoteJSON(jedit.Quote); err != nil {
-			return err
+			return &EditError{Index: editHistoryIndex, Err: err}
 		}
 		if err = c.fixEditedLongMessage(&edit); err != nil {
 			// Fixing edited long messages is a best-effort
@@ -95,4 +96,13 @@ func (c *Context) fixEditedLongMessage(edit *Edit) error {
 	}
 
 	return nil
+}
+
+type EditError struct {
+	Index int
+	Err   error
+}
+
+func (e *EditError) Error() string {
+	return fmt.Sprintf("edit %d: %v", e.Index, e.Err)
 }

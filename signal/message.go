@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/tbvdm/sigtop/sqlcipher"
@@ -308,7 +309,14 @@ func (c *Context) conversationMessagesSentBetween(conv *Conversation, min, max t
 func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 	var msgs []Message
 	for stmt.Step() {
-		var msg Message
+		msg := Message{
+			ID:       stmt.ColumnText(messageColumnID),
+			TimeSent: stmt.ColumnInt64(messageColumnSentAt),
+			TimeRecv: stmt.ColumnInt64(messageColumnReceivedAtMS),
+			Type:     stmt.ColumnText(messageColumnType),
+			Body:     MessageBody{Text: stmt.ColumnText(messageColumnBody)},
+			JSON:     stmt.ColumnText(messageColumnJSON),
+		}
 
 		if stmt.ColumnType(messageColumnConversationID) == sqlcipher.ColumnTypeNull {
 			// Likely message with error
@@ -318,7 +326,7 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 			rpt, err := c.recipientFromConversationID(id)
 			if err != nil {
 				stmt.Finalize()
-				return nil, err
+				return nil, newMessageError(&msg, err)
 			}
 			if rpt == nil {
 				log.Printf("cannot find conversation recipient for ID %q", id)
@@ -331,7 +339,7 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 			rpt, err := c.recipientFromConversationID(id)
 			if err != nil {
 				stmt.Finalize()
-				return nil, err
+				return nil, newMessageError(&msg, err)
 			}
 			if rpt == nil {
 				log.Printf("cannot find source recipient for ID %q", id)
@@ -339,23 +347,16 @@ func (c *Context) messages(stmt *sqlcipher.Stmt) ([]Message, error) {
 			msg.Source = rpt
 		}
 
-		msg.ID = stmt.ColumnText(messageColumnID)
-		msg.Type = stmt.ColumnText(messageColumnType)
-		msg.Body.Text = stmt.ColumnText(messageColumnBody)
-		msg.JSON = stmt.ColumnText(messageColumnJSON)
-		msg.TimeSent = stmt.ColumnInt64(messageColumnSentAt)
-		msg.TimeRecv = stmt.ColumnInt64(messageColumnReceivedAtMS)
-
 		jmsg, err := c.parseMessageJSON(&msg)
 		if err != nil {
 			stmt.Finalize()
-			return nil, err
+			return nil, newMessageError(&msg, err)
 		}
 
 		msg.Attachments, err = c.attachmentsForMessage(&msg, jmsg.Attachments)
 		if err != nil {
 			stmt.Finalize()
-			return nil, err
+			return nil, newMessageError(&msg, err)
 		}
 
 		if err := msg.Body.insertMentions(); err != nil {
@@ -430,4 +431,31 @@ func (m *Message) dumpJSON() {
 
 func (m *Message) IsOutgoing() bool {
 	return m.Type == "outgoing"
+}
+
+type MessageError struct {
+	Conversation *Recipient
+	TimeSent     int64
+	Err          error
+}
+
+func (e *MessageError) Error() string {
+	b := &strings.Builder{}
+
+	b.WriteString("message in ")
+
+	if e.Conversation == nil {
+		b.WriteString("unknown conversion")
+	} else {
+		fmt.Fprintf(b, "conversation %q", e.Conversation.DisplayName())
+	}
+
+	fmt.Fprintf(b, ", sent %s (%d)", time.UnixMilli(e.TimeSent).Format("2006-01-02 15:04:05"), e.TimeSent)
+	fmt.Fprintf(b, ": %v", e.Err)
+
+	return b.String()
+}
+
+func newMessageError(msg *Message, err error) error {
+	return &MessageError{Conversation: msg.Conversation, TimeSent: msg.TimeSent, Err: err}
 }
