@@ -28,7 +28,7 @@ jobs:
           sudo apt install libsecret-1-dev pkg-config
 
       - name: build
-        run: go build
+        run: go build ./cmd/sigtop
 
   test-dragonfly:
     runs-on: ubuntu-latest
@@ -46,7 +46,7 @@ jobs:
             uname -a
             go version
             git config --add --global safe.directory "$PWD"
-            go build
+            go build ./cmd/sigtop
 
   test-freebsd:
     runs-on: ubuntu-latest
@@ -63,7 +63,7 @@ jobs:
           run: |
             uname -a
             go version
-            go build
+            go build ./cmd/sigtop
 
   test-netbsd:
     runs-on: ubuntu-latest
@@ -83,7 +83,7 @@ jobs:
           run: |
             uname -a
             go version
-            go build
+            go build ./cmd/sigtop
 
   test-openbsd:
     runs-on: ubuntu-latest
@@ -103,7 +103,7 @@ jobs:
           run: |
             uname -a
             go version
-            go build
+            go build ./cmd/sigtop
 
   test-wsl:
     runs-on: windows-latest
@@ -123,4 +123,4 @@ jobs:
       run: |
         uname -a
         go version
-        GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build
+        GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build ./cmd/sigtop

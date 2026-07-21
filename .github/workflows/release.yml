@@ -22,7 +22,7 @@ jobs:
           go-version: stable
 
       - name: build
-        run: go build -ldflags='-s -w' -trimpath
+        run: go build -ldflags='-s -w' -trimpath ./cmd/sigtop
 
       - name: release
         uses: ncipollo/release-action@v1

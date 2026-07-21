@@ -24,18 +24,18 @@ required packages:
 
 Then, to install sigtop, run:
 
-	go install github.com/tbvdm/sigtop@master
+	go install github.com/tbvdm/sigtop/cmd/sigtop@master
 
 This command installs a `sigtop` binary in `~/go/bin`. You can choose another
 installation directory by setting the `GOBIN` environment variable. For
 example, to install sigtop in `~/bin`, run:
 
-	GOBIN=~/bin go install github.com/tbvdm/sigtop@master
+	GOBIN=~/bin go install github.com/tbvdm/sigtop/cmd/sigtop@master
 
 If you prefer, you can install sigtop without `libsecret` support by specifying
 the `no_libsecret` build tag:
 
-	go install -tags no_libsecret github.com/tbvdm/sigtop@master
+	go install -tags no_libsecret github.com/tbvdm/sigtop/cmd/sigtop@master
 
 If you are running Ubuntu 18.04, 20.04 or 22.04, you will have to install a
 newer version of Go. See the [Go wiki][5] for more information.
@@ -83,7 +83,7 @@ download [this Zip archive][11] and unzip it to `C:\winlibs`.
 Then, to install sigtop, open a PowerShell window and run:
 
 	$env:cc = 'c:\winlibs\mingw64\bin\gcc'
-	go install github.com/tbvdm/sigtop@master
+	go install github.com/tbvdm/sigtop/cmd/sigtop@master
 
 This command installs `sigtop.exe` in `C:\Users\<username>\go\bin`. This
 directory has been added to your `PATH`, so you can simply type `sigtop` in
@@ -95,7 +95,7 @@ If you have installed [WSL][12], you may find it simpler to cross-compile. For
 example, if you are running Ubuntu (24.04 or later) in WSL:
 
 	sudo apt install golang gcc-mingw-w64-x86-64
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go install github.com/tbvdm/sigtop@master
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go install github.com/tbvdm/sigtop/cmd/sigtop@master
 
 This command installs `sigtop.exe` in `~/go/bin/windows_amd64`. You can move
 the binary to another location if you wish. For example:
